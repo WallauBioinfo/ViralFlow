@@ -36,21 +36,7 @@ def build_containers(root_path):
     os.system(cd_to_dir+';'+pull_containers) 
     print(cd_to_dir+';'+build_sandbox)
     os.system(cd_to_dir+';'+build_sandbox)
-    # add new entries to snpeff
-    #entries = parse_csv(f"{root_path}/vfnext/databases/add_to_snpeff_db.csv")
-    #print("@ add entries to SnpEff DB")
-    #for entry in entries:
-        #print(f"..> {entry[0]}:{entry[1]}")
-        #add_entries_to_DB(root_path, entry[0], entry[1])
     
-def install_dependencies(root_path):
-    """
-    install nextflow and singularity via conda
-    """
-    # install software dependencies
-    run_bash = f"bash {root_path}/wrapper/install_dep.sh"
-    print(run_bash)
-    os.system(run_bash)
 
 # input args file load
 def parse_params(in_flpath):

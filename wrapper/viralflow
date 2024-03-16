@@ -8,7 +8,7 @@ from sys import exit
 
 __author__ = "Antonio Marinho da Silva Neto"
 __license__ = "GPL"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 __maintainer__ = "Antonio Marinho da Silva Neto"
 __email__ = "ad45@sanger.ac.uk"
 
@@ -24,17 +24,11 @@ this wrapper was designed to make vfnext acessible for non technical user.
 USAGE:
 viralflow -help
 
-viralflow -setup_dependencies (install nextflow)
-
 viralflow -build_containers
-
 
 viralflow -run --in_params my_input_params (get params to feed nextflow from a txt file)
 
-# To add
 viralflow -add_entry_to_snpeff -org_name -genome_code (add new entry to snpEff database)
-
-
 """
 
 
@@ -47,9 +41,6 @@ LAUNCH_DIR = os.getcwd()
 parser = argparse.ArgumentParser(description=dsc)
 
 # --- setup modes --------------------------------------------------------------
-parser.add_argument("-setup_dependencies", action="store_true", default=False,
-                    help="setup dependencies (nextflow and singularity)")
-
 parser.add_argument("-build_containers", action="store_true", default=False,
                     help="build containers for vfnext")
 
@@ -91,9 +82,6 @@ args = parser.parse_args()
 
 if args.build_containers == True:
     wrapper.build_containers(VF_ROOT_PATH)
-    exit(0)
-if args.setup_dependencies == True:
-    wrapper.install_dependencies(VF_ROOT_PATH)
     exit(0)
 
 if args.update_pangolin == True:
