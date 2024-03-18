@@ -33,21 +33,31 @@ PANGO_DESIGNATION_VER="v1.2.127"
 # install needed software for conda install; cleanup apt garbage
 apt-get update && apt-get install -y \
 wget \
+curl \
 git \
 build-essential && \
 apt-get autoclean && rm -rf /var/lib/apt/lists/*
 
 # get miniconda and the pangolin repo
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-bash ./Miniconda3-latest-Linux-x86_64.sh -p /miniconda -b  && \
-rm Miniconda3-latest-Linux-x86_64.sh && \
+CURRENT_DIR=$PWD
+cd /usr/local
+rmdir bin
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
+eval "$(/usr/local/bin/micromamba shell hook -s posix)"
+/usr/local/bin/micromamba shell init -s bash -p /usr/local/bin/mm
+micromamba shell init --shell=bash --prefix=/usr/local/bin/mm
+micromamba activate
+micromamba config append channels conda-forge --env
+micromamba self-update
+cd $CURRENT_DIR
 wget "https://github.com/cov-lineages/pangolin/archive/${PANGOLIN_VER}.tar.gz" && \
 tar -xf ${PANGOLIN_VER}.tar.gz && \
 rm ${PANGOLIN_VER}.tar.gz && \
 mv -v pangolin-* pangolin
 
 # set the environment
-PATH="/miniconda/bin:$PATH"
+PATH="/usr/local/bin/mm:$PATH"
 LC_ALL=C
 
 # modify environment.yml to pin specific versions during install
@@ -57,14 +67,14 @@ sed -i "s|pangoLEARN.git|pangoLEARN.git@${PANGOLEARN_VER}|" /pangolin/environmen
 sed -i "s|scorpio.git|scorpio.git@${SCORPIO_VER}|" /pangolin/environment.yml && \
 sed -i "s|constellations.git|constellations.git@${CONSTELLATIONS_VER}|" /pangolin/environment.yml && \
 sed -i "s|pango-designation.git|pango-designation.git@${PANGO_DESIGNATION_VER}|" /pangolin/environment.yml && \
-conda env create -f /pangolin/environment.yml && \
+micromamba create -f /pangolin/environment.yml && \
 echo "source activate pangolin" > /etc/bash.bashrc
-PATH=/miniconda/envs/pangolin/bin:$PATH
+PATH=/usr/local/bin/mm/envs/pangolin/bin:$PATH
 
 # final pip install steps; cleanup conda garbage; print versions of pangolin & dependencies
 cd pangolin && \
 pip install . && \
-conda clean -a -y && \
+micromamba clean -a -y && \
 mkdir /data && \
 pangolin --all-versions && \
 usher --version
@@ -72,13 +82,12 @@ usher --version
 mkdir -p /data
 cd /data
 %environment
-export PATH="/miniconda/bin:$PATH"
+export PATH="/usr/local/bin/mm:$PATH"
 export LC_ALL=C
-export PATH=/miniconda/envs/pangolin/bin:$PATH
+export PATH=/usr/local/bin/mm/envs/pangolin/bin:$PATH
 %runscript
 cd /data
 exec /bin/bash "$@"
 %startscript
 cd /data
 exec /bin/bash "$@"
-
