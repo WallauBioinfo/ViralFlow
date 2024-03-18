@@ -42,7 +42,7 @@ ANSI_RESET = "\033[0m"
 
 log.info """
   ===========================================
-  VFNEXT v1.1.0
+  VFNEXT v1.1.1
   parameters:
   -------------------------------------------
   --inDir            : ${params.inDir}
@@ -212,7 +212,6 @@ workflow {
   if (params.virus=="sars-cov2"){
     runPangolin(runVariantNaming_In_ch)
     runNextClade(runVariantNaming_In_ch, ref_fa)
-    // GAMBIARRA ALLERT --------------------------------------------------------
     // Pangolin is the last ones to run, so will use it as a trigger to
     // the output compilation/
     // for the final version, need to find a better way. Maybe split and set
