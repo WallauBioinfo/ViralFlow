@@ -11,6 +11,7 @@ process runFastp{
 
   script:
       prfx = sample_id//reads[0].getSimpleName()
+      def dedup = params.dedup ? "--dedup --dup_calc_accuracy ${params.ndedup}":"--dont_eval_duplication"
       """
       fastp -i ${reads[0]} -I ${reads[1]} \
             --detect_adapter_for_pe \
@@ -21,6 +22,7 @@ process runFastp{
             -j ${prfx}.fastp.json \
             -l ${params.minLen} -f ${params.trimLen} -t ${params.trimLen} \
             -F ${params.trimLen} -T ${params.trimLen} \
-            --cut_front --cut_tail --qualified_quality_phred 20
+            --cut_front --cut_tail --qualified_quality_phred 20 \
+            ${dedup}
       """
 }

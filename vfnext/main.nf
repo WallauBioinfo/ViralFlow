@@ -42,7 +42,7 @@ ANSI_RESET = "\033[0m"
 
 log.info """
   ===========================================
-  VFNEXT v1.1.1
+  VFNEXT v1.2.0
   parameters:
   -------------------------------------------
   --inDir            : ${params.inDir}
@@ -61,6 +61,8 @@ log.info """
   --writeMappedReads : ${params.writeMappedReads}
   --nextflowSimCalls : ${params.nextflowSimCalls}
   --fastp_threads    : ${params.fastp_threads}
+  --dedup            : ${params.dedup}
+  --ndedup           : ${params.ndedup}
   --bwa_threads      : ${params.bwa_threads}
   --mafft_threads    : ${params.mafft_threads}
   --mapping_quality  : ${params.mapping_quality}

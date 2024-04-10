@@ -7,7 +7,7 @@ wallaulabs/viralflow/intrahost_analysis:1.0.0
 wallaulabs/viralflow/generate_report:1.0.0
 wallaulabs/viralflow/generate_consensus:1.0.0
 wallaulabs/viralflow/mapping_reference:1.0.0
-wallaulabs/viralflow/fastp:0.20.1
+wallaulabs/viralflow/fastp:0.23.4
 wallaulabs/viralflow/generate_plots:1.0.0
 wallaulabs/viralflow/nextclade:2.4
 wallaulabs/viralflow/compiled_outputs:1.0.0

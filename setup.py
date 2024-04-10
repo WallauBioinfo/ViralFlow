@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='ViralFlow',
-      version='1.1.1',
+      version='1.2.0',
       description='''
       Workflows for viral genome Assembly at FioCruz/IAM
       ''',

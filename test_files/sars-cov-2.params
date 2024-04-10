@@ -15,3 +15,5 @@ nextflowSimCalls 6
 fastp_threads 1
 bwa_threads 1
 mafft_threads 1
+dedup false
+ndedup 3
