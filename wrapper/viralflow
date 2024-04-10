@@ -86,7 +86,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--ndedup",
-    type=str,
+    type=int,
     default=3,
     help="standart accuracy level to dedup mode on fastp"
 )
