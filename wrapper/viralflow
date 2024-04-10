@@ -79,7 +79,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--dedup",
-    type=str,
+    type=bool,
     default=False,
     help="enable dedup mode on fastp"
 )
