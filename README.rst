@@ -3,7 +3,7 @@ ViralFlow
 
 This repository contains the code of Viralflow, a workflow to performs a reference guided genome assembly of non-segmented viruses written in Nextflow. The workflow was developed to work with Illumina paired-end reads. Tests with other technologies should be performed.
 
-If you use this workflow for academic purposes, please cite: `ViralFlow: A Versatile Automated Workflow for SARS-CoV-2 Genome Assembly, Lineage Assignment, Mutations and Intrahost Variant Detection <https://www.mdpi.com/1999-4915/14/2/217>`_.
+If you use this workflow for academic purposes, please cite: `ViralFlow v1.0—a computational workflow for streamlining viral genomic surveillance <https://academic.oup.com/nargab/article/6/2/lqae056/7682253>`_.
 
 Documentation
 ########
