@@ -42,7 +42,7 @@ apt-get autoclean && rm -rf /var/lib/apt/lists/*
 CURRENT_DIR=$PWD
 cd /usr/local
 rmdir bin
-curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/1.5.7 | tar -xvj bin/micromamba
 export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
 eval "$(/usr/local/bin/micromamba shell hook -s posix)"
 /usr/local/bin/micromamba shell init -s bash -p /usr/local/bin/mm
