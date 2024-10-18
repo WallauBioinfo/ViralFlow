@@ -199,7 +199,7 @@ workflow processInputs {
     }
 
     // get reads
-    reads_channel_raw = channel.fromFilePairs("${params.inDir}/*_{R,r}{1,2}.f{q.gz,astq,astq.gz}",
+    reads_channel_raw = channel.fromFilePairs("${params.inDir}/*_{R,r}{1,2}.f{q,q.gz,astq,astq.gz}",
                                               checkIfExists: true)
     // remove empty fastqs
     reads_channel= reads_channel_raw.filter(it -> (it[1][0].size()>0) && (it[1][1].size()>0))
