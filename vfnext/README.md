@@ -7,7 +7,7 @@ ViralFlow constitutes a computational workflow implemented in Nextflow. Below, y
 * How to setup vfnext ?
 
 ```{bash}
-git clone https://github.com/dezordi/ViralFlow.git
+git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow
 cd ./vfnext/containers/
 /bin/bash setupContainers.sh
