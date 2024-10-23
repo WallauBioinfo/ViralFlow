@@ -199,19 +199,13 @@ workflow processInputs {
     }
 
     // get reads
-    reads_channel_fqgz = channel.fromFilePairs("${params.inDir}/*_R{1,2}*.fq.gz")
-    reads_channel_fagz = channel.fromFilePairs("${params.inDir}/*_R{1,2}*.fastq.gz")
-    reads_channel_raw = reads_channel_fagz.concat(reads_channel_fqgz)
+    reads_channel_raw = channel.fromFilePairs("${params.inDir}/*_{R,r}{1,2}.f{q,q.gz,astq,astq.gz}",
+                                              checkIfExists: true)
     // remove empty fastqs
     reads_channel= reads_channel_raw.filter(it -> (it[1][0].size()>0) && (it[1][1].size()>0))
     // raise warning if there is any empty file
     reads_channel_raw.filter(it -> (it[1][0].size()==0) && (it[1][1].size()==0))
         | view(it -> log.warn("Excluding ${it[0]} fastq files due to 0 bytes size)"))
-
-    if (reads_channel.count()==0){
-      log.error("No fastq files found. Be sure your fastq can be found by '*_R{1,2}*.fq.gz'(or fasta.gz) wildcard.")
-      exit 1
-    }
     // be sure a reference fasta and a reference gff was obtained
     assert !(reference_fa == null) && !(reference_gff == null)
 
