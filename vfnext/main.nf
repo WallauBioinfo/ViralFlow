@@ -23,7 +23,6 @@ include { runSnpEff } from './modules/runSnpEff.nf'
 include { genFaIdx } from './modules/genFaIdx.nf'
 include { getMappedReads } from './modules/getMappedReads.nf'
 include { getUnmappedReads } from './modules/getUnmappedReads.nf'
-include { bamToFastq } from './modules/bamToFastq.nf'
 include { checkSnpEffDB } from './modules/checkSnpEffDB.nf'
 // import sub workflows
 include { processInputs } from './workflows/step0-input-handling.nf'
@@ -169,7 +168,6 @@ workflow {
   
     // write unmappped reads
     getUnmappedReads(align2ref_Out_ch)
-    bamToFastq(getUnmappedReads.out)
   }
   
   // ivar
