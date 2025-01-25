@@ -123,10 +123,10 @@ workflow {
   //align 2 reference
   align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch)
    
-  align2ref(align2ref_In_ch, ref_fa) // Ajustar lógica para paired_end ou single end
+  align2ref(align2ref_In_ch, ref_fa)
   // remove bai file (not used downstream, but usefull as a pipeline output)
   align2ref.out.regular_output // tuple (sample_id, bam_file, bai_file)
-    | map { it -> tuple(it[0], it[1]) } // tuple(sample_id, bam_file)
+    | map { it -> tuple(it[0], it[1], it[3]) } // tuple(sample_id, bam_file, is_paired_end)
     | set { align2ref_Out_ch }
 
   // remove bam files which are too small (necessary for Picard)
@@ -161,10 +161,10 @@ workflow {
 
   if ((params.writeMappedReads == true)){
     // write mapped reads
-    getMappedReads(align2ref_Out_ch)  // Ajustar lógica para paired_end ou single end
+    getMappedReads(align2ref_Out_ch)
   
     // write unmappped reads
-    getUnmappedReads(align2ref_Out_ch) // Ajustar lógica para paired_end ou single end
+    getUnmappedReads(align2ref_Out_ch)
     bamToFastq(getUnmappedReads.out)
   }
   
@@ -173,7 +173,7 @@ workflow {
   runIvar.out.set { runIvar_Out_ch }
 
   // readcounts
-  runReadCounts(align2ref_Out_ch, ref_fa) // Ajustar lógica para paired_end ou single end
+  runReadCounts(align2ref_Out_ch, ref_fa)
   runReadCounts.out.set {runReadCounts_Out_ch}
 
   // get VCFs
