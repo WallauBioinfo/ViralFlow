@@ -101,6 +101,10 @@ workflow {
   genFaIdx.out.set {faIdx_ch}
 
   // run fastp
+  reads_ch = reads_ch.map { sample_id, files ->
+  def is_paired_end = (files.size() == 2) // Check if it's paired-end
+  tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
+  }
   runFastp(reads_ch)
 
 
@@ -116,8 +120,8 @@ workflow {
     | set {fastp_fqgz_ch}
 
   fastp_fqgz_ch = fastp_fqgz_ch.map { sample_id, files ->
-    def is_paired_end = (files.size() == 2) // Check if it's paired-end
-    tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
+   def is_paired_end = (files.size() == 2) // Check if it's paired-end
+   tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
   }
   
   //align 2 reference

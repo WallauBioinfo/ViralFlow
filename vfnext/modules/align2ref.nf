@@ -31,7 +31,7 @@ process align2ref{
     samtools index ${sample_id}.sorted.bam
 
     # Trim primers if bed file is provided
-    if [[ ! -z "${params.primersBED}" ]]; then
+    if [[ "${params.primersBED}" != "null" ]]; then
         samtools ampliconclip --both-ends --hard-clip \
           --filter-len ${params.minLen} \
           -b ${bed} ${sample_id}.sorted.bam \
