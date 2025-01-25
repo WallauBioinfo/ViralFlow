@@ -1,7 +1,7 @@
 process runIvar{
   publishDir "${params.outDir}/${sample_id}_results/", mode: "copy", pattern: "*.{fa,tsv}"
   input:
-    tuple val(sample_id), path(bams)
+    tuple val(sample_id), path(bams), val(is_paired_end)
     path(ref_fa)
   output:
     tuple val(sample_id), path("*.depth*.fa"), path("*.txt"), path("${sample_id}.tsv")

@@ -103,22 +103,27 @@ workflow {
   // run fastp
   runFastp(reads_ch)
 
+
   // collect htmls for vf reports
-  runFastp.out //tuple (filename_prefix, [fq.gz pair], fastp_html)
-    | map{ it -> it[2]}
+  runFastp.out //tuple (filename_prefix, [fq.gz file(s)], fastp_html)
+    | map{ it -> it[2]} 
     | set {fastp_html_ch}
   all_fastp_html_ch = fastp_html_ch.collect()
   
   // collect output reads
-  runFastp.out // tuple (filename_prefix, [fq.gz pair], fastp_html)
-    | map {it -> tuple(it[0],it[1])} //tuple (filename_prefix, [fq.gz pair])
+  runFastp.out // tuple (filename_prefix, [fq.gz file(s)], fastp_html)
+    | map {it -> tuple(it[0],it[1])} //tuple (filename_prefix, [fq.gz file(s)])
     | set {fastp_fqgz_ch}
+
+  fastp_fqgz_ch = fastp_fqgz_ch.map { sample_id, files ->
+    def is_paired_end = (files.size() == 2) // Check if it's paired-end
+    tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
+  }
   
   //align 2 reference
-  //align2ref_In_ch = reads_ch.combine(bwaidx_Output_ch)
   align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch)
    
-  align2ref(align2ref_In_ch, ref_fa)
+  align2ref(align2ref_In_ch, ref_fa) // Ajustar lógica para paired_end ou single end
   // remove bai file (not used downstream, but usefull as a pipeline output)
   align2ref.out.regular_output // tuple (sample_id, bam_file, bai_file)
     | map { it -> tuple(it[0], it[1]) } // tuple(sample_id, bam_file)
@@ -156,10 +161,10 @@ workflow {
 
   if ((params.writeMappedReads == true)){
     // write mapped reads
-    getMappedReads(align2ref_Out_ch) 
+    getMappedReads(align2ref_Out_ch)  // Ajustar lógica para paired_end ou single end
   
     // write unmappped reads
-    getUnmappedReads(align2ref_Out_ch)
+    getUnmappedReads(align2ref_Out_ch) // Ajustar lógica para paired_end ou single end
     bamToFastq(getUnmappedReads.out)
   }
   
@@ -168,7 +173,7 @@ workflow {
   runIvar.out.set { runIvar_Out_ch }
 
   // readcounts
-  runReadCounts(align2ref_Out_ch, ref_fa)
+  runReadCounts(align2ref_Out_ch, ref_fa) // Ajustar lógica para paired_end ou single end
   runReadCounts.out.set {runReadCounts_Out_ch}
 
   // get VCFs

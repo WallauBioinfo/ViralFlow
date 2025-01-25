@@ -2,7 +2,7 @@ process getUnmappedReads {
     //publishDir "${params.outDir}/${sample_id}_results/"
     label "singlethread"
     input:
-        tuple val(sample_id), path(bam_files)
+        tuple val(sample_id), path(bam_files), val(is_paired_end)
 
     output:
         tuple val(sample_id), path("unmapped.bam")
