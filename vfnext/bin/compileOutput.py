@@ -87,7 +87,7 @@ def __parse_metrics(cod, metrics_path):
             if line.startswith("#"):
                 continue
             # get reads summary
-            if line.startswith("PAIR"):
+            if line.startswith("PAIR") or line.startswith("UNPAIRED"):
                 d_line = line.split("\t")
                 dct = {
                     "cod" : cod,
