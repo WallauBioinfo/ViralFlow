@@ -12,10 +12,10 @@ process getUnmappedReads {
     samtools view -b -f 4 ${sample_id}.sorted.bam > unmapped.bam
     if [[ ${is_paired_end}  == true ]]; then
       samtools sort -n unmapped.bam | \
-      samtools fastq -F 4 -1 ${sample_id}.unmapped.R1.fq.gz -2 ${sample_id}.unmapped.R2.fq.gz
+      samtools fastq -f 4 -1 ${sample_id}.unmapped.R1.fq.gz -2 ${sample_id}.unmapped.R2.fq.gz
     else
       samtools sort -n unmapped.bam | \
-      samtools fastq -F 4 -s ${sample_id}.unmapped.SE.fq.gz 
+      samtools fastq -f 4 -s ${sample_id}.unmapped.SE.fq.gz
     fi
     """
 }
