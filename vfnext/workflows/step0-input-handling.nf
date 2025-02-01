@@ -216,12 +216,21 @@ workflow processInputs {
 
     reads_channel_single_raw = channel
       .fromPath(["${params.inDir}/*.fq.gz", "${params.inDir}/*.fastq.gz"])
-      .filter { file ->
-          def name = file.getName()
-          !name.contains('_R1') && !name.contains('_R2')
+      .collect()
+      .map { files ->
+          def grouped = files.groupBy { file ->
+              file.getName().replaceAll('_R[12]', '')
+          }
+
+          grouped.collectMany { sample, fileList ->
+              def hasR2 = fileList.any { it.getName().contains('_R2') }
+              hasR2 ? fileList.findAll { !it.getName().contains('_R1') && !it.getName().contains('_R2') } : fileList
+          }
       }
+      .flatten()
       .map { file -> 
-          def baseName = file.getName().split("\\.")[0]
+          def fileName = file.getName()
+          def baseName = fileName.contains('_R1') ? fileName.split('_R1')[0] : fileName.split('\\.')[0]
           [baseName, [file]] 
       }
     reads_channel_single_raw
