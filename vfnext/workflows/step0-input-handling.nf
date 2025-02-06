@@ -198,16 +198,47 @@ workflow processInputs {
       reference_gff = prepareDatabase.out.ref_gff
     }
 
-    // get reads
-    reads_channel_raw = channel.fromFilePairs("${params.inDir}/*_{R,r}{1,2}.f{q,q.gz,astq,astq.gz}",
-                                              checkIfExists: true)
-    // remove empty fastqs
-    reads_channel= reads_channel_raw.filter(it -> (it[1][0].size()>0) && (it[1][1].size()>0))
-    // raise warning if there is any empty file
-    reads_channel_raw.filter(it -> (it[1][0].size()==0) && (it[1][1].size()==0))
-        | view(it -> log.warn("Excluding ${it[0]} fastq files due to 0 bytes size)"))
     // be sure a reference fasta and a reference gff was obtained
     assert !(reference_fa == null) && !(reference_gff == null)
+
+    // get reads
+    // current support follow the rules:
+    // paired reads with R1 AND R2 pattern and .fq.gz / .fastq.gz extensions
+    // single reads for files without R1 or R2 pattern and .fq.gz / .fastq.gz extensions
+    // if some file has 0 bytes, the file is removed of the analysis.
+
+    reads_channel_paired_raw = channel
+      .fromFilePairs(["${params.inDir}/*_R{1,2}*.fq.gz", "${params.inDir}/*_R{1,2}*.fastq.gz"])  
+    reads_channel_paired_raw
+      .filter(it -> (it[1][0].size()==0) && (it[1][1].size()==0))
+      .view(it -> log.warn("Excluding ${it[0]} fastq files due to 0 bytes size)"))
+    reads_channel_paired = reads_channel_paired_raw.filter(it -> (it[1][0].size()>0) && (it[1][1].size()>0))
+
+    reads_channel_single_raw = channel
+      .fromPath(["${params.inDir}/*.fq.gz", "${params.inDir}/*.fastq.gz"])
+      .collect()
+      .map { files ->
+          def grouped = files.groupBy { file ->
+              file.getName().replaceAll('_R[12]', '')
+          }
+
+          grouped.collectMany { sample, fileList ->
+              def hasR2 = fileList.any { it.getName().contains('_R2') }
+              hasR2 ? fileList.findAll { !it.getName().contains('_R1') && !it.getName().contains('_R2') } : fileList
+          }
+      }
+      .flatten()
+      .map { file -> 
+          def fileName = file.getName()
+          def baseName = fileName.contains('_R1') ? fileName.split('_R1')[0] : fileName.split('\\.')[0]
+          [baseName, [file]] 
+      }
+    reads_channel_single_raw
+      .filter(it -> it[1][0].size() == 0)
+      .view(it -> log.warn("Excluding ${it[0]} fastq files due to 0 bytes size"))
+    reads_channel_single = reads_channel_single_raw.filter(it -> (it[1][0].size()>0))
+
+    reads_channel = reads_channel_paired.concat(reads_channel_single)
 
   emit:
     reads_ch = reads_channel

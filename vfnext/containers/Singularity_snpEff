@@ -2,11 +2,14 @@ Bootstrap: docker
 From: continuumio/miniconda3:4.7.12
 
 %post
-conda install -c bioconda samtools=1.9 --force-reinstall
-conda install -c bioconda freebayes
-conda install -c bioconda snpeff=5.0
-conda install -c bioconda entrez-direct
-conda install -c conda-forge procps-ng
+apt-get update -y && \
+ apt-get install -y procps
+
+CONDA_EXPERIMENTAL_SOLVER=classic conda install -n base conda=22.11.0
+CONDA_EXPERIMENTAL_SOLVER=classic conda install -n base conda-libmamba-solver=22.12
+conda config --set solver libmamba
+
+conda install -c bioconda samtools=1.9 freebayes snpeff=5.0 entrez-direct --force-reinstall
 
 %runscript
 cd /
