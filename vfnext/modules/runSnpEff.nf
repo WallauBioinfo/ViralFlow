@@ -3,7 +3,7 @@ process runSnpEff{
   publishDir "${params.outDir}/${sample_id}_results/", mode: "copy"
 
   input:
-    tuple val(sample_id), path(bam_files)
+    tuple val(sample_id), path(bam_files), val(is_paired_end)
     val(genome_code)
     path(refGenomeFasta)
     path(refIndexFiles)

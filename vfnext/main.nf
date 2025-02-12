@@ -23,7 +23,6 @@ include { runSnpEff } from './modules/runSnpEff.nf'
 include { genFaIdx } from './modules/genFaIdx.nf'
 include { getMappedReads } from './modules/getMappedReads.nf'
 include { getUnmappedReads } from './modules/getUnmappedReads.nf'
-include { bamToFastq } from './modules/bamToFastq.nf'
 include { checkSnpEffDB } from './modules/checkSnpEffDB.nf'
 // import sub workflows
 include { processInputs } from './workflows/step0-input-handling.nf'
@@ -42,7 +41,7 @@ ANSI_RESET = "\033[0m"
 
 log.info """
   ===========================================
-  VFNEXT v1.2.0
+  VFNEXT v1.3.0
   parameters:
   -------------------------------------------
   --inDir            : ${params.inDir}
@@ -101,27 +100,36 @@ workflow {
   genFaIdx.out.set {faIdx_ch}
 
   // run fastp
+  reads_ch = reads_ch.map { sample_id, files ->
+  def is_paired_end = (files.size() == 2) // Check if it's paired-end
+  tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
+  }
   runFastp(reads_ch)
 
+
   // collect htmls for vf reports
-  runFastp.out //tuple (filename_prefix, [fq.gz pair], fastp_html)
-    | map{ it -> it[2]}
+  runFastp.out //tuple (filename_prefix, [fq.gz file(s)], fastp_html)
+    | map{ it -> it[2]} 
     | set {fastp_html_ch}
   all_fastp_html_ch = fastp_html_ch.collect()
   
   // collect output reads
-  runFastp.out // tuple (filename_prefix, [fq.gz pair], fastp_html)
-    | map {it -> tuple(it[0],it[1])} //tuple (filename_prefix, [fq.gz pair])
+  runFastp.out // tuple (filename_prefix, [fq.gz file(s)], fastp_html)
+    | map {it -> tuple(it[0],it[1])} //tuple (filename_prefix, [fq.gz file(s)])
     | set {fastp_fqgz_ch}
+
+  fastp_fqgz_ch = fastp_fqgz_ch.map { sample_id, files ->
+   def is_paired_end = (files.size() == 2) // Check if it's paired-end
+   tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
+  }
   
   //align 2 reference
-  //align2ref_In_ch = reads_ch.combine(bwaidx_Output_ch)
   align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch)
    
   align2ref(align2ref_In_ch, ref_fa)
   // remove bai file (not used downstream, but usefull as a pipeline output)
   align2ref.out.regular_output // tuple (sample_id, bam_file, bai_file)
-    | map { it -> tuple(it[0], it[1]) } // tuple(sample_id, bam_file)
+    | map { it -> tuple(it[0], it[1], it[3]) } // tuple(sample_id, bam_file, is_paired_end)
     | set { align2ref_Out_ch }
 
   // remove bam files which are too small (necessary for Picard)
@@ -156,11 +164,10 @@ workflow {
 
   if ((params.writeMappedReads == true)){
     // write mapped reads
-    getMappedReads(align2ref_Out_ch) 
+    getMappedReads(align2ref_Out_ch)
   
     // write unmappped reads
     getUnmappedReads(align2ref_Out_ch)
-    bamToFastq(getUnmappedReads.out)
   }
   
   // ivar

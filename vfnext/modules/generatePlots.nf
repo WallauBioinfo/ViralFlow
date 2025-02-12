@@ -3,7 +3,7 @@ process coveragePlot {
 
     input:
 
-      tuple val(sample_id), path(bam_files), path(bai_files)
+      tuple val(sample_id), path(bam_files), path(bai_files), val(is_paired_end)
       val(genome_code)
     
     output:
