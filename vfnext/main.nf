@@ -155,8 +155,7 @@ workflow {
     | view(it -> log.warn("Excluding ${it[0]} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)"))
 
   //Rendering the depth coverage plot
-  coveragePlot(align2ref.out.regular_output,
-              ref_gcode)
+  coveragePlot(align2ref.out.regular_output)
   // Check if there are mapped reads
   coveragePlot_out_ch = coveragePlot.out.result
   coveragePlot_out_ch
