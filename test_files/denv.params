@@ -1,4 +1,5 @@
 virus custom
+primersBED
 outDir test_files/denv/outputs/
 inDir test_files/denv/input/
 runSnpEff true

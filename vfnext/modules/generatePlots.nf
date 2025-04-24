@@ -4,7 +4,6 @@ process coveragePlot {
     input:
 
       tuple val(sample_id), path(bam_files), path(bai_files), val(is_paired_end)
-      val(genome_code)
     
     output:
         path("*coveragePlot*"), optional: true
@@ -12,7 +11,6 @@ process coveragePlot {
     script:
     
     bam = bam_files[0].toString()
-    genomecode = genome_code.toString()
     depth = params.depth
     html = "${sample_id}_coveragePlot.html"
     png = "${sample_id}_coveragePlot.png"
@@ -23,17 +21,29 @@ process coveragePlot {
     # ----- import libraries -------------------------------------------------
     import pysam
     import subprocess
+
+    #Loading the BAM file
+    bam_file = pysam.AlignmentFile('${bam}', 'rb')
+
+    #Checking the number of mapped reads
+    n_mapped_reads = bam_file.count()
     
-    n_mapped_reads = pysam.AlignmentFile('${bam}','rb').count()
     if n_mapped_reads > 0:
-      subprocess.run([f"bamdash -b ${bam} -r ${genomecode} -c ${depth} -e svg"], shell=True)
-      subprocess.run([f"mv ${genomecode}_plot.svg ${svg}"], shell=True)
+      
+      references = bam_file.references
+      if len(references) == 0:
+        raise ValueError("No references found in BAM header.")
+        
+      genomecode = references[0]
+    
+      subprocess.run([f"bamdash -b ${bam} -r {genomecode} -c ${depth} -e svg"], shell=True)
+      subprocess.run([f"mv {genomecode}_plot.svg ${svg}"], shell=True)
 
-      subprocess.run([f"bamdash -b ${bam} -r ${genomecode} -c ${depth} -e png"], shell=True)
-      subprocess.run([f"mv ${genomecode}_plot.png ${png}"], shell=True)
+      subprocess.run([f"bamdash -b ${bam} -r {genomecode} -c ${depth} -e png"], shell=True)
+      subprocess.run([f"mv {genomecode}_plot.png ${png}"], shell=True)
 
-      subprocess.run([f"bamdash -b ${bam} -r ${genomecode} -c ${depth}"], shell=True)
-      subprocess.run([f"mv ${genomecode}_plot.html ${html}"], shell=True)
+      subprocess.run([f"bamdash -b ${bam} -r {genomecode} -c ${depth}"], shell=True)
+      subprocess.run([f"mv {genomecode}_plot.html ${html}"], shell=True)
    
     else:
       result = "No mapped reads were found in the sorted BAM file for sample ${sample_id}. The coverage plot will not be generated for it."
