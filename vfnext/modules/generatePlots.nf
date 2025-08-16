@@ -3,7 +3,7 @@ process coveragePlot {
 
     input:
 
-      tuple val(sample_id), path(bam)
+      tuple val(sample_id), path(bam), path(bai)
     
     output:
         path("*coveragePlot*"), optional: true
