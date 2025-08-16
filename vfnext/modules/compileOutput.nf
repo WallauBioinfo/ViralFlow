@@ -10,7 +10,7 @@ process compileOutputs{
     path("*")
   script:
     """
-    python $projectDir/bin/compileOutput.py -dD ${params.outDir} \
+    compileOutput.py -dD ${params.outDir} \
                             -oD ./ \
                             --depth ${params.depth} \
                             -virus_tag ${virus_tag}
