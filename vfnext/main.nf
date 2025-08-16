@@ -73,7 +73,7 @@ log.info """
 
   if (params.mode == "ILLUMINA"){
     ILLUMINA(reads_ch, ref_fa,ref_gff,ref_gcode)
-    def bams_ch = ILLUMINA.out.align2ref_Out_ch.map{id, bams, _bais, _is_paired_end -> tuple(id, bams[0])}
+    def bams_ch = ILLUMINA.out.bams_ch.map{id, bams, bais, _is_paired_end -> tuple(id, bams,bais)}
     GENPLOTS(bams_ch)
   }
 
@@ -84,7 +84,7 @@ log.info """
   }
 
 // -------------- Check if everything went okay -------------------------------
-workflow.onComplete {
+workflow.onComplete = {
   if (workflow.success) {
     log.info """
       ===========================================
