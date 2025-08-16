@@ -211,9 +211,9 @@ workflow processInputs {
       .fromFilePairs(["${params.inDir}/*_R{1,2}*.fq.gz", "${params.inDir}/*_R{1,2}*.fastq.gz"])  
     
     reads_channel_paired_raw
-      .filter((it[1][0].size()==0) && (it[1][1].size()==0))
-      .view(log.warn("Excluding ${it[0]} fastq files due to 0 bytes size"))    
-    reads_channel_paired = reads_channel_paired_raw.filter((it[1][0].size()>0) && (it[1][1].size()>0))
+      .filter{(it[1][0].size()==0) && (it[1][1].size()==0)}
+      .view{log.warn("Excluding ${it[0]} fastq files due to 0 bytes size")}    
+    reads_channel_paired = reads_channel_paired_raw.filter{(it[1][0].size()>0) && (it[1][1].size()>0)}
 
     reads_channel_single_raw = channel
       .fromPath(["${params.inDir}/*.fq.gz", "${params.inDir}/*.fastq.gz"])
@@ -223,7 +223,7 @@ workflow processInputs {
               file.getName().replaceAll('_R[12]', '')
           }
 
-          grouped.collectMany { sample, fileList ->
+          grouped.collectMany { _sample, fileList ->
               def hasR2 = fileList.any { it.getName().contains('_R2') }
               hasR2 ? fileList.findAll { !it.getName().contains('_R1') && !it.getName().contains('_R2') } : fileList
           }
@@ -235,9 +235,9 @@ workflow processInputs {
           [baseName, [file]] 
       }
     reads_channel_single_raw
-      .filter(it[1][0].size() == 0)
-      .view(log.warn("Excluding ${it[0]} fastq files due to 0 bytes size"))
-    reads_channel_single = reads_channel_single_raw.filter((it[1][0].size()>0))
+      .filter{it[1][0].size() == 0}
+      .view{log.warn("Excluding ${it[0]} fastq files due to 0 bytes size")}
+    reads_channel_single = reads_channel_single_raw.filter{(it[1][0].size()>0)}
 
     reads_channel = reads_channel_paired.concat(reads_channel_single)
 

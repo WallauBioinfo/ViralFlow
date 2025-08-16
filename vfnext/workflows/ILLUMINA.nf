@@ -65,30 +65,30 @@ workflow  ILLUMINA {
     align2ref(align2ref_In_ch, ref_fa)
     // remove bai file (not used downstream, but usefull as a pipeline output)
     align2ref.out.regular_output // tuple (sample_id, bam_file, bai_file, is paired_end)
-    | map { it -> tuple(it[0], it[1], it[3]) } // tuple(sample_id, bam_file, is_paired_end)
+    | map { tuple(it[0], it[1], it[3]) } // tuple(sample_id, bam_file, is_paired_end)
     | set { align2ref_Out_ch }
 
     // remove bam files which are too small (necessary for Picard)
     align2ref_Out_ch
-    | filter( 
+    | filter{
         // filter if unix paths
         ((it[1].getClass() == sun.nio.fs.UnixPath) && (it[1].size() >= params.minBamSize )) 
         ||
         ((it[1].getClass() == java.util.ArrayList) && (it[1][0].size() >= params.minBamSize ) && (it[1][1].size() >= params.minBamSize))
-    )
+    }
     | set {align2ref_Out_filtered_ch}
 
     // raise warning in case anyfile is excluded
     align2ref_Out_ch
-    | filter(
+    | filter{
       // filter if unix paths
       (it[1].getClass() == sun.nio.fs.UnixPath) && (it[1].size() <= params.minBamSize )
-    )
-    | filter (
+    }
+    | filter {
       // filter if is a list with two bam file paths
       (it[1].getClass() == java.util.ArrayList) && (it[1][0].size() <= params.minBamSize ) && (it[1][1].size() <= params.minBamSize)
-     )
-    | view(log.warn("Excluding ${it[0]} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)"))
+    }
+    | view{log.warn("Excluding ${it[0]} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)")}
 
     // -----------------------------------------------------------------------------
     // Call consensus  
@@ -157,5 +157,5 @@ workflow  ILLUMINA {
   }
 
   emit:
-    align2ref_Out_ch // sample_id, sorted_bams, .bais, is_paired_end, 
+    bams_ch = align2ref.out.regular_output // sample_id, sorted_bams, .bais, is_paired_end, 
 }
