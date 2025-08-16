@@ -1,11 +1,11 @@
 //enable dsl 2
 nextflow.enable.dsl = 2
-include {run_porechop} from 'modules/runPorechop.nf'
-include {run_minimap2} from 'modules/runMinimap2.nf'
-include {run_amplicon_clip} from 'modules/runAmpliconClip.nf'
-include {run_bam_utils} from 'modules/runBamUtils.nf'
-include {run_clair3} from 'modules/runClair3.nf'
-include {run_bcftools; run_bcftools_consensus} from 'modules/runBcftools.nf'
+include {run_porechop} from '../modules/runPorechop.nf'
+include {run_minimap2} from '../modules/runMinimap2.nf'
+include {run_amplicon_clip} from '../modules/runAmpliconClip.nf'
+include {run_bam_utils} from '../modules/runBamUtils.nf'
+include {run_clair3} from '../modules/runClair3.nf'
+include {run_bcftools; run_bcftools_consensus} from '../modules/runBcftools.nf'
 
 workflow NANOPORE {
     take:
@@ -33,11 +33,14 @@ workflow NANOPORE {
 
     bam_ch.map { meta, sorted_bam -> tuple(meta.id, sorted_bam)} // tuple (id, sorted_bam)
     .join(vcf_ch) // tuple (id, sorted_bam, meta, vcf)
-    .map { id, sorted_bam, meta, vcf ->  tuple(meta, vcf, sorted_bam[0])}
+    .map { _id, sorted_bam, meta, vcf ->  tuple(meta, vcf, sorted_bam[0])}
     .set { vcf_bam_ch } // tuple (meta, vcf, sorted_bam)
 
     // call consensus sequence (bcftools consensus)
     run_bcftools_consensus(vcf_bam_ch, ref, params.min_depth)
+
+    emit:
+        bam_ch //meta, sorted_bam
 }
 
 workflow {
@@ -52,8 +55,8 @@ workflow {
 
 def parse_mnf(mnf) {
     def mnf_rows = Channel.fromPath(mnf)
-            | splitCsv(header: true, sep: ',')
-            | map { row -> 
+            .splitCsv(header: true, sep: ',')
+            .map { row -> 
                     // set meta
                     def meta = [id: row.sample_id]
 

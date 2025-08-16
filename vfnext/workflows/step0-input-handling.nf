@@ -24,7 +24,7 @@ def validate_parameters() {
     }
     // if a path is provided, check if is valid
     else if (!(params.primersBED==null)){
-        adapter_fl = file(params.primersBED)
+        def adapter_fl = file(params.primersBED)
         if (!adapter_fl.isFile()){
           log.error("${params.primersBED} is not a file.")
           errors += 1
@@ -68,7 +68,7 @@ def validate_parameters() {
           log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
           errors += 1
         } else {
-          ref_gff_path = file(params.referenceGFF)
+          def ref_gff_path = file(params.referenceGFF)
           if (!ref_gff_path.isFile()){
             log.error("${ref_gff_path} is not a file.")
             errors += 1
@@ -83,13 +83,13 @@ def validate_parameters() {
           log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
           errors += 1
         } else {
-          ref_fa_path = file(params.referenceGenome)
+          def ref_fa_path = file(params.referenceGenome)
           if (!ref_fa_path.isFile()){
-            log.error("${ref_path} is not a file.")
+            log.error("${ref_fa_path} is not a file.")
             errors += 1
           }
           if (!ref_fa_path.exists()){
-            log.error("${ref_path} does not exists.")
+            log.error("${ref_fa_path} does not exists.")
             errors += 1
           }
         }
@@ -99,7 +99,7 @@ def validate_parameters() {
 
     // check if output dir exists, if not create the default
     if (params.outDir){
-       outDir_path = file(params.outDir)
+      def outDir_path = file(params.outDir)
 
       if (!outDir_path.exists()){
          log.warn("${params.outDir} does not exist, the directory will be created")
@@ -117,7 +117,7 @@ def validate_parameters() {
         errors+=1
     }
     if (params.inDir){
-      inDir_path = file(params.inDir)
+      def inDir_path = file(params.inDir)
       if (!inDir_path.isDirectory()){
         log.error("${params.inDir} is not a directory")
         errors+=1
@@ -125,7 +125,7 @@ def validate_parameters() {
 
     }
   // get number of cpus available for nextflow if running local
-  maxcpus = Runtime.runtime.availableProcessors()
+  def maxcpus = Runtime.runtime.availableProcessors()
 
   if (workflow.profile == "standard"){
     // if cpus were not specified or higher than the available cpus, set it to use all cpus available
@@ -209,10 +209,11 @@ workflow processInputs {
 
     reads_channel_paired_raw = channel
       .fromFilePairs(["${params.inDir}/*_R{1,2}*.fq.gz", "${params.inDir}/*_R{1,2}*.fastq.gz"])  
+    
     reads_channel_paired_raw
-      .filter(it -> (it[1][0].size()==0) && (it[1][1].size()==0))
-      .view(it -> log.warn("Excluding ${it[0]} fastq files due to 0 bytes size)"))
-    reads_channel_paired = reads_channel_paired_raw.filter(it -> (it[1][0].size()>0) && (it[1][1].size()>0))
+      .filter((it[1][0].size()==0) && (it[1][1].size()==0))
+      .view(log.warn("Excluding ${it[0]} fastq files due to 0 bytes size"))    
+    reads_channel_paired = reads_channel_paired_raw.filter((it[1][0].size()>0) && (it[1][1].size()>0))
 
     reads_channel_single_raw = channel
       .fromPath(["${params.inDir}/*.fq.gz", "${params.inDir}/*.fastq.gz"])
@@ -234,9 +235,9 @@ workflow processInputs {
           [baseName, [file]] 
       }
     reads_channel_single_raw
-      .filter(it -> it[1][0].size() == 0)
-      .view(it -> log.warn("Excluding ${it[0]} fastq files due to 0 bytes size"))
-    reads_channel_single = reads_channel_single_raw.filter(it -> (it[1][0].size()>0))
+      .filter(it[1][0].size() == 0)
+      .view(log.warn("Excluding ${it[0]} fastq files due to 0 bytes size"))
+    reads_channel_single = reads_channel_single_raw.filter((it[1][0].size()>0))
 
     reads_channel = reads_channel_paired.concat(reads_channel_single)
 

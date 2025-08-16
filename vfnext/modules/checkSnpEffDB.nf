@@ -7,7 +7,8 @@ process checkSnpEffDB{
 
     output:
         path("snpEffDB_entry_found.log")
-$/
+    script:
+"""
 #!/usr/bin/env python
 
 with open("${params.snpEffDBCatalog}", 'r') as srch_fl:
@@ -44,5 +45,5 @@ with open("${params.snpEffDBCatalog}", 'r') as srch_fl:
             line = f"{data['gnm']},{data['organism']},{data['status']},{data['bundle']},{data['download-link']}\n"
             out_fl.write(line)
         exit(1)
-/$
+"""
 }

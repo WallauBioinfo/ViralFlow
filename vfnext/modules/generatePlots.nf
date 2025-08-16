@@ -3,14 +3,14 @@ process coveragePlot {
 
     input:
 
-      tuple val(sample_id), path(bam_files), path(bai_files), val(is_paired_end)
+      tuple val(sample_id), path(bam)
     
     output:
         path("*coveragePlot*"), optional: true
         path("coveragePlot_result.txt"), optional: true, emit: result, hidden: true
     script:
     
-    bam = bam_files[0].toString()
+    //bam = bam_file[0].toString()
     depth = params.depth
     html = "${sample_id}_coveragePlot.html"
     png = "${sample_id}_coveragePlot.png"
