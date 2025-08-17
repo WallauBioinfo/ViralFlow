@@ -40,13 +40,13 @@ workflow  ILLUMINA {
 
   // collect htmls for vf reports
   runFastp.out //tuple (filename_prefix, [fq.gz file(s)], fastp_html)
-    | map{ it -> it[2]} 
+    | map{ it[2]} 
     | set {fastp_html_ch}
   all_fastp_html_ch = fastp_html_ch.collect()
   
   // collect output reads
   runFastp.out // tuple (filename_prefix, [fq.gz file(s)], fastp_html)
-    | map {it -> tuple(it[0],it[1])} //tuple (filename_prefix, [fq.gz file(s)])
+    | map {tuple(it[0],it[1])} //tuple (filename_prefix, [fq.gz file(s)])
     | set {fastp_fqgz_ch}
 
   fastp_fqgz_ch = fastp_fqgz_ch.map { sample_id, files ->
@@ -108,7 +108,7 @@ workflow  ILLUMINA {
               checkSnpEffDB.out)
     
         runSnpEff.out
-        | map {it -> it[2]}
+        | map {it[2]}
         | set { snpEff_html }
     
         all_snpEff_html_ch = snpEff_html.collect()
