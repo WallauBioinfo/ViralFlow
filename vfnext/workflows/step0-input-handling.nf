@@ -209,14 +209,13 @@ workflow processInputs {
 
     reads_channel_paired_raw = channel
       .fromFilePairs(["${params.inDir}/*_R{1,2}*.fq.gz", "${params.inDir}/*_R{1,2}*.fastq.gz"])  
-    
     reads_channel_paired_raw
       .filter{(it[1][0].size()==0) && (it[1][1].size()==0)}
       .view{log.warn("Excluding ${it[0]} fastq files due to 0 bytes size")}    
     reads_channel_paired = reads_channel_paired_raw.filter{(it[1][0].size()>0) && (it[1][1].size()>0)}
 
     reads_channel_single_raw = channel
-      .fromPath(["${params.inDir}/*.fq.gz", "${params.inDir}/*.fastq.gz"])
+      .fromPath(["${params.inDir}/*.fq.gz", "${params.inDir}/*.fastq.gz", "${params.inDir}/*.fastq"])
       .collect()
       .map { files ->
           def grouped = files.groupBy { file ->
