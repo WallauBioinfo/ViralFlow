@@ -1,17 +1,19 @@
 
 process runFastp{
-  publishDir "${params.outDir}/${sample_id}_results/", mode: "copy", pattern: "*.fastp.html"
+  tag "${meta.id}"
+  publishDir "${params.outDir}/${meta.id}_results/", mode: "copy", pattern: "*.fastp.html"
   label "multithread"
 
   input:
-    tuple val(sample_id), path(reads), val(is_paired_end)
+    tuple val(meta), path(reads), val(is_paired_end)
 
   output:
     // tuple val(prfx), path('*.R{1,2}.fq.gz'), path("${prfx}.fastp.html")
-    tuple val(prfx), path('*.*.fq.gz'), path("${prfx}.fastp.html")
+    tuple val(meta), path('*.*.fq.gz'), path("${prfx}.fastp.html")
     
   script:
-      prfx = sample_id
+      prfx = meta.id
+      // if paired end, use R1 and R2, otherwise use SE
       def dedup = params.dedup ? "--dedup --dup_calc_accuracy ${params.ndedup}":"--dont_eval_duplication"
 
       """

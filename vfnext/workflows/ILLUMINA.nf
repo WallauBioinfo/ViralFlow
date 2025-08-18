@@ -31,27 +31,27 @@ workflow  ILLUMINA {
 
 
   // run fastp
-  reads_ch_2 = reads_ch.map { sample_id, files ->
-  def is_paired_end = (files.size() == 2) // Check if it's paired-end
-  tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
+  reads_ch_2 = reads_ch.map { meta, files ->
+  tuple(meta, files, meta.is_paired_end)  // Add is paired end to the tuple
   }
 
   runFastp(reads_ch_2)
 
   // collect htmls for vf reports
-  runFastp.out //tuple (filename_prefix, [fq.gz file(s)], fastp_html)
+  runFastp.out //tuple (meta, [fq.gz file(s)], fastp_html)
     | map{ it[2]} 
     | set {fastp_html_ch}
   all_fastp_html_ch = fastp_html_ch.collect()
   
   // collect output reads
-  runFastp.out // tuple (filename_prefix, [fq.gz file(s)], fastp_html)
-    | map {tuple(it[0],it[1])} //tuple (filename_prefix, [fq.gz file(s)])
+  runFastp.out // tuple (meta, [fq.gz file(s)], fastp_html)
+    | map {tuple(it[0],it[1])} //tuple (meta, [fq.gz file(s)])
     | set {fastp_fqgz_ch}
 
-  fastp_fqgz_ch = fastp_fqgz_ch.map { sample_id, files ->
+  fastp_fqgz_ch = fastp_fqgz_ch.map { meta, files ->
    def is_paired_end = (files.size() == 2) // Check if it's paired-end
-   tuple(sample_id, files, is_paired_end)  // Add is paired end to the tuple
+   def new_meta = meta.plus([is_paired_end: is_paired_end]) // Add is_paired_end to the metadata
+   tuple(new_meta, files, is_paired_end)  // Add is paired end to the tuple
   }
 
 
@@ -60,12 +60,12 @@ workflow  ILLUMINA {
     genFaIdx.out.set {faIdx_ch}
 
     // align 2 reference -----------------------------------------------------------
-    align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch)
+    align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch) // tuple(meta, reads, is_paired_end, fasta_amb, fasta_ann, fasta_bwt, fasta_pac, fasta_sa)
    
     align2ref(align2ref_In_ch, ref_fa)
     // remove bai file (not used downstream, but usefull as a pipeline output)
-    align2ref.out.regular_output // tuple (sample_id, bam_file, bai_file, is paired_end)
-    | map { tuple(it[0], it[1], it[3]) } // tuple(sample_id, bam_file, is_paired_end)
+    align2ref.out.regular_output // tuple (meta, bam_file, bai_file, is paired_end)
+    | map { tuple(it[0], it[1], it[3]) } // tuple(meta, bam_file, is_paired_end)
     | set { align2ref_Out_ch }
 
     // remove bam files which are too small (necessary for Picard)
@@ -129,7 +129,7 @@ workflow  ILLUMINA {
     fixWGS_In_ch = runPicard_Out_ch.join(runIvar_Out_ch)
     fixWGS(fixWGS_In_ch)
     // readcounts
-    runReadCounts(align2ref_Out_ch, ref_fa)
+    runReadCounts(align2ref_Out_ch, ref_fa, params.depth)
     runReadCounts.out.set {runReadCounts_Out_ch}
     // run intrahost
     intraHost_In_ch = alignCon_Out_ch.join(runReadCounts_Out_ch)

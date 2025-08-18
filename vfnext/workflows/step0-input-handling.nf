@@ -239,8 +239,13 @@ workflow processInputs {
       .view{log.warn("Excluding ${it[0]} fastq files due to 0 bytes size")}
     reads_channel_single = reads_channel_single_raw.filter{(it[1][0].size()>0)}
 
-    reads_channel = reads_channel_paired.concat(reads_channel_single)
-
+    reads_channel = reads_channel_paired
+                    .concat(reads_channel_single)
+                    .map { sample_id, files -> 
+                          def meta = [id: sample_id,
+                                      is_paired_end: files.size() == 2]
+                          tuple(meta, files)
+                    }
   emit:
     reads_ch = reads_channel
     ref_gff = reference_gff

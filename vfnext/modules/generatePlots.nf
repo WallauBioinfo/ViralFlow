@@ -1,9 +1,10 @@
 process coveragePlot {
-    publishDir "${params.outDir}/${sample_id}_results/", mode: "copy"
+    tag "${meta.id}"
+    publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
 
     input:
 
-      tuple val(sample_id), path(bam), path(bai)
+      tuple val(meta), path(bam), path(bai)
     
     output:
         path("*coveragePlot*"), optional: true
@@ -12,9 +13,9 @@ process coveragePlot {
     
     //bam = bam_file[0].toString()
     depth = params.depth
-    html = "${sample_id}_coveragePlot.html"
-    png = "${sample_id}_coveragePlot.png"
-    svg = "${sample_id}_coveragePlot.svg"
+    html = "${meta.id}_coveragePlot.html"
+    png = "${meta.id}_coveragePlot.png"
+    svg = "${meta.id}_coveragePlot.svg"
     
     """
     #!/usr/bin/env python
@@ -46,18 +47,19 @@ process coveragePlot {
       subprocess.run([f"mv {genomecode}_plot.html ${html}"], shell=True)
    
     else:
-      result = "No mapped reads were found in the sorted BAM file for sample ${sample_id}. The coverage plot will not be generated for it."
+      result = "No mapped reads were found in the sorted BAM file for sample ${meta.id}. The coverage plot will not be generated for it."
       with open('coveragePlot_result.txt', 'w') as f:
         f.write(result)
       """
 }
 
 process snpPlot {
-    publishDir "${params.outDir}/${sample_id}_results/", mode: "copy"
+    tag "${meta.id}"
+    publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
 
     input:
 
-      tuple val(sample_id), path("${sample_id}.depth${params.depth}.fa.algn")
+      tuple val(meta), path("${meta.id}.depth${params.depth}.fa.algn")
 
       
     output:
@@ -65,13 +67,13 @@ process snpPlot {
 
     script:
     
-    plot_name = "${sample_id}_snpPlot"
+    plot_name = "${meta.id}_snpPlot"
     
 
     """
 
-    snipit ${sample_id}.depth${params.depth}.fa.algn -o ${plot_name} --solid-background 
-    snipit ${sample_id}.depth${params.depth}.fa.algn -o ${plot_name} -f svg --solid-background
+    snipit ${meta.id}.depth${params.depth}.fa.algn -o ${plot_name} --solid-background 
+    snipit ${meta.id}.depth${params.depth}.fa.algn -o ${plot_name} -f svg --solid-background
 
     """
 }
