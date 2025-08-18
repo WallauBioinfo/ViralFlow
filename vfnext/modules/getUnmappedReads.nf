@@ -1,4 +1,5 @@
 process getUnmappedReads {
+    tag "${meta.id}"
     publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
     label "singlethread"
     input:
