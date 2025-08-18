@@ -57,7 +57,6 @@ log.info """
   Runtime data:
   -------------------------------------------
   Running with profile:   ${ANSI_GREEN}${workflow.profile}${ANSI_RESET}
-  Run container:          ${ANSI_GREEN}${workflow.container}${ANSI_RESET}
   Running as user:        ${ANSI_GREEN}${workflow.userName}${ANSI_RESET}
   Launch dir:             ${ANSI_GREEN}${workflow.launchDir}${ANSI_RESET}
   Base dir:               ${ANSI_GREEN}${baseDir}${ANSI_RESET}
@@ -73,13 +72,13 @@ log.info """
 
   if (params.mode == "ILLUMINA"){
     ILLUMINA(reads_ch, ref_fa,ref_gff,ref_gcode)
-    def bams_ch = ILLUMINA.out.bams_ch.map{id, bams, bais, _is_paired_end -> tuple(id, bams,bais)}
+    def bams_ch = ILLUMINA.out.bams_ch.map{meta, bams, bais, _is_paired_end -> tuple(meta, bams,bais)}
     GENPLOTS(bams_ch)
   }
 
   if (params.mode == "NANOPORE"){
     NANOPORE(reads_ch, ref_fa)
-    def bams_ch = NANOPORE.out.bam_ch.map{meta, bam -> tuple(meta.id, bam)}
+    def bams_ch = NANOPORE.out.bams_ch.map{meta, bam -> tuple(meta, bam[0], bam[1])}
     GENPLOTS(bams_ch)
   }
 
