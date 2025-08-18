@@ -1,4 +1,5 @@
 process runNextClade {
+  tag "${meta.id}"
   publishDir "${params.outDir}/${meta.id}_results/", mode: "copy", pattern: "{*nextclade.csv,*.errors.csv,*.translation.fasta}"
   input:
   tuple val(meta), path(intrahost_tsvs), path(algn_fasta), path(consensus_fa), path(ivar_txt), path(mut_tsv)
