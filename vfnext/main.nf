@@ -25,7 +25,7 @@ def ANSI_RESET = "\033[0m"
 
 log.info """
   ===========================================
-  VFNEXT v1.3.1
+  VFNEXT ${workflow.manifest.version}
   parameters:
   -------------------------------------------
   --inDir            : ${params.inDir}
@@ -89,8 +89,6 @@ workflow.onComplete = {
       ===========================================
       ${ANSI_GREEN}Finished in ${workflow.duration}
       """.stripIndent()
-      //See the report here ==> ${ANSI_RESET}$params.outDir/XXX_report.html
-
   } else {
     log.info """
       ===========================================
