@@ -1,7 +1,7 @@
 
 process run_amplicon_clip {
     // Define the process parameters
-    publishDir "${params.output_dir}", mode: 'copy', overwrite: true
+    publishDir "${params.outDir}/${meta.id}", mode: 'copy', overwrite: true
     tag "${meta.id}"
 
     input:

@@ -1,6 +1,6 @@
 
 process run_bam_utils {
-    publishDir "${params.output_dir}", mode: 'copy', overwrite: true
+    publishDir "${params.outDir}/${meta.id}/", mode: 'copy', overwrite: true
     tag "${meta.id}"
 
     input: 

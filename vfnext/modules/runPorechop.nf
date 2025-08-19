@@ -2,7 +2,7 @@
 process run_porechop {
     label "NP_basecontainer"
     // Define the process parameters
-    publishDir "${params.output_dir}", mode: 'copy', overwrite: true
+    publishDir "${params.outDir}/${meta.id}/", mode: 'copy', overwrite: true, pattern: "*.fastq"
     tag "${meta.id}"
 
     input:
