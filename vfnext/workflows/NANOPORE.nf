@@ -37,7 +37,7 @@ workflow NANOPORE {
     .set { vcf_bam_ch } // tuple (meta, vcf, sorted_bam)
 
     // call consensus sequence (bcftools consensus)
-    run_bcftools_consensus(vcf_bam_ch, ref, params.min_depth)
+    run_bcftools_consensus(vcf_bam_ch, ref, params.np_min_depth)
 
     emit:
         bams_ch = run_minimap2.out //meta, sorted_bam

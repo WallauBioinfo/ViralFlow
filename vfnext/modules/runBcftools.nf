@@ -39,13 +39,18 @@ process run_bcftools_consensus {
         val(min_depth) // 3
     
     output:
-        tuple val(meta), path("${meta.id}.consensus.fa"), path("${meta.id}.low_cov.bed")
+        tuple val(meta), path("${meta.id}.consensus.fa"), path("${meta.id}.low_cov.bed"), path("${meta.id}.cov.bed")
   
     shell:
     vcf_file = "${vcf[0]}"
     sorted_bam = "${sorted_bam_files[0]}"
     '''
-    samtools depth -J -a !{sorted_bam} | awk '$3 <= int(!{min_depth}) {print $1 "\t" $2-1 "\t" $2}' > !{meta.id}.low_cov.bed
+    # create a bed file with low coverage regions
+    # this is used to mask low coverage regions in the consensus sequence
+    samtools depth -J -a !{sorted_bam} > !{meta.id}.cov.bed
+    awk '$3 <= int(!{min_depth}) {print $1 "\t" $2-1 "\t" $2}' !{meta.id}.cov.bed > !{meta.id}.low_cov.bed
+    
+    # call consensus sequence
     bcftools consensus -f !{ref} --mask !{meta.id}.low_cov.bed !{vcf_file} > !{meta.id}.consensus.fa
     '''
 }
