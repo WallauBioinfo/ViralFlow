@@ -11,36 +11,47 @@ include {prepareDatabase} from "../modules/prepareDatabase.nf"
 def validate_parameters() {
     // --- SANITY CHECKS ------------------------------------------------------
     def errors = 0
+    
+    def ACCEPTED_MODES = ["ILLUMINA", "NANOPORE"]
+    
+    if (!(params.mode in ACCEPTED_MODES)) {
+        log.error("The mode provided (${params.mode}) is not valid. Accepted modes are: ${ACCEPTED_MODES.join(', ')}")
+        errors += 1
+    }
+    
     // check if required params were provided and if files provided exists
-
-    if (params.primersBED==null){
-      //make adapter file optional, usefull for metagenomics
-      log.warn("An BED file with primer positions was not provided. The pipeline will not run samtools clip to remove primer regions")
-      }
-    // if only the flag is provided withou any value, it is considered as true
-    else if (params.primersBED==true){
-      log.error("the BED file flag was set but no value provided")
-      errors +=1
-    }
-    // if a path is provided, check if is valid
-    else if (!(params.primersBED==null)){
-        def adapter_fl = file(params.primersBED)
-        if (!adapter_fl.isFile()){
-          log.error("${params.primersBED} is not a file.")
-          errors += 1
+    if (params.mode == "ILLUMINA"){
+      if (params.primersBED==null){
+        //make adapter file optional, usefull for metagenomics
+        log.warn("An BED file with primer positions was not provided. The pipeline will not run samtools clip to remove primer regions")
         }
-      //errors +=1
-    }
-    // --- VIRUS FLAGS CHECK
-    // check if a valid virus flag was provided
-    def valid_virus = ["sars-cov2","custom"]
-    if (!valid_virus.contains(params.virus)) {
-      log.error("The virus provided (${params.virus}) is not valid.")
-      errors += 1
-    }
+      // if only the flag is provided withou any value, it is considered as true
+      else if (params.primersBED==true){
+        log.error("the BED file flag was set but no value provided")
+        errors +=1
+      }
+      // if a path is provided, check if is valid
+      else if (!(params.primersBED==null)){
+          def adapter_fl = file(params.primersBED)
+          if (!adapter_fl.isFile()){
+            log.error("${params.primersBED} is not a file.")
+            errors += 1
+          }
+          if (!adapter_fl.exists()){
+            log.error("${params.primersBED} does not exists.")
+            errors += 1
+          }
+        }
+      // --- VIRUS FLAGS CHECK
+      // check if a valid virus flag was provided
+      def valid_virus = ["sars-cov2","custom"]
+      if (!valid_virus.contains(params.virus)) {
+        log.error("The virus provided (${params.virus}) is not valid.")
+        errors += 1
+      }
 
-    // be sure custom only options were not set if a valid virus tag was provided
-    if (valid_virus.contains(params.virus) && !(params.virus == "custom")) {
+      // be sure custom only options were not set if a valid virus tag was provided
+      if (valid_virus.contains(params.virus) && !(params.virus == "custom")) {
         if (!(params.referenceGFF==null)){
           log.warn("The valid virus tag (${params.virus}) was provided, ingnoring the provided referenceGFF (${params.referenceGFF})")
           params.referenceGFF=null
@@ -54,43 +65,44 @@ def validate_parameters() {
           params.refGenomeCode=null
         }
 
-    }
-    // ------------------------------------------------------------------------
-    // if a custom virus, check if mandatory params were set
-    if (params.virus=="custom"){
-      // if a genome code was not provided, check if a gff and a ref fasta was
-      if (params.refGenomeCode==null){
-        if (params.runSnpEff==true){
-          log.warn("The runSnpEff was set to ${params.runSnpEff}, but no refGenomeCode was provided.")
-          log.warn("SnpEff will not be run")
-        }
-        if (params.referenceGFF==null){
-          log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
-          errors += 1
-        } else {
-          def ref_gff_path = file(params.referenceGFF)
-          if (!ref_gff_path.isFile()){
-            log.error("${ref_gff_path} is not a file.")
-            errors += 1
+      }
+      // ------------------------------------------------------------------------
+      // if a custom virus, check if mandatory params were set
+      if (params.virus=="custom"){
+        // if a genome code was not provided, check if a gff and a ref fasta was
+        if (params.refGenomeCode==null){
+          if (params.runSnpEff==true){
+            log.warn("The runSnpEff was set to ${params.runSnpEff}, but no refGenomeCode was provided.")
+            log.warn("SnpEff will not be run")
           }
-          if (!ref_gff_path.exists()){
-            log.error("${ref_gff_path} does not exists.")
+          if (params.referenceGFF==null){
+            log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
             errors += 1
+          } else {
+            def ref_gff_path = file(params.referenceGFF)
+            if (!ref_gff_path.isFile()){
+              log.error("${ref_gff_path} is not a file.")
+              errors += 1
+            }
+            if (!ref_gff_path.exists()){
+              log.error("${ref_gff_path} does not exists.")
+              errors += 1
+            }
           }
-        }
 
-        if (params.referenceGenome==null){
-          log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
-          errors += 1
-        } else {
-          def ref_fa_path = file(params.referenceGenome)
-          if (!ref_fa_path.isFile()){
-            log.error("${ref_fa_path} is not a file.")
+          if (params.referenceGenome==null){
+            log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
             errors += 1
-          }
-          if (!ref_fa_path.exists()){
-            log.error("${ref_fa_path} does not exists.")
-            errors += 1
+          } else {
+            def ref_fa_path = file(params.referenceGenome)
+            if (!ref_fa_path.isFile()){
+              log.error("${ref_fa_path} is not a file.")
+              errors += 1
+            }
+            if (!ref_fa_path.exists()){
+              log.error("${ref_fa_path} does not exists.")
+              errors += 1
+            }
           }
         }
       }
@@ -167,40 +179,40 @@ workflow processInputs {
     //ref_fa = file(reference_fasta, checkIfExists=true, followLinks=true)
     //-------------------------------------------------------------------------
     validate_parameters()
+    if (params.mode == "ILLUMINA"){
+      // ---- get reference GFF and fasta ---------------------------------------
+      // Setup ref code values for supported virus
+      ref_gcode = null
+      reference_fa = null
+      reference_gff = null
 
-    // ---- get reference GFF and fasta ---------------------------------------
-    // Setup ref code values for supported virus
-    ref_gcode = null
-    reference_fa = null
-    reference_gff = null
-
-    if (!(params.virus=="custom")){
-      if (params.virus=="sars-cov2"){
-        ref_gcode = "NC_045512.2"
+      if (!(params.virus=="custom")){
+        if (params.virus=="sars-cov2"){
+          ref_gcode = "NC_045512.2"
+        }
       }
-    }
 
-    // if custom virus, check if a genome code was provided, if not
-    // emit the ref gff and fasta provided
-    if (params.virus=="custom"){
-      if (!(params.refGenomeCode==null)){
-        ref_gcode = params.refGenomeCode
-      } else {
-        reference_gff = params.referenceGFF
-        reference_fa = params.referenceGenome
+      // if custom virus, check if a genome code was provided, if not
+      // emit the ref gff and fasta provided
+      if (params.virus=="custom"){
+        if (!(params.refGenomeCode==null)){
+          ref_gcode = params.refGenomeCode
+        } else {
+          reference_gff = params.referenceGFF
+          reference_fa = params.referenceGenome
+        }
       }
+
+      // if a genome code was provided, get the reference fasta and gff
+      if (!(ref_gcode==null)){
+        prepareDatabase(ref_gcode)
+        reference_fa = prepareDatabase.out.ref_fa
+        reference_gff = prepareDatabase.out.ref_gff
+      }
+
+      // be sure a reference fasta and a reference gff was obtained
+      assert !(reference_fa == null) && !(reference_gff == null)
     }
-
-    // if a genome code was provided, get the reference fasta and gff
-    if (!(ref_gcode==null)){
-      prepareDatabase(ref_gcode)
-      reference_fa = prepareDatabase.out.ref_fa
-      reference_gff = prepareDatabase.out.ref_gff
-    }
-
-    // be sure a reference fasta and a reference gff was obtained
-    assert !(reference_fa == null) && !(reference_gff == null)
-
     // get reads
     // current support follow the rules:
     // paired reads with R1 AND R2 pattern and .fq.gz / .fastq.gz extensions
