@@ -34,6 +34,7 @@ To run viralflow on a non-supported virus, user must provide:
 
 ```{bash}
 nextflow run ../vfnext/main.nf \
+        --mode ILLUMINA
         --inDir /path/to/input_dir/ \
         --outDir /path/to/output_dir/ \
         --virus custom \
@@ -43,6 +44,17 @@ nextflow run ../vfnext/main.nf \
         --refGenomeCode my_genome_code
 ```
 
+* How to run on NANOPORE data
+
+```
+nextflow run path/to/vfnext/main.nf \
+        --mode NANOPORE \
+        --inDir /path/to/input_dir/ \
+        --referenceGenome /path/to/reference_genome/fasta_file.fa
+        
+        
+
+```
 ---
 ## NOTES
 Paths provided for the parameters **must be absolute paths**
