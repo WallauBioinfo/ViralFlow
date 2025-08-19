@@ -213,6 +213,19 @@ workflow processInputs {
       // be sure a reference fasta and a reference gff was obtained
       assert !(reference_fa == null) && !(reference_gff == null)
     }
+
+    if (params.mode == "NANOPORE"){
+      // if a reference fasta was provided, use it
+      if (params.referenceGenome){
+        reference_fa = file(params.referenceGenome)
+      } else {
+        log.error("A reference genome fasta file must be provided for NANOPORE mode")
+        exit 1
+      }
+
+      reference_gff = null
+      ref_gcode = null
+    }
     // get reads
     // current support follow the rules:
     // paired reads with R1 AND R2 pattern and .fq.gz / .fastq.gz extensions
