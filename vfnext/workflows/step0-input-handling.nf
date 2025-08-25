@@ -7,7 +7,9 @@ nextflow.enable.dsl = 2
 include {prepareDatabase} from "../modules/prepareDatabase.nf"
 
 // set supported virus flag
-def check_IL_custom_virus_params() {
+def check_IL_custom_virus_params(errors) {
+  def local_errors = errors
+
   // if a genome code was not provided, check if a gff and a ref fasta was
   if (params.refGenomeCode==null){
     if (params.runSnpEff==true){
@@ -16,137 +18,173 @@ def check_IL_custom_virus_params() {
     }
     if (params.referenceGFF==null){
       log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
-      errors += 1
+      local_errors += 1
     } else {
       def ref_gff_path = file(params.referenceGFF)
       if (!ref_gff_path.isFile()){
         log.error("${ref_gff_path} is not a file.")
-        errors += 1
+        local_errors += 1
       }
       if (!ref_gff_path.exists()){
         log.error("${ref_gff_path} does not exist.")
-        errors += 1
+        local_errors += 1
       }
     }
 
     if (params.referenceGenome==null){
       log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
-      errors += 1
+      local_errors += 1
     } else {
       def ref_fa_path = file(params.referenceGenome)
       if (!ref_fa_path.isFile()){
         log.error("${ref_fa_path} is not a file.")
-        errors += 1
+        local_errors += 1
       }
       if (!ref_fa_path.exists()){
         log.error("${ref_fa_path} does not exists.")
-        errors += 1
+        local_errors += 1
       }
     }
   }
+  return local_errors
 }
-def validate_parameters() {
-    // --- SANITY CHECKS ------------------------------------------------------
+
+def validate_basic_params(accepted_modes) {
     def errors = 0
     
-    def ACCEPTED_MODES = ["ILLUMINA", "NANOPORE"]
-    
-    if (!(params.mode in ACCEPTED_MODES)) {
-        log.error("The mode provided (${params.mode}) is not valid. Accepted modes are: ${ACCEPTED_MODES.join(', ')}")
+    if (!(params.mode in accepted_modes)) {
+        log.error("The mode provided (${params.mode}) is not valid. Accepted modes are: ${accepted_modes.join(', ')}")
         errors += 1
     }
     
-    // check if required params were provided and if files provided exists
-    if (params.mode == "ILLUMINA"){
-      if (params.primersBED==null){
-        //make adapter file optional, usefull for metagenomics
-        log.warn("An BED file with primer positions was not provided. The pipeline will not run samtools clip to remove primer regions")
-        }
-      // if only the flag is provided withou any value, it is considered as true
-      else if (params.primersBED==true){
-        log.error("the BED file flag was set but no value provided")
-        errors +=1
+    return errors
+}
+
+def validate_primers_bed() {
+  def errors = 0
+  if (params.primersBED==null){
+    //make adapter file optional, usefull for metagenomics
+    log.warn("An BED file with primer positions was not provided. The pipeline will not run samtools clip to remove primer regions")
+  }
+  // if a path is provided, check if is valid
+  else if (!(params.primersBED==null)){
+    def adapter_fl = file(params.primersBED)
+    if (!adapter_fl.isFile()){
+      log.error("${params.primersBED} is not a file.")
+      errors += 1
       }
-      // if a path is provided, check if is valid
-      else if (!(params.primersBED==null)){
-          def adapter_fl = file(params.primersBED)
-          if (!adapter_fl.isFile()){
-            log.error("${params.primersBED} is not a file.")
-            errors += 1
-          }
-          if (!adapter_fl.exists()){
-            log.error("${params.primersBED} does not exists.")
-            errors += 1
-          }
-        }
-      // --- VIRUS FLAGS CHECK
-      // check if a valid virus flag was provided
-      def valid_virus = ["sars-cov2","custom"]
-      if (!valid_virus.contains(params.virus)) {
+    if (!adapter_fl.exists()){
+      log.error("${params.primersBED} does not exists.")
+      errors += 1
+      }
+  }
+  return errors
+}
+
+def validate_virus_params() {
+    def errors = 0
+    def valid_virus = ["sars-cov2","custom"]
+    
+    if (!valid_virus.contains(params.virus)) {
         log.error("The virus provided (${params.virus}) is not valid.")
         errors += 1
-      }
+    }
 
-      // be sure custom only options were not set if a valid virus tag was provided
-      if (valid_virus.contains(params.virus) && !(params.virus == "custom")) {
+    // be sure custom only options were not set if a valid virus tag was provided
+    if (valid_virus.contains(params.virus) && !(params.virus == "custom")) {
         if (!(params.referenceGFF==null)){
-          log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided referenceGFF (${params.referenceGFF})")
-          params.referenceGFF=null
+            log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided referenceGFF (${params.referenceGFF})")
+            params.referenceGFF=null
         }
         if (!(params.referenceGenome==null)){
-          log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided referenceGenome (${params.referenceGenome})")
-          params.referenceGenome=null
+            log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided referenceGenome (${params.referenceGenome})")
+            params.referenceGenome=null
         }
         if (!(params.refGenomeCode==null)){
-          log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided refGenomeCode (${params.refGenomeCode})")
-          params.refGenomeCode=null
+            log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided refGenomeCode (${params.refGenomeCode})")
+            params.refGenomeCode=null
         }
-
-      }
-      // ------------------------------------------------------------------------
-      // if a custom virus, check if mandatory params were set
-      
-      if (params.virus=="custom"){
-        check_IL_custom_virus_params()
-      }
     }
-    // ------------------------------------------------------------------------
 
-    // check if output dir exists, if not create the default
-    if (params.outDir){
-      def outDir_path = file(params.outDir)
-
-      if (!outDir_path.exists()){
-         log.warn("${params.outDir} does not exist, the directory will be created")
-         outDir_path.mkdir()
-       }
-      if (!(outDir_path.isDirectory())){
-         log.error("${params.outDir} is not a directory")
-         errors+=1
-       }
-
+    // if a custom virus, check if mandatory params were set
+    if (params.virus=="custom"){
+        errors += check_IL_custom_virus_params(errors)
     }
-    // check if input dir exists
-    if (params.inDir==null){
-        log.error("An input directory must be provided.")
-        errors+=1
-    }
-    if (params.inDir){
-      def inDir_path = file(params.inDir)
-      if (!inDir_path.isDirectory()){
-        log.error("${params.inDir} is not a directory")
-        errors+=1
-      }
+    
+    return errors
+}
 
+def validate_illumina_params() {
+    def errors = 0
+    
+    // Primer BED validation
+    errors += validate_primers_bed()
+    
+    // Virus validation
+    errors += validate_virus_params()
+    
+    return errors
+}
+
+def validate_nanopore_params() {
+    def errors = 0
+    
+    if (!params.referenceGenome) {
+        log.error("A reference genome fasta file must be provided for NANOPORE mode")
+        errors += 1
+    } else {
+        def ref_fa_path = file(params.referenceGenome)
+        if (!ref_fa_path.exists() || !ref_fa_path.isFile()) {
+            log.error("Reference genome file ${params.referenceGenome} does not exist or is not a file")
+            errors += 1
+        }
     }
+    
+    return errors
+}
+def validate_directories() {
+  def errors = 0
+  
+  // check if output dir exists, if not create the default
+  if (params.outDir){
+    def outDir_path = file(params.outDir)
+  
+    if (!outDir_path.exists()){
+      log.warn("${params.outDir} does not exist, the directory will be created")
+      outDir_path.mkdir()
+    }
+    if (!(outDir_path.isDirectory())){
+      log.error("${params.outDir} is not a directory")
+      errors+=1
+    }
+  }
+
+  // check if input dir exists
+  if (params.inDir==null){
+    log.error("An input directory must be provided.")
+    errors+=1
+  }
+  if (params.inDir){
+    def inDir_path = file(params.inDir)
+    if (!inDir_path.isDirectory()){
+      log.error("${params.inDir} is not a directory")
+      errors+=1
+    }
+  }
+  return errors
+
+}
+
+def validate_resources() {
+  def errors = 0
   // get number of cpus available for nextflow if running local
   def maxcpus = Runtime.runtime.availableProcessors()
 
   if (workflow.profile == "standard"){
     // if cpus were not specified or higher than the available cpus, set it to use all cpus available
     if ((params.nextflowSimCalls == null) || (params.nextflowSimCalls > maxcpus)){
-        log.warn("Number of requested simultaneous nextflow calls (${params.nextflowSimCalls}) was set to max cpus available (${maxcpus})")
-        params.nextflowSimCalls = maxcpus
+      log.warn("Number of requested simultaneous nextflow calls (${params.nextflowSimCalls}) was set to max cpus available (${maxcpus})")
+      params.nextflowSimCalls = maxcpus
     }
   }
 
@@ -165,12 +203,30 @@ def validate_parameters() {
     log.warn("Number of threads to be used by mafft (${params.mafft_threads}) is higher than available threads (${maxcpus}). Setting it to ${maxcpus}.")
     params.mafft_threads = maxcpus
   }
+    return errors
+}
 
-    //TODO check if adapterFile exist
-    //-------------------------------------------------------------------------
-    // count errors and kill nextflow if any had been found
+def validate_parameters() {
+    def errors = 0
+    def ACCEPTED_MODES = ["ILLUMINA", "NANOPORE"]
+    
+    // Basic parameter validation
+    errors += validate_basic_params(ACCEPTED_MODES)
+    
+    // Mode-specific validation
+    if (params.mode == "ILLUMINA") {
+        errors += validate_illumina_params()
+    } else if (params.mode == "NANOPORE") {
+        errors += validate_nanopore_params()
+    }
+    
+    // Common validation
+    errors += validate_directories()
+    errors += validate_resources()
+    
+    // Exit if errors found
     if (errors > 0) {
-        log.error(String.format("%d errors detected", errors))
+        log.error("${errors} validation errors detected")
         exit 1
     }
 }
@@ -234,8 +290,8 @@ workflow processInputs {
     // paired reads with R1 AND R2 pattern and .fq.gz / .fastq.gz extensions
     // single reads for files without R1 or R2 pattern and .fq.gz / .fastq.gz extensions
     // if some file has 0 bytes, the file is removed of the analysis.
-
-    reads_channel_paired_raw = channel
+    
+    reads_channel_paired_raw = Channel
       .fromFilePairs(["${params.inDir}/*_R{1,2}*.fq.gz", "${params.inDir}/*_R{1,2}*.fastq.gz"])  
     reads_channel_paired_raw
       .filter{(it[1][0].size()==0) && (it[1][1].size()==0)}
