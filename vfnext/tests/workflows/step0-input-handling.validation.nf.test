@@ -1,0 +1,94 @@
+nextflow_workflow {
+
+    name "Test Parameter Validation in step0-input-handling"
+    script "workflows/step0-input-handling.nf"
+    workflow "processInputs"
+
+    test("Should fail with invalid mode") {
+
+        when {
+            params {
+                mode = "INVALID_MODE"
+                inDir = "${projectDir}/test_data/illumina_reads"
+                outDir = "test_results"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains('ERROR ~ The mode provided (INVALID_MODE) is not valid. Accepted modes are: ILLUMINA, NANOPORE')
+        }
+    }
+
+    test("Should fail when inDir does not exist") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "sars-cov2"
+                inDir = "${projectDir}/non_existent_directory"
+                outDir = "test_results"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout[0].contains("is not a directory") 
+
+        }
+    }
+
+    test("Should fail with custom virus but missing reference files") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                inDir = "${projectDir}/test_data/illumina_reads"
+                outDir = "test_results"
+                // Missing referenceGenome and referenceGFF
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains("ERROR ~ A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.") 
+        }
+    }
+
+    test("Should fail with NANOPORE mode but missing reference genome") {
+
+        when {
+            params {
+                mode = "NANOPORE"
+                inDir = "${projectDir}/test_data/nanopore_reads"
+                outDir = "test_results"
+                // Missing referenceGenome
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains("ERROR ~ A reference genome fasta file must be provided for NANOPORE mode")
+        }
+    }
+
+    test("Should warn about invalid primers BED file") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "sars-cov2"
+                inDir = "${projectDir}/test_data/illumina_reads"
+                outDir = "test_results"
+                primersBED = "${projectDir}/non_existent_primers.bed"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout[0].contains("does not exist") ||
+                   workflow.stdout[0].contains("is not a file")
+        }
+    }
+}
