@@ -7,7 +7,44 @@ nextflow.enable.dsl = 2
 include {prepareDatabase} from "../modules/prepareDatabase.nf"
 
 // set supported virus flag
+def check_IL_custom_virus_params() {
+  // if a genome code was not provided, check if a gff and a ref fasta was
+  if (params.refGenomeCode==null){
+    if (params.runSnpEff==true){
+      log.warn("The runSnpEff was set to ${params.runSnpEff}, but no refGenomeCode was provided.")
+      log.warn("SnpEff will not be run")
+    }
+    if (params.referenceGFF==null){
+      log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
+      errors += 1
+    } else {
+      def ref_gff_path = file(params.referenceGFF)
+      if (!ref_gff_path.isFile()){
+        log.error("${ref_gff_path} is not a file.")
+        errors += 1
+      }
+      if (!ref_gff_path.exists()){
+        log.error("${ref_gff_path} does not exist.")
+        errors += 1
+      }
+    }
 
+    if (params.referenceGenome==null){
+      log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
+      errors += 1
+    } else {
+      def ref_fa_path = file(params.referenceGenome)
+      if (!ref_fa_path.isFile()){
+        log.error("${ref_fa_path} is not a file.")
+        errors += 1
+      }
+      if (!ref_fa_path.exists()){
+        log.error("${ref_fa_path} does not exists.")
+        errors += 1
+      }
+    }
+  }
+}
 def validate_parameters() {
     // --- SANITY CHECKS ------------------------------------------------------
     def errors = 0
@@ -53,58 +90,24 @@ def validate_parameters() {
       // be sure custom only options were not set if a valid virus tag was provided
       if (valid_virus.contains(params.virus) && !(params.virus == "custom")) {
         if (!(params.referenceGFF==null)){
-          log.warn("The valid virus tag (${params.virus}) was provided, ingnoring the provided referenceGFF (${params.referenceGFF})")
+          log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided referenceGFF (${params.referenceGFF})")
           params.referenceGFF=null
         }
         if (!(params.referenceGenome==null)){
-          log.warn("The valid virus tag (${params.virus}) was provided, ingnoring the provided referenceGenome (${params.referenceGenome})")
+          log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided referenceGenome (${params.referenceGenome})")
           params.referenceGenome=null
         }
         if (!(params.refGenomeCode==null)){
-          log.warn("The valid virus tag (${params.virus}) was provided, ingnoring the provided refGenomeCode (${params.refGenomeCode})")
+          log.warn("The valid virus tag (${params.virus}) was provided, ignoring the provided refGenomeCode (${params.refGenomeCode})")
           params.refGenomeCode=null
         }
 
       }
       // ------------------------------------------------------------------------
       // if a custom virus, check if mandatory params were set
+      
       if (params.virus=="custom"){
-        // if a genome code was not provided, check if a gff and a ref fasta was
-        if (params.refGenomeCode==null){
-          if (params.runSnpEff==true){
-            log.warn("The runSnpEff was set to ${params.runSnpEff}, but no refGenomeCode was provided.")
-            log.warn("SnpEff will not be run")
-          }
-          if (params.referenceGFF==null){
-            log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
-            errors += 1
-          } else {
-            def ref_gff_path = file(params.referenceGFF)
-            if (!ref_gff_path.isFile()){
-              log.error("${ref_gff_path} is not a file.")
-              errors += 1
-            }
-            if (!ref_gff_path.exists()){
-              log.error("${ref_gff_path} does not exists.")
-              errors += 1
-            }
-          }
-
-          if (params.referenceGenome==null){
-            log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
-            errors += 1
-          } else {
-            def ref_fa_path = file(params.referenceGenome)
-            if (!ref_fa_path.isFile()){
-              log.error("${ref_fa_path} is not a file.")
-              errors += 1
-            }
-            if (!ref_fa_path.exists()){
-              log.error("${ref_fa_path} does not exists.")
-              errors += 1
-            }
-          }
-        }
+        check_IL_custom_virus_params()
       }
     }
     // ------------------------------------------------------------------------
