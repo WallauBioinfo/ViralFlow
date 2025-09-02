@@ -27,7 +27,7 @@ with open("${params.snpEffDBCatalog}", 'r') as srch_fl:
             dct_lst.append(dct)
     
     out_fl = open("snpEffDB_entry_found.log", 'w')
-    header = "gnm,organism,status,bundle,download-link\n"
+    header = "gnm,organism,status,bundle,download-link"
     out_fl.write(header)
     
     n_founds = len(dct_lst)
@@ -36,13 +36,13 @@ with open("${params.snpEffDBCatalog}", 'r') as srch_fl:
         exit(1)
     if n_founds == 1:
         data = dct_lst[0]
-        line = f"{data['gnm']},{data['organism']},{data['status']},{data['bundle']},{data['download-link']}\n"
+        line = f"{data['gnm']},{data['organism']},{data['status']},{data['bundle']},{data['download-link']}"
         out_fl.write(line)
     if n_founds > 1:
         print("ERROR: more than one entry found for ${genome_code}")
         print("       check ${params.outDir}/snpEffDB_entry_found.log")
         for data in dct_lst:
-            line = f"{data['gnm']},{data['organism']},{data['status']},{data['bundle']},{data['download-link']}\n"
+            line = f"{data['gnm']},{data['organism']},{data['status']},{data['bundle']},{data['download-link']}"
             out_fl.write(line)
         exit(1)
 """
