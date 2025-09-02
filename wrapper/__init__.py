@@ -1,5 +1,3 @@
-from distutils.command.build_scripts import first_line_re
-from logging import root
 import os
 
 
@@ -44,6 +42,7 @@ def parse_params(in_flpath):
     load text file containing viralflow arguments
     """
     valid_args = [
+        "mode",
         "virus",
         "primersBED",
         "outDir",
@@ -128,7 +127,7 @@ def update_pangolin_data(root_path):
 def run_vfnext(root_path, params_fl):
     # get nextflow arguments
     args_str = parse_params(params_fl)
-    nxtflw_ver="22.04.0"
+    nxtflw_ver="25.04.6"
     run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str}"
     print(run_nxtfl_cmd)
     os.system(run_nxtfl_cmd)
