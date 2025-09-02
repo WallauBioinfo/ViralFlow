@@ -154,5 +154,5 @@ work/*
 vfnext/containers/snpEff_DB.catalog
 vfnext/databases/*
 !vfnext/databases/*.csv
-
+.nextflow.log*
 .nf-test/
