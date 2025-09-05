@@ -1,4 +1,4 @@
-## Versions of tools used in ViralFlow 1.3.1
+## Versions of tools used in ViralFlow
 
 |tool|version|
 |---|---|
