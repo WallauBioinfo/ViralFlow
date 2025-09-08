@@ -1,0 +1,127 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+# This is a Singularity definition file for building a base container
+# with the latest version of Ubuntu 24.04.
+# It includes essential packages for the Nanopore workflow development.
+
+%help
+    This is a Singularity container for Ubuntu 24.04 with essential packages.
+    It is designed to be a base container for the Nanopore workflow development.
+
+%environment
+    # Set up environment variables
+    export PATH=/app/minimap2/:$PATH
+
+
+%post
+
+    HTSLIB_VERSION=1.21
+    MINIMAP2_TAG=v2.28
+    # Update the package list and install essential packages
+    apt-get update && apt-get install -y \
+        build-essential \
+        git \
+        curl \
+        wget \
+        vim \
+        nano \
+        less \
+        python3 \
+        python3-pip \
+        gcc \
+        make autoconf \
+        libbz2-dev liblzma-dev  libncurses5-dev \
+        libgsl-dev
+    # Clean up to reduce image size
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+    
+    mkdir /app/
+    
+    # install minimap2
+    cd /app/
+    git clone --depth 1 --branch ${MINIMAP2_TAG} https://github.com/lh3/minimap2 
+    cd minimap2
+    make
+
+    PATH=/app/minimap2/:$PATH
+
+
+    cd /app/
+    # Setup HTSLib
+    wget -O "htslib.tar.bz2" https://github.com/samtools/htslib/releases/download/${HTSLIB_VERSION}/htslib-${HTSLIB_VERSION}.tar.bz2
+    tar -xf htslib.tar.bz2
+    cd htslib-${HTSLIB_VERSION}
+    autoheader
+    autoreconf -i  # Build the configure script and install files it uses
+    ./configure --prefix=/usr/local/   # Optional but recommended, for choosing extra functionality
+    make
+    make install
+
+    # install bcftools
+    cd /app/
+    wget -O "bcftools.tar.gz" https://github.com/samtools/bcftools/archive/${HTSLIB_VERSION}.tar.gz
+    tar xf bcftools.tar.gz
+    cd bcftools-${HTSLIB_VERSION}
+    autoheader
+    autoconf 
+    ./configure --enable-libgsl 
+    make
+    mv bcftools /usr/local/bin
+    
+    # install samtools
+    cd /app/
+    # Retrieve and compile Samtools
+    wget -O "samtools.tar.gz" https://github.com/samtools/samtools/releases/download/$HTSLIB_VERSION/samtools-$HTSLIB_VERSION.tar.bz2
+    tar xf samtools.tar.gz
+    cd samtools-${HTSLIB_VERSION}
+    autoheader
+    autoconf -Wno-syntax
+    ./configure --prefix /usr/local
+    make
+    make install
+
+    # install porechop
+    cd /app/
+    pip install --break-system-packages networkx
+    git clone https://github.com/bonsai-team/Porechop_ABI.git
+    cd Porechop_ABI
+    python3 setup.py install
+
+    # install bam utils
+    cd /app/
+    git clone https://github.com/statgen/bamUtil.git
+    cd bamUtil
+    make cloneLib
+    make
+    make install
+
+
+
+
+%test
+    # Test the installation of essential packages
+    echo "---> Testing essential packages..."
+    gcc --version
+    git --version
+    curl --version
+    wget --version
+    python3 --version
+    pip3 --version
+    echo "---| All essential packages are installed successfully."
+    # Test the installation of Porechop
+    porechop_abi -h
+    echo "---| Porechop is installed successfully."
+    # Test the installation of bam utils
+    bam help
+    echo "---| bam utils is installed successfully."
+    # Test the installation of Samtools
+    samtools --version
+    echo "---| Samtools is installed successfully."
+    # Test instalation of Minimap2
+    minimap2 --version
+    echo "---| Minimap2 is installed successfully."
+    # Test installation of BCFtools
+    bcftools --version
+    echo "---| BCFtools is installed successfully."
+    
