@@ -37,3 +37,5 @@ nextflow run /../ViralFlow/vfnext/main.nf \
         --referenceGenome /path/to/reference.fna \
         -resume
 ```
+
+to run it using apptainer, just add `-profile apptainer` to your nextflow command.
