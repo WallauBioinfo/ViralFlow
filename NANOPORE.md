@@ -14,7 +14,7 @@ singularity build baseContainer.sif Nanopore_baseContainer.sing
 # or
 apptainer build baseContainer.sif Nanopore_baseContainer.sing
 ```
-### Aptainner setup
+### Apptainer setup
 
 Unfortunately, apptainer does not support `library://` protocol. To make it work on this protocol run the following commands:
 
