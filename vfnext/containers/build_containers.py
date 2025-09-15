@@ -2,11 +2,9 @@ import subprocess
 import os
 
 containers = [
-    "pangolin_latest.sif",
     "singularity_snpeff.sif"]
 
 container_commands = [
-    "singularity build -F --fakeroot --sandbox pangolin_latest.sif Singularity_pangolin",
     "singularity build -F --fakeroot --sandbox singularity_snpeff.sif Singularity_snpEff"
 ]
 
@@ -59,17 +57,6 @@ else:
 
 if success:
     print("\nExecuting additional steps:\n")
-
-    print("  > Loading sars-cov2 nextclade dataset...\n")
-    nextclade_command = "singularity exec -B nextclade_dataset/sars-cov-2:/tmp nextclade:2.4.sif nextclade dataset get --name 'sars-cov-2' --output-dir '/tmp'"
-    try:
-        subprocess.check_call(nextclade_command, shell=True)
-        print("    > Done <\n")
-    except subprocess.CalledProcessError as e:
-        print("    > Failed <")
-        print(f"Error: {e}")
-        success = False
-
     print("  > Downloading snpeff database catalog...")
     snpeff_command = "singularity exec singularity_snpeff.sif snpEff databases > snpEff_DB.catalog"
     try:
