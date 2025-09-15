@@ -15,9 +15,6 @@ process align2ref{
     bed = "${params.primersBED}"
 
     """
-    # Link reference files
-    ln -s ${ref_fa} ./${fasta_amb.getSimpleName()}.fasta
-
     if [[ ${is_paired_end} == true ]]; then
         bwa mem ./${ref_fa} ${reads[0]} ${reads[1]} \
                 -o ${sample_id}.bam -t ${params.bwa_threads} 
