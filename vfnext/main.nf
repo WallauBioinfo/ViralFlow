@@ -13,17 +13,13 @@ include { runIvar } from './modules/runIvar.nf'
 include { runReadCounts } from './modules/runReadCounts.nf'
 include { alignConsensus2Ref } from './modules/alignConsensus2Ref.nf'
 include { runIntraHostScript } from './modules/runIntraHostScript.nf'
-include { runPangolin } from './modules/runPangolin.nf'
-include { runNextClade } from './modules/runNextclade.nf'
 include { runPicard } from './modules/runPicard.nf'
 include { fixWGS } from './modules/fixWGS.nf'
 include { compileOutputs } from './modules/compileOutput.nf'
 include { compileOutputs as compileOutputs_SC2} from './modules/compileOutput.nf'
-include { runSnpEff } from './modules/runSnpEff.nf'
 include { genFaIdx } from './modules/genFaIdx.nf'
 include { getMappedReads } from './modules/getMappedReads.nf'
 include { getUnmappedReads } from './modules/getUnmappedReads.nf'
-include { checkSnpEffDB } from './modules/checkSnpEffDB.nf'
 // import sub workflows
 include { processInputs } from './workflows/step0-input-handling.nf'
 include { runVfReport } from './modules/runVfReport.nf'
@@ -41,7 +37,7 @@ ANSI_RESET = "\033[0m"
 
 log.info """
   ===========================================
-  VFNEXT v1.3.2
+  VFNEXT lite
   parameters:
   -------------------------------------------
   --inDir            : ${params.inDir}
@@ -56,7 +52,6 @@ log.info """
   --minDpIntrahost   : ${params.minDpIntrahost}
   --trimLen          : ${params.trimLen}
   --databaseDir      : ${params.databaseDir}
-  --runSnpEff        : ${params.runSnpEff}
   --writeMappedReads : ${params.writeMappedReads}
   --nextflowSimCalls : ${params.nextflowSimCalls}
   --fastp_threads    : ${params.fastp_threads}
@@ -176,25 +171,6 @@ workflow {
   // readcounts
   runReadCounts(align2ref_Out_ch, ref_fa)
   runReadCounts.out.set {runReadCounts_Out_ch}
-
-  // get VCFs
-  if ((params.runSnpEff==true)) {
-    // check if genome code is on SnpEff database
-    checkSnpEffDB(ref_gcode)
-    // runSnpEffDB
-    runSnpEff(align2ref_Out_ch,
-              ref_gcode,
-              ref_fa,
-              faIdx_ch,
-              checkSnpEffDB.out)
-    
-    runSnpEff.out
-      | map {it -> it[2]}
-      | set { snpEff_html }
-    
-    all_snpEff_html_ch = snpEff_html.collect()
-    runVfReport(all_fastp_html_ch, all_snpEff_html_ch)
-  }
   
   //align consensus to ref
   alignConsensus2Ref(runIvar_Out_ch, ref_fa)
@@ -214,22 +190,7 @@ workflow {
   runIntraHostScript(intraHost_In_ch, ref_gff)
   runIntraHostScript.out.set {runIntraHostScript_Out_ch}
 
-  // run Variant Naming (Pangolin and Nextclade)
-  runVariantNaming_In_ch = runIntraHostScript_Out_ch.join(runIvar_Out_ch)
-
-  if (params.virus=="sars-cov2"){
-    runPangolin(runVariantNaming_In_ch)
-    runNextClade(runVariantNaming_In_ch, ref_fa)
-    // Pangolin is the last ones to run, so will use it as a trigger to
-    // the output compilation/
-    // for the final version, need to find a better way. Maybe split and set
-    // as individual post analysis workflow
-    final_trigger = runPangolin.out.concat(fixWGS.out).collect()
-    compileOutputs_SC2(final_trigger, params.virus)
-  }
-
   if (params.virus=="custom"){
-    // GAMBIARRA ALERT
     final_trigger = runIntraHostScript.out.concat(fixWGS.out).collect()
     compileOutputs(final_trigger, params.virus)
   }
