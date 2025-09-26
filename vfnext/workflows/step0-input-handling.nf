@@ -60,10 +60,6 @@ def validate_parameters() {
     if (params.virus=="custom"){
       // if a genome code was not provided, check if a gff and a ref fasta was
       if (params.refGenomeCode==null){
-        if (params.runSnpEff==true){
-          log.warn("The runSnpEff was set to ${params.runSnpEff}, but no refGenomeCode was provided.")
-          log.warn("SnpEff will not be run")
-        }
         if (params.referenceGFF==null){
           log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
           errors += 1
