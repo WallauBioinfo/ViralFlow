@@ -16,7 +16,9 @@ process align2ref{
 
     """
     # Link reference files
-    ln -s ${ref_fa} ./${fasta_amb.getSimpleName()}.fasta
+    if [[ ! -f ./${fasta_amb.getSimpleName()}.fasta ]]; then
+        ln -s ${ref_fa} ./${fasta_amb.getSimpleName()}.fasta
+    fi
 
     if [[ ${is_paired_end} == true ]]; then
         bwa mem ./${ref_fa} ${reads[0]} ${reads[1]} \
