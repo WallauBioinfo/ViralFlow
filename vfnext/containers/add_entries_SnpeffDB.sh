@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # get bash script location
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd $SCRIPT_DIR
@@ -11,12 +10,14 @@ organism_refseq_code=$2 # NC_001474.2
 
 # hardcoded paths
 SNPEFF_CTNR="singularity_snpeff.sif"
-SNPEFF_PATH="/opt/conda/share/snpeff-5.0-1/"
+SNPEFF_PATH="/opt/conda/share/snpeff-5.0-2/"
 EFETCH_CTNR="edirect:latest.sif"
 
 echo "@ adding new entry..."
-# add line to snpeff config
-echo -e "# $organism_name, version $organism_refseq_code\n$organism_refseq_code.genome: $organism_name" >> $SNPEFF_CTNR/$SNPEFF_PATH/snpEff.config
+echo -e "# $organism_name, version $organism_refseq_code" >> $SNPEFF_CTNR/$SNPEFF_PATH/snpEff.config
+echo -e "$organism_refseq_code.genome: $organism_name" >> $SNPEFF_CTNR/$SNPEFF_PATH/snpEff.config
+echo -e "$organism_refseq_code.has_cds: true" >> $SNPEFF_CTNR/$SNPEFF_PATH/snpEff.config
+echo -e "$organism_refseq_code.codonTable: Standard" >> $SNPEFF_CTNR/$SNPEFF_PATH/snpEff.config
 
 # build the directory at DB
 mkdir -p $SNPEFF_CTNR/$SNPEFF_PATH/data/$organism_refseq_code
