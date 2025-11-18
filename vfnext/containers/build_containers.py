@@ -2,12 +2,34 @@ import subprocess
 import os
 
 containers = [
-    "pangolin_latest.sif",
-    "singularity_snpeff.sif"]
+    "pangolin_latest_2.sif",
+    "singularity_snpeff:2.0.0.sif",
+    "compiled_outputs:2.0.0.sif",
+    "edirect:2.0.0.sif",
+    "fastp:1.0.1.sif",
+    "generate_consensus:2.0.0.sif",
+    "generate_plots:2.0.0.sif",
+    "generate_report:1.1.0.sif",
+    "intrahost_analysis:1.1.0.sif",
+    "mafft:7.505_2.sif",
+    "nextclade:3.18.sif",
+    "picard:2.27.2_2.sif",
+]
 
+# temporary logic, before push to remote repo
 container_commands = [
-    "singularity build -F --fakeroot --sandbox pangolin_latest.sif Singularity_pangolin",
-    "singularity build -F --fakeroot --sandbox singularity_snpeff.sif Singularity_snpEff"
+    "singularity build -F --fakeroot --sandbox pangolin_latest_2.sif def_files/Singularity_pangolin",
+    "singularity build -F --fakeroot --sandbox singularity_snpeff:2.0.0.sif def_files/Singularity_snpEff",
+    "singularity build -F --fakeroot --sandbox compiled_outputs:2.0.0.sif def_files/compiled_outputs.def",
+    "singularity build -F --fakeroot --sandbox edirect:2.0.0.sif def_files/entrez.def",
+    "singularity build -F --fakeroot --sandbox fastp:1.0.1.sif def_files/fastp.def",
+    "singularity build -F --fakeroot --sandbox generate_consensus:2.0.0.sif def_files/generate_consensus.def",
+    "singularity build -F --fakeroot --sandbox generate_plots:2.0.0.sif def_files/generate_plots.def",
+    "singularity build -F --fakeroot --sandbox generate_report:1.1.0.sif def_files/generate_report.def",
+    "singularity build -F --fakeroot --sandbox intrahost_analysis:1.1.0.sif def_files/intrahost_analysis.def",
+    "singularity build -F --fakeroot --sandbox mafft:7.505_2.sif def_files/mafft.def",
+    "singularity build -F --fakeroot --sandbox nextclade:3.18.sif def_files/nextclade.def",
+    "singularity build -F --fakeroot --sandbox picard:2.27.2_2.sif def_files/picard.def",
 ]
 
 failed_containers = []
@@ -61,7 +83,7 @@ if success:
     print("\nExecuting additional steps:\n")
 
     print("  > Loading sars-cov2 nextclade dataset...\n")
-    nextclade_command = "singularity exec -B nextclade_dataset/sars-cov-2:/tmp nextclade:2.4.sif nextclade dataset get --name 'sars-cov-2' --output-dir '/tmp'"
+    nextclade_command = "singularity exec -B nextclade_dataset/sars-cov-2:/tmp nextclade:3.18.sif nextclade dataset get --name 'sars-cov-2' --output-dir '/tmp'"
     try:
         subprocess.check_call(nextclade_command, shell=True)
         print("    > Done <\n")
@@ -71,7 +93,7 @@ if success:
         success = False
 
     print("  > Downloading snpeff database catalog...")
-    snpeff_command = "singularity exec singularity_snpeff.sif snpEff databases > snpEff_DB.catalog"
+    snpeff_command = "singularity exec singularity_snpeff:2.0.0.sif snpEff databases > snpEff_DB.catalog"
     try:
         subprocess.check_call(snpeff_command, shell=True)
         print("    > Done <")

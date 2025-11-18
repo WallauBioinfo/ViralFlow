@@ -182,11 +182,9 @@ workflow {
     // check if genome code is on SnpEff database
     checkSnpEffDB(ref_gcode)
     // runSnpEffDB
-    runSnpEff(align2ref_Out_ch,
-              ref_gcode,
-              ref_fa,
-              faIdx_ch,
-              checkSnpEffDB.out)
+    runSnpEff(ref_gcode,
+              checkSnpEffDB.out,
+              runIvar_Out_ch)
     
     runSnpEff.out
       | map {it -> it[2]}

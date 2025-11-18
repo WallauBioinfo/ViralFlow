@@ -1,0 +1,31 @@
+Bootstrap: library
+From: debian:11
+
+%environment
+    export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
+    
+%post
+    version=2.27.2
+    apt-get update
+    apt-get install -y curl bzip2 wget
+    echo 'LC_ALL=en_US.utf-8' >> /etc/environment
+    cd /usr/local
+    rmdir bin
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+    export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
+    eval "$(/usr/local/bin/micromamba shell hook -s posix)"
+    /usr/local/bin/micromamba shell init -s bash -r /usr/local/bin/mm
+    micromamba shell init --shell=bash --root-prefix=/usr/local/bin/mm
+    micromamba activate
+    micromamba config append channels conda-forge --env
+    micromamba self-update
+    micromamba install -c bioconda -c conda-forge picard==2.27.2 procps-ng
+    mkdir /app/
+    cd /app
+    wget https://github.com/broadinstitute/picard/releases/download/${version}/picard.jar
+
+    # Clean apt cache + docs
+    apt-get clean
+    micromamba clean --all --yes
+    rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale
+    

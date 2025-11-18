@@ -1,0 +1,34 @@
+Bootstrap: library
+From: debian:11
+
+%environment
+    export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
+    export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+    
+%post
+    apt-get update && apt-get install -y curl bzip2 gcc
+    cd /usr/local
+    rmdir bin
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+    export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
+    eval "$(/usr/local/bin/micromamba shell hook -s posix)"
+    /usr/local/bin/micromamba shell init -s bash -r /usr/local/bin/mm
+    micromamba shell init --shell=bash --root-prefix=/usr/local/bin/mm
+    micromamba activate
+
+    micromamba install python=3.10
+    micromamba run -n base pip install --upgrade pip 
+    micromamba run -n base micromamba install -y -c bioconda -c conda-forge \
+        samtools=1.22 \
+        ivar=1.4.4 \
+        procps-ng \
+        bwa=0.7.19 \
+        pandas==1.5.3 \
+        snakemake==7.24.2
+    micromamba run -n base pip install setuptools wheel
+    
+    # Clean apt cache + docs
+    apt-get clean
+    micromamba clean --all --yes
+    rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale
+    
