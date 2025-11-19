@@ -11,13 +11,9 @@ process runSnpEff{
 
   script:
   """
-  export SNPEFF_DATA="\$(pwd)/snpEff_data"
-  mkdir -p "\$SNPEFF_DATA"
-  
   snpEff ann -Xmx4g \
-    ${ params.virus == "custom" ? "-v " : "" } \
-    -dataDir "\$SNPEFF_DATA" \
-    ${genome_code} ${vcf_file} > ${sample_id}.ann.vcf 2> snpEff.log
+    ${ params.virus == "custom" ? "-v ${genome_code} " : "${genome_code} " } \
+    ${vcf_file} > ${sample_id}.ann.vcf 2> snpEff.log
   
   mv snpEff_summary.html ${sample_id}_snpEff_summary.html
   """
