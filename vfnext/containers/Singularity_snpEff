@@ -9,7 +9,7 @@ CONDA_EXPERIMENTAL_SOLVER=classic conda install -n base conda=22.11.0
 CONDA_EXPERIMENTAL_SOLVER=classic conda install -n base conda-libmamba-solver=22.12
 conda config --set solver libmamba
 
-conda install -c bioconda samtools=1.9 freebayes snpeff=5.0 entrez-direct --force-reinstall
+conda install -c bioconda samtools=1.9 freebayes snpeff=5.0.2 entrez-direct --force-reinstall
 
 %runscript
 cd /
