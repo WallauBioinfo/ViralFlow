@@ -7,6 +7,7 @@ nextflow.enable.dsl = 2
 include { indexReferenceBWA } from './modules/bwaIndex.nf'
 include { runFastp } from './modules/runFastp.nf'
 include { align2ref } from './modules/align2ref.nf'
+include { runAmpliconClipping } from './modules/ampliconclip.nf'
 include { coveragePlot } from './modules/generatePlots.nf'
 include { snpPlot } from './modules/generatePlots.nf'
 include { runIvar } from './modules/runIvar.nf'
@@ -127,23 +128,32 @@ workflow {
   align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch)
    
   align2ref(align2ref_In_ch, ref_fa)
-  // remove bai file (not used downstream, but usefull as a pipeline output)
-  align2ref.out.regular_output // tuple (sample_id, bam_file, bai_file)
+
+  // Conditionally run ampliconclip for primer trimming if BED file is provided
+  if (params.primersBED != "null") {
+    runAmpliconClipping(align2ref.out.regular_output)
+    bam_output_ch = runAmpliconClipping.out.regular_output
+  } else {
+    bam_output_ch = align2ref.out.regular_output
+  }
+
+  // use bam output for downstream processing
+  bam_output_ch // tuple (sample_id, bam_file, bai_file, is_paired_end)
     | map { it -> tuple(it[0], it[1], it[3]) } // tuple(sample_id, bam_file, is_paired_end)
-    | set { align2ref_Out_ch }
+    | set { bam_Out_ch }
 
   // remove bam files which are too small (necessary for Picard)
-  align2ref_Out_ch
+  bam_Out_ch
     | filter(it -> 
       // filter if unix paths
       ((it[1].getClass() == sun.nio.fs.UnixPath) && (it[1].size() >= params.minBamSize )) 
       ||
       ((it[1].getClass() == java.util.ArrayList) && (it[1][0].size() >= params.minBamSize ) && (it[1][1].size() >= params.minBamSize))
     )
-    | set {align2ref_Out_filtered_ch}
+    | set {bam_Out_filtered_ch}
 
   // raise warning in case anyfile is excluded
-  align2ref_Out_ch
+  bam_Out_ch
     | filter(it -> 
       // filter if unix paths
       (it[1].getClass() == sun.nio.fs.UnixPath) && (it[1].size() <= params.minBamSize )
@@ -155,7 +165,7 @@ workflow {
     | view(it -> log.warn("Excluding ${it[0]} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)"))
 
   //Rendering the depth coverage plot
-  coveragePlot(align2ref.out.regular_output)
+  coveragePlot(bam_output_ch)
   // Check if there are mapped reads
   coveragePlot_out_ch = coveragePlot.out.result
   coveragePlot_out_ch
@@ -163,18 +173,18 @@ workflow {
 
   if ((params.writeMappedReads == true)){
     // write mapped reads
-    getMappedReads(align2ref_Out_ch)
+    getMappedReads(bam_Out_ch)
   
     // write unmappped reads
-    getUnmappedReads(align2ref_Out_ch)
+    getUnmappedReads(bam_Out_ch)
   }
   
   // ivar
-  runIvar(align2ref_Out_ch, ref_fa)
+  runIvar(bam_Out_ch, ref_fa)
   runIvar.out.set { runIvar_Out_ch }
 
   // readcounts
-  runReadCounts(align2ref_Out_ch, ref_fa)
+  runReadCounts(bam_Out_ch, ref_fa)
   runReadCounts.out.set {runReadCounts_Out_ch}
 
   // get VCFs
@@ -202,7 +212,7 @@ workflow {
   snpPlot(alignCon_Out_ch)
 
   // Assembly Metrics
-  runPicard(align2ref_Out_filtered_ch, ref_fa)
+  runPicard(bam_Out_filtered_ch, ref_fa)
   runPicard.out.set {runPicard_Out_ch}
   fixWGS_In_ch = runPicard_Out_ch.join(runIvar_Out_ch)
   fixWGS(fixWGS_In_ch)
