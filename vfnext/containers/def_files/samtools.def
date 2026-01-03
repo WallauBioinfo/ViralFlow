@@ -19,7 +19,7 @@ From: debian:11
     micromamba install python=3.10
     micromamba run -n base pip install --upgrade pip 
     micromamba run -n base micromamba install -y -c bioconda -c conda-forge \
-        samtools=1.9
+        samtools=1.11
     micromamba run -n base pip install setuptools wheel
     
     # Clean apt cache + docs
