@@ -1,4 +1,4 @@
-Bootstrap: library
+Bootstrap: docker
 From: debian:11-slim
 
 %environment
@@ -7,6 +7,8 @@ From: debian:11-slim
 
 %post
     set -eux
+    
+    export MAMBA_ROOT_PREFIX=/opt/conda
 
     apt-get update
     apt-get install -y --no-install-recommends \
