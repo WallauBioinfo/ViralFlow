@@ -25,15 +25,15 @@ def parse_csv(csv_flpath):
             entries_lst.append(entry)
     return entries_lst
 
-def build_containers(root_path):
+def build_containers(root_path, arch: str):
     """
     run script to build container for vfnext
     """
     # build containers
     cd_to_dir= f"cd {root_path}/vfnext/containers/" 
     build_sandbox = f"python ./build_containers.py"
-    #pull_containers = f"python ./pull_containers.py"
-    #os.system(cd_to_dir+';'+pull_containers) 
+    pull_containers = f"python ./pull_containers.py {arch}"
+    os.system(cd_to_dir+';'+pull_containers) 
     print(cd_to_dir+';'+build_sandbox)
     os.system(cd_to_dir+';'+build_sandbox)
     

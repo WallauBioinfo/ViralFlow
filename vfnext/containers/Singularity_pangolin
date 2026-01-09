@@ -17,5 +17,8 @@ From: debian:11
     micromamba activate
     micromamba config append channels conda-forge --env
     micromamba self-update
-    micromamba install -c bioconda pangolin==4.3
-    micromamba install -c conda-forge procps-ng
+    micromamba install -c bioconda -c conda-forge pangolin==4.3 procps-ng
+
+    apt-get clean
+    micromamba clean --all --yes
+    rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale

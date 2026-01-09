@@ -9,7 +9,7 @@ organism_name=$1 # Dengue
 organism_refseq_code=$2 # NC_001474.2
 
 # hardcoded paths
-SNPEFF_CTNR="singularity_snpeff:2.0.0.sif"
+SNPEFF_CTNR="snpeff:5.0.sif"
 SNPEFF_PATH="/opt/conda/share/snpeff-5.0-2/"
 EFETCH_CTNR="edirect:2.0.0.sif"
 
