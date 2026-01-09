@@ -11,7 +11,7 @@ organism_refseq_code=$2 # NC_001474.2
 # hardcoded paths
 SNPEFF_CTNR="snpeff:5.0.sif"
 SNPEFF_PATH="/opt/conda/share/snpeff-5.0-2/"
-EFETCH_CTNR="edirect:2.0.0.sif"
+EFETCH_CTNR="edirect:1.1.0.sif"
 
 echo "@ adding new entry..."
 echo -e "# $organism_name, version $organism_refseq_code" >> $SNPEFF_CTNR/$SNPEFF_PATH/snpEff.config
