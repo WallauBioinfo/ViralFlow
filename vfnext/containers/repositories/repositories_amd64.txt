@@ -8,4 +8,4 @@ wallaulabs2/viralflow-amd64/generate_consensus:2.0.0
 wallaulabs2/viralflow-amd64/fastp:1.0.1
 wallaulabs2/viralflow-amd64/generate_plots:2.0.0
 wallaulabs2/viralflow-amd64/nextclade:3.18
-wallaulabs2/viralflow-amd64/compiled_outputs:1.0.0
+wallaulabs2/viralflow-amd64/compiled_outputs:1.1.0
