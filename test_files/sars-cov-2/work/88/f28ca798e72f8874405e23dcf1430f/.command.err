@@ -1,0 +1,43 @@
+INFO:    Converting SIF file to temporary sandbox...
+16:59:24.094 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/app/picard.jar!/com/intel/gkl/native/libgkl_compression.so
+[Mon Dec 15 16:59:24 UTC 2025] CollectWgsMetrics --INPUT ART3.sorted.bam --OUTPUT wgs --MINIMUM_MAPPING_QUALITY 30 --MINIMUM_BASE_QUALITY 30 --COVERAGE_CAP 99999 --COUNT_UNPAIRED true --REFERENCE_SEQUENCE NC_045512.2.fa --LOCUS_ACCUMULATION_CAP 100000 --STOP_AFTER -1 --INCLUDE_BQ_HISTOGRAM false --SAMPLE_SIZE 10000 --ALLELE_FRACTION 0.001 --ALLELE_FRACTION 0.005 --ALLELE_FRACTION 0.01 --ALLELE_FRACTION 0.02 --ALLELE_FRACTION 0.05 --ALLELE_FRACTION 0.1 --ALLELE_FRACTION 0.2 --ALLELE_FRACTION 0.3 --ALLELE_FRACTION 0.5 --USE_FAST_ALGORITHM false --READ_LENGTH 150 --VERBOSITY INFO --QUIET false --VALIDATION_STRINGENCY STRICT --COMPRESSION_LEVEL 5 --MAX_RECORDS_IN_RAM 500000 --CREATE_INDEX false --CREATE_MD5_FILE false --GA4GH_CLIENT_SECRETS client_secrets.json --help false --version false --showHidden false --USE_JDK_DEFLATER false --USE_JDK_INFLATER false
+[Mon Dec 15 16:59:24 UTC 2025] Executing as pinho@pinho-IdeaPad-3-15ALC6 on Linux 6.8.0-88-generic amd64; OpenJDK 64-Bit Server VM 21.0.1-internal-adhoc.conda.src; Deflater: Intel; Inflater: Intel; Provider GCS is not available; Picard version: Version:2.27.2
+WARNING	2025-12-15 16:59:24	SamFiles	The index file /home/pinho/ViralFlow/test_files/sars-cov-2/work/ed/1c26185b58eca89afee9e1d71f1402/ART3.sorted.bam.bai was found by resolving the canonical path of a symlink: /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/ART3.sorted.bam -> /home/pinho/ViralFlow/test_files/sars-cov-2/work/ed/1c26185b58eca89afee9e1d71f1402/ART3.sorted.bam
+INFO	2025-12-15 16:59:38	TheoreticalSensitivity	Creating Roulette Wheel
+INFO	2025-12-15 16:59:38	TheoreticalSensitivity	Calculating quality sums from quality sampler
+INFO	2025-12-15 16:59:38	TheoreticalSensitivity	0 sampling iterations completed
+INFO	2025-12-15 16:59:39	TheoreticalSensitivity	1000 sampling iterations completed
+INFO	2025-12-15 16:59:39	TheoreticalSensitivity	2000 sampling iterations completed
+INFO	2025-12-15 16:59:40	TheoreticalSensitivity	3000 sampling iterations completed
+INFO	2025-12-15 16:59:40	TheoreticalSensitivity	4000 sampling iterations completed
+INFO	2025-12-15 16:59:41	TheoreticalSensitivity	5000 sampling iterations completed
+INFO	2025-12-15 16:59:42	TheoreticalSensitivity	6000 sampling iterations completed
+INFO	2025-12-15 16:59:42	TheoreticalSensitivity	7000 sampling iterations completed
+INFO	2025-12-15 16:59:43	TheoreticalSensitivity	8000 sampling iterations completed
+INFO	2025-12-15 16:59:43	TheoreticalSensitivity	9000 sampling iterations completed
+INFO	2025-12-15 16:59:44	TheoreticalSensitivity	Calculating theoretical het sensitivity
+[Mon Dec 15 16:59:46 UTC 2025] picard.analysis.CollectWgsMetrics done. Elapsed time: 0.37 minutes.
+Runtime.totalMemory()=620756992
+INFO	2025-12-15 16:59:55	RExecutor	Executing R script via command: Rscript /tmp/script14392887848865528534.R
+INFO	2025-12-15 16:59:56	ProcessExecutor	[1] "Checking if R is installed"
+16:59:56.303 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/app/picard.jar!/com/intel/gkl/native/libgkl_compression.so
+[Mon Dec 15 16:59:56 UTC 2025] CollectMultipleMetrics --INPUT ART3.sorted.bam --OUTPUT metrics --REFERENCE_SEQUENCE NC_045512.2.fa --ASSUME_SORTED true --STOP_AFTER 0 --METRIC_ACCUMULATION_LEVEL ALL_READS --PROGRAM CollectAlignmentSummaryMetrics --PROGRAM CollectBaseDistributionByCycle --PROGRAM CollectInsertSizeMetrics --PROGRAM MeanQualityByCycle --PROGRAM QualityScoreDistribution --INCLUDE_UNPAIRED false --VERBOSITY INFO --QUIET false --VALIDATION_STRINGENCY STRICT --COMPRESSION_LEVEL 5 --MAX_RECORDS_IN_RAM 500000 --CREATE_INDEX false --CREATE_MD5_FILE false --GA4GH_CLIENT_SECRETS client_secrets.json --help false --version false --showHidden false --USE_JDK_DEFLATER false --USE_JDK_INFLATER false
+[Mon Dec 15 16:59:56 UTC 2025] Executing as pinho@pinho-IdeaPad-3-15ALC6 on Linux 6.8.0-88-generic amd64; OpenJDK 64-Bit Server VM 21.0.1-internal-adhoc.conda.src; Deflater: Intel; Inflater: Intel; Provider GCS is not available; Picard version: Version:2.27.2
+WARNING	2025-12-15 16:59:56	SamFiles	The index file /home/pinho/ViralFlow/test_files/sars-cov-2/work/ed/1c26185b58eca89afee9e1d71f1402/ART3.sorted.bam.bai was found by resolving the canonical path of a symlink: /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/ART3.sorted.bam -> /home/pinho/ViralFlow/test_files/sars-cov-2/work/ed/1c26185b58eca89afee9e1d71f1402/ART3.sorted.bam
+INFO	2025-12-15 16:59:57	RExecutor	Executing R script via command: Rscript /tmp/script17062974974701079927.R /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.alignment_summary_metrics /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.read_length_histogram.pdf ART3.sorted.bam
+INFO	2025-12-15 16:59:57	ProcessExecutor	null device 
+INFO	2025-12-15 16:59:57	ProcessExecutor	          1 
+INFO	2025-12-15 16:59:57	RExecutor	Executing R script via command: Rscript /tmp/script17103549477087808433.R /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.base_distribution_by_cycle_metrics /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.base_distribution_by_cycle.pdf ART3.sorted.bam 
+INFO	2025-12-15 16:59:57	ProcessExecutor	null device 
+INFO	2025-12-15 16:59:57	ProcessExecutor	          1 
+WARNING	2025-12-15 16:59:58	CollectInsertSizeMetrics	All data categories were discarded because they contained < 0.05 of the total aligned paired data.
+WARNING	2025-12-15 16:59:58	CollectInsertSizeMetrics	Total mapped pairs in all categories: 0.0
+INFO	2025-12-15 16:59:58	RExecutor	Executing R script via command: Rscript /tmp/script11910055836717367859.R /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.quality_by_cycle_metrics /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.quality_by_cycle.pdf ART3.sorted.bam 
+INFO	2025-12-15 16:59:58	ProcessExecutor	null device 
+INFO	2025-12-15 16:59:58	ProcessExecutor	          1 
+INFO	2025-12-15 16:59:58	RExecutor	Executing R script via command: Rscript /tmp/script9342028364697723430.R /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.quality_distribution_metrics /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f/metrics.quality_distribution.pdf ART3.sorted.bam 
+INFO	2025-12-15 16:59:58	ProcessExecutor	null device 
+INFO	2025-12-15 16:59:58	ProcessExecutor	          1 
+[Mon Dec 15 16:59:58 UTC 2025] picard.analysis.CollectMultipleMetrics done. Elapsed time: 0.04 minutes.
+Runtime.totalMemory()=297795584
+INFO:    Cleaning up image...

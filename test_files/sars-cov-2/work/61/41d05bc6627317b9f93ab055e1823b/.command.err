@@ -1,0 +1,47 @@
+INFO:    Converting SIF file to temporary sandbox...
+Detecting adapter sequence for read1...
+No adapter detected for read1
+
+Detecting adapter sequence for read2...
+No adapter detected for read2
+
+Read1 before filtering:
+total reads: 99216
+total bases: 14882400
+Q20 bases: 14557464(97.8166%)
+Q30 bases: 14063676(94.4987%)
+
+Read2 before filtering:
+total reads: 99216
+total bases: 14882400
+Q20 bases: 13820346(92.8637%)
+Q30 bases: 12825119(86.1764%)
+
+Read1 after filtering:
+total reads: 99216
+total bases: 14882212
+Q20 bases: 14557382(97.8173%)
+Q30 bases: 14063622(94.4995%)
+
+Read2 after filtering:
+total reads: 99216
+total bases: 14874675
+Q20 bases: 13816997(92.8894%)
+Q30 bases: 12823112(86.2077%)
+
+Filtering result:
+reads passed filter: 198432
+reads failed due to low quality: 0
+reads failed due to too many N: 0
+reads failed due to too short: 0
+reads with adapter trimmed: 0
+bases trimmed due to adapters: 0
+
+Insert size peak (evaluated by paired-end reads): 0
+
+JSON report: ART2.fastp.json
+HTML report: ART2.fastp.html
+
+fastp -i ART2_R1.fq.gz -I ART2_R2.fq.gz --detect_adapter_for_pe --thread 1 -o ART2.R1.fq.gz -O ART2.R2.fq.gz -h ART2.fastp.html -j ART2.fastp.json -l 75 -f 0 -t 0 -F 0 -T 0 --cut_front --cut_tail --qualified_quality_phred 20 --dont_eval_duplication 
+fastp v0.23.4, time used: 7 seconds
+INFO:    Cleaning up image...

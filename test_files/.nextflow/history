@@ -1,0 +1,1 @@
+2025-12-15 13:27:17	-	agitated_ptolemy	-	bfe3f86de614d1a8355c4309adf0059f	1033a19e-064f-4513-9e61-eadf223ea38e	nextflow run /home/pinho/ViralFlow/vfnext/main.nf --virus sars-cov2 --help
