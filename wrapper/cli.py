@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 import os
 import click
-from . import __init__ as wrapper_funcs
+from . import (
+    build_containers as _build_containers,
+    update_pangolin as _update_pangolin,
+    update_pangolin_data as _update_pangolin_data,
+    add_entries_to_DB as _add_entries_to_DB,
+    run_vfnext as _run_vfnext,
+)
 
 
 __author__ = "Antonio Marinho da Silva Neto"
@@ -46,19 +52,19 @@ def cli(ctx):
 )
 def build_containers(arch):
     """Build containers for vfnext."""
-    wrapper_funcs.build_containers(VF_ROOT_PATH, arch)
+    _build_containers(VF_ROOT_PATH, arch)
 
 
 @cli.command("update-pangolin")
 def update_pangolin():
     """Update pangolin container to the latest pangolin version."""
-    wrapper_funcs.update_pangolin(VF_ROOT_PATH)
+    _update_pangolin(VF_ROOT_PATH)
 
 
 @cli.command("update-pangolin-data")
 def update_pangolin_data():
     """Update pangolin container with the latest pangolin version databases."""
-    wrapper_funcs.update_pangolin_data(VF_ROOT_PATH)
+    _update_pangolin_data(VF_ROOT_PATH)
 
 
 # =============================================================================
@@ -80,7 +86,7 @@ def update_pangolin_data():
 )
 def add_entry_to_snpeff(org_name, genome_code):
     """Add a new entry to the SnpEff database."""
-    wrapper_funcs.add_entries_to_DB(VF_ROOT_PATH, org_name, genome_code)
+    _add_entries_to_DB(VF_ROOT_PATH, org_name, genome_code)
 
 
 # =============================================================================
@@ -108,7 +114,7 @@ def add_entry_to_snpeff(org_name, genome_code):
 )
 def run(params_file, dedup, ndedup):
     click.echo(f"ViralFlow v{__version__}")
-    wrapper_funcs.run_vfnext(VF_ROOT_PATH, params_file)
+    _run_vfnext(VF_ROOT_PATH, params_file)
 
 
 if __name__ == "__main__":
