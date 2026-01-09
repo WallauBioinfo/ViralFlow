@@ -10,8 +10,18 @@ organism_refseq_code=$2 # NC_001474.2
 
 # hardcoded paths
 SNPEFF_CTNR="snpeff:5.0.sif"
-SNPEFF_PATH="/opt/conda/share/snpeff-5.0-2/"
 EFETCH_CTNR="edirect:1.1.0.sif"
+
+# Detect the correct snpEff path (varies between systems: 5.0-2 or 5.0-3)
+if [ -d "$SNPEFF_CTNR/opt/conda/share/snpeff-5.0-3" ]; then
+    SNPEFF_PATH="/opt/conda/share/snpeff-5.0-3/"
+elif [ -d "$SNPEFF_CTNR/opt/conda/share/snpeff-5.0-2" ]; then
+    SNPEFF_PATH="/opt/conda/share/snpeff-5.0-2/"
+else
+    echo "ERROR: Could not find snpEff installation directory in container"
+    exit 1
+fi
+echo "Using snpEff path: $SNPEFF_PATH"
 
 echo "@ adding new entry..."
 echo -e "# $organism_name, version $organism_refseq_code" >> $SNPEFF_CTNR/$SNPEFF_PATH/snpEff.config
