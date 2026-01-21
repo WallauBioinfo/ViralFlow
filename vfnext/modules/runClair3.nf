@@ -1,6 +1,6 @@
 process run_clair3{
     // Define the process parameters
-    publishDir "${params.outDir}/${meta.id}/", mode: 'copy', overwrite: true
+    publishDir "${params.outDir}/${meta.id}_results/", mode: 'copy', overwrite: true
     tag "${meta.id}"
     container "docker://hkubal/clair3:v1.1.0"
     

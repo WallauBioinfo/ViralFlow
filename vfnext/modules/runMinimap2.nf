@@ -1,7 +1,7 @@
 process run_minimap2 {
     label "NP_basecontainer"
     // Define the process parameters
-    publishDir "${params.outDir}/${meta.id}", mode: 'copy', overwrite: true
+    publishDir "${params.outDir}/${meta.id}_results/", mode: 'copy', overwrite: true
     tag "${meta.id}"
 
     input:

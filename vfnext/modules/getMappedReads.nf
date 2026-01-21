@@ -14,7 +14,8 @@ process getMappedReads{
       samtools fastq -F 4 -1 ${meta.id}.mapped.R1.fq.gz -2 ${meta.id}.mapped.R2.fq.gz
     else
       samtools sort -n ${meta.id}.sorted.bam | \
-      samtools fastq -F 4 -s ${meta.id}.mapped.SE.fq.gz 
+      samtools fastq -F 4 > ${meta.id}.mapped.SE.fq
+      gzip ${meta.id}.mapped.SE.fq
     fi
     """
 }
