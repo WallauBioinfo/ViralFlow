@@ -50,7 +50,8 @@ process run_bcftools_consensus {
     samtools depth -J -a !{sorted_bam} > !{meta.id}.cov.bed
     awk '$3 <= int(!{min_depth}) {print $1 "\t" $2-1 "\t" $2}' !{meta.id}.cov.bed > !{meta.id}.low_cov.bed
     
-    # call consensus sequence
+    # call consensus sequence and rename it
     bcftools consensus -f !{ref} --mask !{meta.id}.low_cov.bed !{vcf_file} > !{meta.id}.consensus.fa
+    sed -i -e 's/>.*/>!{meta.id}/' !{meta.id}.consensus.fa
     '''
 }

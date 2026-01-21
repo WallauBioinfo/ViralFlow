@@ -8,7 +8,8 @@ process run_clair3{
         tuple val(meta), path(bam)
         path(ref)
         val(chunk_size) // 10000
-        val(qual) // 30
+        val(qual) // 10
+        val(map_qual) // 30
         val(model)
 
     output:
@@ -30,7 +31,8 @@ process run_clair3{
         --platform='ont' \
         --model_path=/opt/models/${model} \
         --include_all_ctgs \
-        --min_mq=${qual}
+        --qual=${qual} \
+        --min_mq=${map_qual}
     
     mv ./merge_output.vcf.gz ${meta.id}.merge_output.vcf.gz
     """
