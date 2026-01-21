@@ -23,7 +23,7 @@ workflow NANOPORE {
     bams_ch = run_minimap2.out // tuple (meta, sorted_bam, bai)
     
     // do variant calling (clair3)
-    run_clair3(bams_ch, ref, params.clair3_chunk_size, params.clair3_qual, params.clair3_model)
+    run_clair3(bams_ch, ref, params.clair3_chunk_size, params.clair3_qual, params.mapping_quality, params.clair3_model)
 
     // normlalize indes and filter variants (bcftools)
     run_bcftools(run_clair3.out, ref, params.af_threshold)

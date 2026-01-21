@@ -1,7 +1,7 @@
 process run_minimap2 {
     label "NP_basecontainer"
     // Define the process parameters
-    publishDir "${params.outDir}/${meta.id}", mode: 'copy', overwrite: true
+    publishDir "${params.outDir}/${meta.id}_results/", mode: 'copy', overwrite: true
     tag "${meta.id}"
 
     input:
@@ -14,7 +14,7 @@ process run_minimap2 {
     script:
     """
     minimap2 -a -x map-ont -t ${task.cpus} ${ref} ${fastq} \
-    | samtools view -bS -F 4 - \
+    | samtools view -bS - \
     | samtools sort -o ${meta.id}.sorted.bam
         
     samtools index ${meta.id}.sorted.bam

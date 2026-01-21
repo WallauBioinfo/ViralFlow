@@ -1,6 +1,6 @@
 process alignConsensus2Ref {
     tag "${meta.id}"
-    publishDir "${params.outDir}/${meta.id}", mode: "copy"
+    publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
     label "multithread"
 
     input:
