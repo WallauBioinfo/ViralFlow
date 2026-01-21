@@ -16,7 +16,7 @@ process getUnmappedReads {
       samtools fastq -f 4 -1 ${meta.id}.unmapped.R1.fq.gz -2 ${meta.id}.unmapped.R2.fq.gz
     else
       samtools sort -n unmapped.bam | \
-      samtools fastq -f 4  > ${meta.id}.unmapped.SE.fq
+      samtools fastq -f 4 > ${meta.id}.unmapped.SE.fq
       gzip ${meta.id}.unmapped.SE.fq
     fi
     """
