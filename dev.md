@@ -13,7 +13,7 @@ micromamba env create -f envs/amd64.yml
 micromamba activate viralflow
 pip install -e .
 sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
-viralflow build_containers
+viralflow build-containers
 ```
 
 ### ARM64
@@ -25,7 +25,7 @@ micromamba env create -f envs/arm64.yml
 micromamba activate viralflow
 pip install -e .
 # include apptainer / singularity config here
-viralflow build_containers --arch arm64
+viralflow build-containers --arch arm64
 ```
 
 ### Customizing snpEff catalog
