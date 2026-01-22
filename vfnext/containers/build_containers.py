@@ -1,5 +1,8 @@
 import subprocess
 import os
+import sys
+
+arch = sys.argv[1]
 
 containers = [
     "pangolin:4.3.sif",
@@ -8,8 +11,8 @@ containers = [
 
 # temporary logic, before push to remote repo
 container_commands = [
-    "singularity build -F --fakeroot --sandbox pangolin:4.3.sif Singularity_pangolin",
-    "singularity build -F --fakeroot --sandbox snpeff:5.0.sif Singularity_snpEff"
+    f"singularity build -F --fakeroot --sandbox pangolin:4.3.sif def_files/{arch}/Singularity_pangolin",
+    f"singularity build -F --fakeroot --sandbox snpeff:5.0.sif def_files/{arch}/Singularity_snpEff"
 ]
 
 failed_containers = []

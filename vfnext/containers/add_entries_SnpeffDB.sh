@@ -7,20 +7,36 @@ cd $SCRIPT_DIR
 # user input
 organism_name=$1 # Dengue
 organism_refseq_code=$2 # NC_001474.2
+arch=$3 # amd64
 
 # hardcoded paths
 SNPEFF_CTNR="snpeff:5.0.sif"
 EFETCH_CTNR="edirect:1.1.0.sif"
 
-# Detect the correct snpEff path (varies between systems: 5.0-2 or 5.0-3)
-if [ -d "$SNPEFF_CTNR/opt/conda/share/snpeff-5.0-3" ]; then
-    SNPEFF_PATH="/opt/conda/share/snpeff-5.0-3/"
-elif [ -d "$SNPEFF_CTNR/opt/conda/share/snpeff-5.0-2" ]; then
-    SNPEFF_PATH="/opt/conda/share/snpeff-5.0-2/"
+if [ "$arch" == "amd64" ]; then
+    # Detect the correct snpEff path (varies between systems: 5.0-2 or 5.0-3)
+    if [ -d "$SNPEFF_CTNR/opt/conda/share/snpeff-5.0-3" ]; then
+        SNPEFF_PATH="/opt/conda/share/snpeff-5.0-3"
+    elif [ -d "$SNPEFF_CTNR/opt/conda/share/snpeff-5.0-2" ]; then
+        SNPEFF_PATH="/opt/conda/share/snpeff-5.0-2"
+    else
+        echo "ERROR: Could not find snpEff installation directory inside $SNPEFF_CTNR for amd64"
+        exit 1
+    fi
+elif [ "$arch" == "arm64" ]; then
+    if [ -d "$SNPEFF_CTNR/usr/local/bin/mm/share/snpeff-5.0-3" ]; then
+        SNPEFF_PATH="/usr/local/bin/mm/share/snpeff-5.0-3"
+    elif [ -d "$SNPEFF_CTNR/usr/local/bin/mm/share/snpeff-5.0-2" ]; then
+        SNPEFF_PATH="/usr/local/bin/mm/share/snpeff-5.0-2"
+    else
+        echo "ERROR: Could not find snpEff installation directory inside $SNPEFF_CTNR for arm64"
+        exit 1
+    fi
 else
-    echo "ERROR: Could not find snpEff installation directory in container"
+    echo "ERROR: Unsupported architecture: $arch. Expected 'amd64' or 'arm64'."
     exit 1
 fi
+
 echo "Using snpEff path: $SNPEFF_PATH"
 
 echo "@ adding new entry..."
@@ -34,12 +50,10 @@ mkdir -p $SNPEFF_CTNR/$SNPEFF_PATH/data/$organism_refseq_code
 
 # download fasta
 echo "@ downloading fasta..."
-#sudo singularity exec $EFETCH_CTNR efetch -db nucleotide -id $organism_refseq_code -format gb > $SNPEFF_CTNR/$SNPEFF_PATH/data/$organism_refseq_code/genes.gbk
 singularity exec --fakeroot $EFETCH_CTNR efetch -db nucleotide -id $organism_refseq_code -format gb > $SNPEFF_CTNR/$SNPEFF_PATH/data/$organism_refseq_code/genes.gbk
 
 # build database
 echo "@ rebuild database"
-#sudo singularity exec --writable $SNPEFF_CTNR snpEff build -genbank -v $organism_refseq_code
 singularity exec --fakeroot --writable $SNPEFF_CTNR snpEff build -genbank -v $organism_refseq_code
 
 # update catalog

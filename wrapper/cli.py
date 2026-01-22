@@ -48,7 +48,7 @@ def cli(ctx):
     "--arch",
     default="amd64",
     type=click.Choice(["amd64", "arm64"], case_sensitive=False),
-    help="Architecture to build containers for"
+    help="Architecture to build containers"
 )
 def build_containers(arch):
     """Build containers for vfnext."""
@@ -84,9 +84,15 @@ def update_pangolin_data():
     type=str,
     help="Organism reference genome code"
 )
-def add_entry_to_snpeff(org_name, genome_code):
+@click.option(
+    "--arch",
+    default="amd64",
+    type=click.Choice(["amd64", "arm64"], case_sensitive=False),
+    help="System architecture"
+)
+def add_entry_to_snpeff(org_name, genome_code, arch):
     """Add a new entry to the SnpEff database."""
-    _add_entries_to_DB(VF_ROOT_PATH, org_name, genome_code)
+    _add_entries_to_DB(VF_ROOT_PATH, org_name, genome_code, arch)
 
 
 # =============================================================================
