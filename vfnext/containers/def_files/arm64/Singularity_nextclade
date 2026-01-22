@@ -1,0 +1,32 @@
+Bootstrap: library
+From: debian:11
+
+%environment
+    export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
+    
+%post
+    apt-get update
+    apt-get install -y curl bzip2
+    cd /usr/local
+    rmdir bin
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+    export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
+    eval "$(/usr/local/bin/micromamba shell hook -s posix)"
+    /usr/local/bin/micromamba shell init -s bash -r /usr/local/bin/mm
+    micromamba shell init --shell=bash --root-prefix=/usr/local/bin/mm
+    micromamba activate
+    micromamba config append channels conda-forge --env
+    micromamba self-update
+    micromamba install -c bioconda -c conda-forge nextclade==3.18 procps-ng
+
+    # Clean apt cache + docs
+    apt-get clean
+    micromamba clean --all --yes
+    rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale
+
+%runscript
+exec nextclade "$@"
+
+%startscript
+exec nextclade "$@"
+

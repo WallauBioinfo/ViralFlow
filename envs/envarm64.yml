@@ -1,0 +1,18 @@
+name: viralflow
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pip
+  - setuptools
+  - wheel
+  - biopython
+  - numpy
+  - pandas
+  - nextflow=22.04.0
+  - click=8.3
+  - entrez-direct
+  - openjdk=17
+  - procps-ng
