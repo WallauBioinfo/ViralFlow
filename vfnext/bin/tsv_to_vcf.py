@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 import sys
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] %(message)s',
+    stream=sys.stderr
+)
+logger = logging.getLogger(__name__)
 
 def convert_tabular_to_vcf(tabular_path, vcf_path, sample_name):
     with open(tabular_path, "r") as inp, open(vcf_path, "w") as out:
@@ -21,6 +29,7 @@ def convert_tabular_to_vcf(tabular_path, vcf_path, sample_name):
         out.write(f"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample_name}\n")
 
         header = True
+        variants_written = 0
         for line in inp:
             if header:
                 header = False
@@ -28,10 +37,12 @@ def convert_tabular_to_vcf(tabular_path, vcf_path, sample_name):
 
             fields = line.strip().split("\t")
             if len(fields) < 14:
+                logger.warning(f"Skipping line with insufficient fields ({len(fields)} < 14): {line.strip()[:50]}...")
                 continue
             alt_freq = fields[10]
             # Skip variants with alt frequency < 0.5 (minor variants)
             if float(alt_freq) < 0.5:
+                logger.info(f"Skipping minor variant at pos {fields[1]} (alt_freq={alt_freq} < 0.5)")
                 continue
             chrom = fields[0]
             pos = fields[1]
@@ -70,11 +81,17 @@ def convert_tabular_to_vcf(tabular_path, vcf_path, sample_name):
             )
 
             out.write(f"{chrom}\t{pos}\t.\t{ref}\t{alt}\t{qual}\t{filter_val}\t{info}\tGT\t1\n")
+            variants_written += 1
+
+        if variants_written == 0:
+            logger.warning("No variants written to VCF. Input TSV may be empty or all variants were filtered out.")
+        else:
+            logger.info(f"Successfully wrote {variants_written} variant(s) to VCF.")
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("\nUso:\n  python3 convert_tabular_to_vcf.py input.tsv output.vcf sample_name\n")
+        print("\nUsage:\n  python3 convert_tabular_to_vcf.py input.tsv output.vcf sample_name\n")
         sys.exit(1)
 
     convert_tabular_to_vcf(sys.argv[1], sys.argv[2], sys.argv[3])

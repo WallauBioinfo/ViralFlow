@@ -131,7 +131,9 @@ workflow {
 
   // Conditionally run ampliconclip for primer trimming if BED file is provided
   if (params.primersBED != null) {
-    runAmpliconClipping(align2ref.out.regular_output)
+    runAmpliconClipping(align2ref.out.regular_output,
+                        params.primersBED, 
+                        params.minLen)
     bam_output_ch = runAmpliconClipping.out.regular_output
   } else {
     bam_output_ch = align2ref.out.regular_output

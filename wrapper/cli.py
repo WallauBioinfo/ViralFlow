@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import os
+from importlib.metadata import version
+
 import click
 from . import (
     build_containers as _build_containers,
@@ -9,12 +11,7 @@ from . import (
     run_vfnext as _run_vfnext,
 )
 
-
-__author__ = "Antonio Marinho da Silva Neto"
-__license__ = "GPL"
-__version__ = "1.4.0"
-__maintainer__ = "Antonio Marinho da Silva Neto"
-__email__ = "ad45@sanger.ac.uk"
+__version__ = version("ViralFlow")
 
 # Get root paths
 script_file = os.path.realpath(__file__)
