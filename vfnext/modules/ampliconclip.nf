@@ -3,8 +3,8 @@ process runAmpliconClipping {
   publishDir "${params.outDir}/${sample_id}_results/", mode: "copy"
   
   input:
-    tuple val(sample_id), path(bam), path(bai), val(is_paired_end),
-    path(primers_bed),
+    tuple val(sample_id), path(bam), path(bai), val(is_paired_end)
+    path(primers_bed)
     val(min_len)
 
   output:
