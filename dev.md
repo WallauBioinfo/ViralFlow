@@ -24,7 +24,24 @@ cd ViralFlow/
 micromamba env create -f envs/arm64.yml
 micromamba activate viralflow
 pip install -e .
+
 # include apptainer / singularity config here
+
+sudo apt update
+sudo apt install -y build-essential git wget pkg-config \
+    libseccomp-dev squashfs-tools cryptsetup \
+    libglib2.0-dev uuid-dev libssl-dev libgpgme-dev \
+    libarchive-dev runc
+
+git clone --recursive https://github.com/sylabs/singularity.git
+cd singularity
+git checkout v3.11.4
+git submodule update --init --recursive
+./mconfig
+make -C builddir
+sudo make -C builddir install
+
+#
 viralflow build-containers --arch arm64
 ```
 
