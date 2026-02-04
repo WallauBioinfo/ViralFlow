@@ -19,11 +19,7 @@ viralflow build-containers
 ### ARM64
 
 ```bash
-git clone -b develop https://github.com/WallauBioinfo/ViralFlow.git
-cd ViralFlow/
-micromamba env create -f envs/arm64.yml
-micromamba activate viralflow
-pip install -e .
+# install singularity
 
 sudo apt update
 sudo apt install -y build-essential git wget pkg-config \
@@ -39,7 +35,14 @@ git submodule update --init --recursive
 make -C builddir
 sudo make -C builddir install
 
-#
+# install viralflow wrapper
+git clone -b develop https://github.com/WallauBioinfo/ViralFlow.git
+cd ViralFlow/
+micromamba env create -f envs/arm64.yml
+micromamba activate viralflow
+pip install -e .
+
+# build containers
 viralflow build-containers --arch arm64
 ```
 
