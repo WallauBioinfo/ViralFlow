@@ -1,0 +1,31 @@
+Bootstrap: docker
+From: arm64v8/debian:11
+
+%environment
+    export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
+
+%post
+    apt-get update
+    apt-get install -y curl bzip2 gcc g++ make python3-dev git
+    cd /usr/local
+    rmdir bin
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/1.5.7 | tar -xvj bin/micromamba
+    export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
+    eval "$(/usr/local/bin/micromamba shell hook -s posix)"
+    /usr/local/bin/micromamba shell init -s bash -r /usr/local/bin/mm
+    micromamba shell init --shell=bash --root-prefix=/usr/local/bin/mm
+    micromamba activate
+    micromamba config append channels conda-forge --env
+    micromamba self-update
+    #micromamba install -c bioconda -c conda-forge pangolin==4.3 procps-ng #mudei
+    micromamba install -y -c bioconda -c conda-forge python==3.10 pulp==2.7.0 snakemake-minimal==7.29 minimap2 gofasta usher ucsc-fatovcf procps-ng
+    pip install biopython==1.74 
+    pip install git+https://github.com/cov-lineages/pangolin.git@v4.3.4
+    pip install git+https://github.com/cov-lineages/pangolin-data.git
+    pip install git+https://github.com/cov-lineages/scorpio.git
+    pip install git+https://github.com/cov-lineages/constellations.git
+
+
+    apt-get clean
+    micromamba clean --all --yes
+    rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale
