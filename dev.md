@@ -20,7 +20,6 @@ viralflow build-containers
 
 ```bash
 # install singularity
-
 sudo apt update
 sudo apt install -y build-essential git wget pkg-config \
     libseccomp-dev squashfs-tools cryptsetup \
