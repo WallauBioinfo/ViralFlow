@@ -25,8 +25,6 @@ micromamba env create -f envs/arm64.yml
 micromamba activate viralflow
 pip install -e .
 
-# include apptainer / singularity config here
-
 sudo apt update
 sudo apt install -y build-essential git wget pkg-config \
     libseccomp-dev squashfs-tools cryptsetup \
