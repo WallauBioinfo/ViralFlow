@@ -21,7 +21,7 @@ process runNextClade {
   if [ $NUMLINES -gt 1 ]; then
       cat !{meta.id}.depth!{params.depth}.fa !{meta.id}.depth!{params.depth}.fa.algn.minor.fa  > !{meta.id}.depth!{params.depth}.all.fa
       nextclade run --jobs !{params.nxtclade_jobs} \
-                --input-root-seq=!{ref_fa} \
+                --input-ref=!{ref_fa} \
                 --input-dataset=!{nxt_dataset} \
                 --output-csv=!{meta.id}.depth!{params.depth}.all.fa.nextclade.csv \
                 --output-all=./ \
@@ -30,7 +30,7 @@ process runNextClade {
 
   if [ $NUMLINES -eq 1 ]; then
       nextclade run --jobs !{params.nxtclade_jobs} \
-             --input-root-seq=!{ref_fa} \
+             --input-ref=!{ref_fa} \
              --input-dataset=!{nxt_dataset} \
              --output-csv=!{meta.id}.depth!{params.depth}.fa.nextclade.csv \
              --output-all=./ \

@@ -1,0 +1,11 @@
+wallaulabs2/viralflow-amd64/edirect:1.1.0
+wallaulabs2/viralflow-amd64/mafft:7.505_2
+wallaulabs2/viralflow-amd64/samtools:1.11.0
+wallaulabs2/viralflow-amd64/picard:2.27.2_2
+wallaulabs2/viralflow-amd64/intrahost_analysis:1.1.0
+wallaulabs2/viralflow-amd64/generate_report:1.1.0
+wallaulabs2/viralflow-amd64/generate_consensus:2.0.0
+wallaulabs2/viralflow-amd64/fastp:1.0.1
+wallaulabs2/viralflow-amd64/generate_plots:2.0.0
+wallaulabs2/viralflow-amd64/nextclade:3.18
+wallaulabs2/viralflow-amd64/compiled_outputs:1.1.0

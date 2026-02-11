@@ -1,13 +1,13 @@
 import os
 
 
-def add_entries_to_DB(root_path, org_name, refseq_code):
+def add_entries_to_DB(root_path, org_name, refseq_code, arch):
     """
     add entries provided to snpeff database
     """
     run_bash = f"bash {root_path}/vfnext/containers/add_entries_SnpeffDB.sh"
-    print(f"{run_bash} {org_name} {refseq_code}")
-    os.system(f"{run_bash} {org_name} {refseq_code}")
+    print(f"{run_bash} {org_name} {refseq_code} {arch}")
+    os.system(f"{run_bash} {org_name} {refseq_code} {arch}")
 
 def parse_csv(csv_flpath):
     with open(csv_flpath, "r") as csv_fl:
@@ -23,14 +23,14 @@ def parse_csv(csv_flpath):
             entries_lst.append(entry)
     return entries_lst
 
-def build_containers(root_path):
+def build_containers(root_path, arch: str):
     """
     run script to build container for vfnext
     """
     # build containers
     cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    build_sandbox = f"python ./build_containers.py"
-    pull_containers = f"python ./pull_containers.py"
+    build_sandbox = f"python ./build_containers.py {arch}"
+    pull_containers = f"python ./pull_containers.py {arch}"
     os.system(cd_to_dir+';'+pull_containers) 
     print(cd_to_dir+';'+build_sandbox)
     os.system(cd_to_dir+';'+build_sandbox)
@@ -116,12 +116,12 @@ def parse_params(in_flpath):
 
 def update_pangolin(root_path):
     cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    run_update = "singularity exec --writable ./pangolin_latest.sif pangolin --update"
+    run_update = "singularity exec --writable ./pangolin:4.3.sif pangolin --update"
     os.system(cd_to_dir+';'+run_update)
 
 def update_pangolin_data(root_path):
     cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    run_update_data = "singularity exec --writable ./pangolin_latest.sif pangolin --update-data"
+    run_update_data = "singularity exec --writable ./pangolin:4.3.sif pangolin --update-data"
     os.system(cd_to_dir+';'+run_update_data)
 
 def run_vfnext(root_path, params_fl):

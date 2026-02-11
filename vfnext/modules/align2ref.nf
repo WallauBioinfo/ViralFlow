@@ -8,16 +8,14 @@ process align2ref{
     path(ref_fa)
 
   output:
-    tuple val(meta), path("*.sorted.bam"), path("*.bai"), val(is_paired_end), emit: regular_output
-    path("${meta.id}.trimmed_reads.txt"), emit: trimmed_reads, optional: true
+    tuple val(sample_id), path("*.sorted.bam"), path("*.bai"), val(is_paired_end), emit: regular_output
     
   script:
-    trim_bam = "${meta.id}.trimmed"
-    bed = "${params.primersBED}"
-
     """
     # Link reference files
-    ln -s ${ref_fa} ./${fasta_amb.getSimpleName()}.fasta
+    if [[ ! -f ./${fasta_amb.getSimpleName()}.fasta ]]; then
+        ln -s ${ref_fa} ./${fasta_amb.getSimpleName()}.fasta
+    fi
 
     if [[ ${is_paired_end} == true ]]; then
         bwa mem ./${ref_fa} ${reads[0]} ${reads[1]} \
@@ -28,23 +26,7 @@ process align2ref{
     fi
 
     # Sort and index
-    samtools sort -o ${meta.id}.sorted.bam ${meta.id}.bam
-    samtools index ${meta.id}.sorted.bam
-
-    # Trim primers if bed file is provided
-    if [[ "${params.primersBED}" != "null" ]]; then
-        samtools ampliconclip --both-ends --hard-clip \
-          --filter-len ${params.minLen} \
-          -b ${bed} ${meta.id}.sorted.bam \
-          -f ${meta.id}.trimmed_reads.txt > ${trim_bam}
-
-        samtools sort -o ${trim_bam}.sorted.bam ${trim_bam}
-        samtools index ${trim_bam}.sorted.bam
-
-        mv ${meta.id}.sorted.bam ${meta.id}.raw.sorted.bam
-        mv ${meta.id}.sorted.bam.bai ${meta.id}.raw.sorted.bam.bai
-        mv ${trim_bam}.sorted.bam ${meta.id}.sorted.bam
-        mv ${trim_bam}.sorted.bam.bai ${meta.id}.sorted.bam.bai
-    fi
+    samtools sort -o ${sample_id}.sorted.bam ${sample_id}.bam
+    samtools index ${sample_id}.sorted.bam
     """
 }

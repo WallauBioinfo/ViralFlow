@@ -4,7 +4,7 @@ process alignConsensus2Ref {
     label "multithread"
 
     input:
-    tuple val(meta), path(consensus_fa), path(ivar_txt), path(mut_tsv)
+    tuple val(sample_id), path(consensus_fa), path(ivar_txt), path(mut_tsv), path(vcf_file), path(vcf_index)
     path(ref_fa)
     //temporary solution, we only need the consensus_fa. handle channels better
     output:

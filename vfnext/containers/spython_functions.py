@@ -7,27 +7,37 @@ def get_repository(repository_list):
     with open(repository_list, "r") as containers:
         file = containers.readlines()
         for container in file:
-            repository_project_name = container.split("/")[1]
-            container_version = container.split("/")[2].replace("\n", "")
-            containers_name_list.append((repository_project_name, container_version))
+            container = container.strip()
+            if not container:
+                continue
+            # Full path: e.g. wallaulabs2/viralflow-amd64/edirect:1.1.0
+            parts = container.split("/")
+            org = parts[0]  # wallaulabs2
+            project = parts[1]  # viralflow-amd64
+            container_version = parts[2]  # edirect:1.1.0
+            full_repo = f"{org}/{project}/{container_version}"
+            containers_name_list.append((project, container_version, full_repo))
     return containers_name_list
 
 
 def container_pull(containers_dir, containers_name_list):
     for container in containers_name_list:
-        print(f"Downloading container {container[1]}. This could be take a while. Please Wait ...")
-        os.system(f"singularity pull -F {container[1]}.sif library://wallaulabs/viralflow/{container[1]}")  
+        container_version = container[1]
+        full_repo = container[2]
+        print(f"Downloading container {container_version}. This could be take a while. Please Wait ...")
+        os.system(f"singularity pull -F {container_version}.sif library://{full_repo}")  
 
 
 
 def check_containers(containers_name_list, downloaded_list):
     download_list = os.scandir(downloaded_list)
     container_download_list = [container.name for container in download_list]
-    containers_name = [(cont_name[0], f"{cont_name[1]}.sif") for cont_name in containers_name_list]
     missing_containers = []
-    for i in containers_name:
-        if i[1] not in container_download_list:
-            missing_containers.append((i[0], i[1].split(".sif")[0]))
+    for cont in containers_name_list:
+        # cont is (project, container_version, full_repo)
+        expected_file = f"{cont[1]}.sif"
+        if expected_file not in container_download_list:
+            missing_containers.append(cont)
     return missing_containers
 
 
