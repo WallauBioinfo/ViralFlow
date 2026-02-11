@@ -72,8 +72,7 @@ log.info """
 
   if (params.mode == "ILLUMINA"){
     ILLUMINA(reads_ch, ref_fa,ref_gff,ref_gcode)
-    def bams_ch = ILLUMINA.out.bams_ch.map{meta, bams, bais, _is_paired_end -> tuple(meta, bams,bais)}
-    GENPLOTS(bams_ch)
+    GENPLOTS(ILLUMINA.out.bams_ch)
   }
 
   if (params.mode == "NANOPORE"){
@@ -81,7 +80,7 @@ log.info """
     def bams_ch = NANOPORE.out.bams_ch.map{meta, bam -> 
         // Remove once NANOPORE emits (meta,bam,bai)
         assert bam instanceof List && bam.size()==2 : "NANOPORE bams_ch must be meta, [bam,bai]"
-        tuple(meta, bam[0], bam[1])}
+        tuple(meta, bam[0], bam[1], false)}  // Nanopore is always single-end
     GENPLOTS(bams_ch)
   }
 
@@ -101,3 +100,4 @@ workflow.onComplete = {
 }
 
 }
+

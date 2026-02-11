@@ -26,36 +26,35 @@ workflow  ILLUMINA {
         ref_gcode
     main:
 
-  // STEP 1 ------------------------------------------------------------------
-  // run indexing, open the bwa index output channel
-  indexReferenceBWA(ref_fa)
-  indexReferenceBWA.out.set { bwaidx_Output_ch }
+    // STEP 1 ------------------------------------------------------------------
+    // run indexing, open the bwa index output channel
+    indexReferenceBWA(ref_fa)
+    indexReferenceBWA.out.set { bwaidx_Output_ch }
 
 
-  // run fastp
-  reads_ch_2 = reads_ch.map { meta, files ->
-  tuple(meta, files, meta.is_paired_end)  // Add is paired end to the tuple
-  }
+    // run fastp
+    reads_ch_2 = reads_ch.map { meta, files ->
+    tuple(meta, files, meta.is_paired_end)  // Add is paired end to the tuple
+    }
 
-  runFastp(reads_ch_2)
+    runFastp(reads_ch_2)
 
-  // collect htmls for vf reports
-  runFastp.out //tuple (meta, [fq.gz file(s)], fastp_html)
-    | map{ it[2]} 
-    | set {fastp_html_ch}
-  all_fastp_html_ch = fastp_html_ch.collect()
-  
-  // collect output reads
-  runFastp.out // tuple (meta, [fq.gz file(s)], fastp_html)
-    | map {tuple(it[0],it[1])} //tuple (meta, [fq.gz file(s)])
-    | set {fastp_fqgz_ch}
+    // collect htmls for vf reports
+    runFastp.out //tuple (meta, [fq.gz file(s)], fastp_html)
+      | map{ it[2]} 
+      | set {fastp_html_ch}
+    all_fastp_html_ch = fastp_html_ch.collect()
+    
+    // collect output reads
+    runFastp.out // tuple (meta, [fq.gz file(s)], fastp_html)
+      | map {tuple(it[0],it[1])} //tuple (meta, [fq.gz file(s)])
+      | set {fastp_fqgz_ch}
 
-  fastp_fqgz_ch = fastp_fqgz_ch.map { meta, files ->
-   def is_paired_end = (files.size() == 2) // Check if it's paired-end
-   def new_meta = meta.plus([is_paired_end: is_paired_end]) // Add is_paired_end to the metadata
-   tuple(new_meta, files, is_paired_end)  // Add is paired end to the tuple
-  }
-
+    fastp_fqgz_ch = fastp_fqgz_ch.map { meta, files ->
+    def is_paired_end = (files.size() == 2) // Check if it's paired-end
+    def new_meta = meta.plus([is_paired_end: is_paired_end]) // Add is_paired_end to the metadata
+    tuple(new_meta, files, is_paired_end)  // Add is paired end to the tuple
+    }
 
     // generate fa index
     genFaIdx(ref_fa)
@@ -76,31 +75,32 @@ workflow  ILLUMINA {
     }
 
     // use bam output for downstream processing
-    bam_output_ch // tuple (sample_id, bam_file, bai_file, is_paired_end)
-      | map { it -> tuple(it[0], it[1], it[3]) } // tuple(sample_id, bam_file, is_paired_end)
+    bam_output_ch 
+      | map { meta, bam, bai, is_pe -> tuple(meta, bam, is_pe) } 
       | set { bam_Out_ch }
 
     // remove bam files which are too small (necessary for Picard)
     bam_Out_ch
-      | filter(it -> 
+      | filter { 
+        def bam = it[1]
         // filter if unix paths
-        ((it[1].getClass() == sun.nio.fs.UnixPath) && (it[1].size() >= params.minBamSize )) 
+        ((bam.getClass() == sun.nio.fs.UnixPath) && (bam.size() >= params.minBamSize )) 
         ||
-        ((it[1].getClass() == java.util.ArrayList) && (it[1][0].size() >= params.minBamSize ) && (it[1][1].size() >= params.minBamSize))
-      )
+        ((bam.getClass() == java.util.ArrayList) && (bam[0].size() >= params.minBamSize ) && (bam[1].size() >= params.minBamSize))
+      }
       | set {bam_Out_filtered_ch}
 
     // raise warning in case anyfile is excluded
     bam_Out_ch
-      | filter(it -> 
+      | filter { 
+        def bam = it[1]
         // filter if unix paths
-        (it[1].getClass() == sun.nio.fs.UnixPath) && (it[1].size() <= params.minBamSize )
-      )
-      | filter (it ->
+        ((bam.getClass() == sun.nio.fs.UnixPath) && (bam.size() <= params.minBamSize ))
+        ||
         // filter if is a list with two bam file paths
-        (it[1].getClass() == java.util.ArrayList) && (it[1][0].size() <= params.minBamSize ) && (it[1][1].size() <= params.minBamSize)
-      )
-      | view(it -> log.warn("Excluding ${it[0]} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)"))
+        ((bam.getClass() == java.util.ArrayList) && (bam[0].size() <= params.minBamSize ) && (bam[1].size() <= params.minBamSize))
+      }
+      | view { log.warn("Excluding ${it[0].id} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)") }
 
 
     // -----------------------------------------------------------------------------
@@ -168,5 +168,6 @@ workflow  ILLUMINA {
   }
 
   emit:
-    bams_ch = bam_Out_ch // sample_id, sorted_bams, .bais, is_paired_end, 
+    bams_ch = bam_output_ch // meta, sorted_bam, bai, is_paired_end
 }
+

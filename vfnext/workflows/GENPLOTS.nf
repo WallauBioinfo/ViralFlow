@@ -5,11 +5,15 @@ include { getUnmappedReads } from '../modules/getUnmappedReads.nf'
 
 workflow GENPLOTS {
     take: 
-        bams_ch // sample_id, bam_files, bai_files, is_paired_end
+        bams_ch // meta, bam_file, bai_file, is_paired_end
     main:
+    // Create sub-channels for each process type
+    coverage_ch = bams_ch.map { meta, bam, bai, is_pe -> tuple(meta, bam, bai) }
+    reads_ch = bams_ch.map { meta, bam, bai, is_pe -> tuple(meta, bam, is_pe) }
+
     //QC
     //Rendering the depth coverage plot
-    coveragePlot(bams_ch)
+    coveragePlot(coverage_ch)
     // Check if there are mapped reads
     coveragePlot_out_ch = coveragePlot.out.result
     coveragePlot_out_ch
@@ -17,9 +21,9 @@ workflow GENPLOTS {
 
     if ((params.writeMappedReads == true)){
         // write mapped reads
-        getMappedReads(bams_ch)
+        getMappedReads(reads_ch)
   
         // write unmappped reads
-        getUnmappedReads(bams_ch)
+        getUnmappedReads(reads_ch)
     }
 }
