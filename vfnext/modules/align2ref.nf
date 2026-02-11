@@ -1,15 +1,16 @@
 
 process align2ref{
-  publishDir "${params.outDir}/${sample_id}_results/", mode: "copy"
+  publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
   
   input:
-    tuple val(sample_id), path(reads), val(is_paired_end), path(fasta_amb), path(fasta_ann), path(fasta_bwt), path(fasta_pac), path(fasta_sa)
+    tuple val(meta), path(reads), val(is_paired_end), path(fasta_amb), path(fasta_ann), path(fasta_bwt), path(fasta_pac), path(fasta_sa)
     path(ref_fa)
 
   output:
-    tuple val(sample_id), path("*.sorted.bam"), path("*.bai"), val(is_paired_end), emit: regular_output
+    tuple val(meta), path("*.sorted.bam"), path("*.bai"), val(is_paired_end), emit: regular_output
     
   script:
+    sample_id = meta.id
     """
     # Link reference files
     if [[ ! -f ./${fasta_amb.getSimpleName()}.fasta ]]; then

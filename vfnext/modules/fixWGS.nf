@@ -5,7 +5,7 @@ process fixWGS {
   publishDir "${params.outDir}/${meta.id}_results/", mode : "copy"
 
   input:
-     tuple val(sample_id), path(wgs), path(metrics), path(consensus), path(ivar_txt), path(mut_tsv), path(vcf_file), path(vcf_index)
+     tuple val(meta), path(wgs), path(metrics), path(consensus), path(ivar_txt), path(mut_tsv), path(vcf_file), path(vcf_index)
      //temporary solution, no need for ivar_txt and mut_tsv vcf_file and vcf_index
 
   output:

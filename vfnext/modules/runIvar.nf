@@ -1,12 +1,13 @@
 process runIvar{
-  publishDir "${params.outDir}/${sample_id}_results/", mode: "copy", pattern: "*.{fa,tsv,gz,tbi}"
+  publishDir "${params.outDir}/${meta.id}_results/", mode: "copy", pattern: "*.{fa,tsv,gz,tbi}"
   input:
     tuple val(meta), path(bams), val(is_paired_end)
     path(ref_fa)
   output:
-    tuple val(sample_id), path("*.depth*.fa"), path("*.txt"), path("${sample_id}.tsv"), path("${sample_id}.ivar.vcf.gz"), path("${sample_id}.ivar.vcf.gz.tbi")
+    tuple val(meta), path("*.depth*.fa"), path("*.txt"), path("${meta.id}.tsv"), path("${meta.id}.ivar.vcf.gz"), path("${meta.id}.ivar.vcf.gz.tbi")
 
   script:
+    sample_id = meta.id
     sorted_bam = "${bams[0].getSimpleName()}.sorted.bam"
     d = "${params.depth}"
     """
