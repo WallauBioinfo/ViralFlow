@@ -1,3 +1,5 @@
+
+include { runAmpliconClipping } from '../modules/ampliconclip.nf'
 include { align2ref } from '../modules/align2ref.nf'
 include { runIvar } from '../modules/runIvar.nf'
 include { checkSnpEffDB } from '../modules/checkSnpEffDB.nf'
@@ -100,20 +102,7 @@ workflow  ILLUMINA {
       )
       | view(it -> log.warn("Excluding ${it[0]} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)"))
 
-    //Rendering the depth coverage plot
-    coveragePlot(bam_output_ch)
-    // Check if there are mapped reads
-    coveragePlot_out_ch = coveragePlot.out.result
-    coveragePlot_out_ch
-      | view(it -> log.warn("${it.text}"))
 
-    if ((params.writeMappedReads == true)){
-      // write mapped reads
-      getMappedReads(bam_Out_ch)
-    
-      // write unmappped reads
-      getUnmappedReads(bam_Out_ch)
-    }
     // -----------------------------------------------------------------------------
     // Call consensus  
     // ivar
@@ -122,19 +111,17 @@ workflow  ILLUMINA {
 
     // get VCFs
     if ((params.runSnpEff==true)) {
-        // check if genome code is on SnpEff database
-        checkSnpEffDB(ref_gcode)
-        // runSnpEffDB
-        runSnpEff(align2ref_Out_ch,
-              ref_gcode,
-              ref_fa,
-              faIdx_ch,
-              checkSnpEffDB.out)
+    	// check if genome code is on SnpEff database
+    	checkSnpEffDB(ref_gcode)
+    	// runSnpEffDB
+    	runSnpEff(ref_gcode,
+		checkSnpEffDB.out,
+		runIvar_Out_ch)
     
-        runSnpEff.out
-        | map {it[2]}
-        | set { snpEff_html }
-    
+	runSnpEff.out
+		| map {it -> it[2]}
+		| set { snpEff_html }
+     
         all_snpEff_html_ch = snpEff_html.collect()
         runVfReport(all_fastp_html_ch, all_snpEff_html_ch)
     }
@@ -181,5 +168,5 @@ workflow  ILLUMINA {
   }
 
   emit:
-    bams_ch = align2ref.out.regular_output // sample_id, sorted_bams, .bais, is_paired_end, 
+    bams_ch = bam_Out_ch // sample_id, sorted_bams, .bais, is_paired_end, 
 }
