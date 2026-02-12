@@ -167,7 +167,18 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
     output_dir = os.path.join(read_dir, "filtered")
     os.makedirs(output_dir, exist_ok=True)
 
+    # Search for barcode directories in read_dir
     barcode_dirs = sorted(glob.glob(os.path.join(read_dir, f"{prefix}*")))
+
+    # If not found, search in subdirectories (read_dir/*/)
+    if not barcode_dirs:
+        barcode_dirs = sorted(glob.glob(os.path.join(read_dir, "*", f"{prefix}*")))
+
+    # If still not found, raise an error
+    if not barcode_dirs:
+        raise FileNotFoundError(
+            f"No files matching '{prefix}*{extension}' found in '{read_dir}' or its subdirectories."
+        )
 
     for barcode_path in barcode_dirs:
         if not os.path.isdir(barcode_path):
