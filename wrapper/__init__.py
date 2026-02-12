@@ -150,7 +150,7 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
     if "-resume" not in args_str:
         args_str += " -resume"
 
-    nxtflw_ver = "25.04.6"
+    nxtflw_ver="22.04.0"
     profile_str = f" -profile {profile}" if profile else ""
     run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str} --mode {mode}{profile_str}"
     print(run_nxtfl_cmd)
@@ -169,16 +169,16 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
     os.makedirs(output_dir, exist_ok=True)
 
     # Search for barcode directories in read_dir
-    barcode_dirs = sorted(glob.glob(os.path.join(read_dir, prefix)))
+    barcode_dirs = sorted(glob.glob(os.path.join(read_dir, f"{prefix}*")))
 
     # If not found, search in subdirectories (read_dir/*/)
     if not barcode_dirs:
-        barcode_dirs = sorted(glob.glob(os.path.join(read_dir, "*", prefix)))
+        barcode_dirs = sorted(glob.glob(os.path.join(read_dir, "*", f"{prefix}*")))
 
     # If still not found, raise an error
     if not barcode_dirs:
         raise FileNotFoundError(
-            f"No files matching '{prefix}/*.{extension}' found in '{read_dir}' or its subdirectories."
+            f"No files matching '{prefix}*/*{extension}' found in '{read_dir}' or its subdirectories."
         )
 
     for barcode_path in barcode_dirs:
@@ -192,8 +192,7 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
             print(f"Skipping {barcode_id}: no {extension} files found")
             continue
 
-        gz_suffix = ".gz" if gzip else ""
-        output_file = os.path.join(output_dir, f"{barcode_id}.concat.fastq{gz_suffix}")
+        output_file = os.path.join(output_dir, f"{barcode_id}.concat.fastq.gz")
         fastq_pattern = os.path.join(barcode_path, f"*{extension}")
 
         cmd = (
@@ -204,4 +203,4 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
 
         print(f"Processing {barcode_id}...")
         os.system(cmd)
-        print(f"  -> {output_file}")
+        print(f"   The reads were written in {output_file}")
