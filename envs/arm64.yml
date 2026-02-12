@@ -17,3 +17,4 @@ dependencies:
   - entrez-direct
   - openjdk=17
   - procps-ng
+  - seqkit=2.12

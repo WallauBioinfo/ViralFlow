@@ -1,4 +1,5 @@
 import os
+import glob
 
 
 def add_entries_to_DB(root_path, org_name, refseq_code, arch):
@@ -124,10 +125,71 @@ def update_pangolin_data(root_path):
     run_update_data = "singularity exec --writable ./pangolin:4.3.sif pangolin --update-data"
     os.system(cd_to_dir+';'+run_update_data)
 
-def run_vfnext(root_path, params_fl):
-    # get nextflow arguments
-    args_str = parse_params(params_fl)
-    nxtflw_ver="25.04.6"
-    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str}"
+def run_vfnext(root_path, params_fl, mode, cli_params=None):
+    """
+    Run the vfnext pipeline.
+    
+    If params_fl is provided, file parameters are the rule (CLI defaults are ignored).
+    If no params_fl, CLI parameters are used.
+    """
+    path_params = ["inDir", "outDir", "referenceGFF", "referenceGenome", "primersBED"]
+
+    if params_fl:
+        # Params file takes full precedence — ignore CLI defaults
+        args_str = parse_params(params_fl)
+    else:
+        # No file provided — use CLI params
+        if cli_params:
+            for k in path_params:
+                if k in cli_params:
+                    cli_params[k] = os.path.abspath(str(cli_params[k]))
+            args_str = " ".join(f"--{k} {v}" for k, v in cli_params.items())
+        else:
+            raise ValueError("No parameters provided. Use --params-file or individual CLI options.")
+
+    if "-resume" not in args_str:
+        args_str += " -resume"
+
+    nxtflw_ver = "25.04.6"
+    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str} --mode {mode}"
     print(run_nxtfl_cmd)
     os.system(run_nxtfl_cmd)
+
+
+def concat_fastqs(path, prefix, extension, min_len, max_len):
+    """
+    Concatenate and filter fastq files from barcode directories.
+    
+    For each directory matching {prefix}* (e.g. barcode01, barcode02, ...),
+    concatenates all fastq files and filters reads by min/max length using seqkit.
+    """
+    read_dir = os.path.abspath(path)
+    output_dir = os.path.join(read_dir, "filtered")
+    os.makedirs(output_dir, exist_ok=True)
+
+    barcode_dirs = sorted(glob.glob(os.path.join(read_dir, f"{prefix}*")))
+
+    for barcode_path in barcode_dirs:
+        if not os.path.isdir(barcode_path):
+            continue
+
+        barcode_id = os.path.basename(barcode_path)
+
+        fastq_files = glob.glob(os.path.join(barcode_path, f"*{extension}"))
+        if not fastq_files:
+            print(f"Skipping {barcode_id}: no {extension} files found")
+            continue
+
+        gz_suffix = ".gz" if gzip else ""
+        output_file = os.path.join(output_dir, f"{barcode_id}.concat.fastq{gz_suffix}")
+        fastq_pattern = os.path.join(barcode_path, f"*{extension}")
+
+        cmd = (
+            f"zcat {fastq_pattern} | "
+            f"seqkit seq -w 0 -g --min-len {min_len} --max-len {max_len} | "
+            f"gzip > {output_file}"
+        )
+
+        print(f"Processing {barcode_id}...")
+        os.system(cmd)
+        print(f"  -> {output_file}")

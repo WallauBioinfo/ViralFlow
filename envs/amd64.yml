@@ -21,4 +21,4 @@ dependencies:
   - procps-ng
   - spython=0.3.1
   - singularityce=3.11.4
-
+  - seqkit=2.12
