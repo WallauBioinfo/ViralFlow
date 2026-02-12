@@ -100,6 +100,8 @@ def add_entry_to_snpeff(org_name, genome_code, arch):
 @cli.command("run")
 @click.option("--params-file", type=click.Path(exists=True), default=None,
               help="Path to a parameters file. File values override defaults.")
+@click.option("--profile", type=str, default=None,
+              help="Nextflow profile (e.g. apptainer, fiocruz_default, fiocruz_pbs)")
 @click.option("--mode", type=click.Choice(["ILLUMINA", "NANOPORE"], case_sensitive=True),
               default="ILLUMINA", show_default=True, help="Sequencing technology used")
 @click.option("--virus", type=click.Choice(["sars-cov2", "custom"], case_sensitive=True),
@@ -144,7 +146,7 @@ def add_entry_to_snpeff(org_name, genome_code, arch):
               show_default=True, help="Enable deduplication")
 @click.option("--ndedup", type=int, default=3,
               show_default=True, help="Number of allowed duplicates")
-def run(params_file, mode, virus, in_dir, out_dir, primers_bed, run_snpeff,
+def run(params_file, profile, mode, virus, in_dir, out_dir, primers_bed, run_snpeff,
         write_mapped_reads, min_len, depth, min_dp_intrahost, trim_len,
         ref_genome_code, reference_gff, reference_genome, nextflow_sim_calls,
         fastp_threads, bwa_threads, mafft_threads, mapping_quality,
@@ -189,7 +191,7 @@ def run(params_file, mode, virus, in_dir, out_dir, primers_bed, run_snpeff,
             cli_params[k] = str(v).lower()
 
     click.echo(f"ViralFlow v{__version__}")
-    _run_vfnext(VF_ROOT_PATH, params_file, mode, cli_params)
+    _run_vfnext(VF_ROOT_PATH, params_file, mode, cli_params, profile)
 
 # =============================================================================
 #  Concat fastq commands

@@ -125,10 +125,10 @@ def update_pangolin_data(root_path):
     run_update_data = "singularity exec --writable ./pangolin:4.3.sif pangolin --update-data"
     os.system(cd_to_dir+';'+run_update_data)
 
-def run_vfnext(root_path, params_fl, mode, cli_params=None):
+def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
     """
     Run the vfnext pipeline.
-    
+
     If params_fl is provided, file parameters are the rule (CLI defaults are ignored).
     If no params_fl, CLI parameters are used.
     """
@@ -151,7 +151,8 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None):
         args_str += " -resume"
 
     nxtflw_ver = "25.04.6"
-    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str} --mode {mode}"
+    profile_str = f" -profile {profile}" if profile else ""
+    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str} --mode {mode}{profile_str}"
     print(run_nxtfl_cmd)
     os.system(run_nxtfl_cmd)
 
@@ -168,16 +169,16 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
     os.makedirs(output_dir, exist_ok=True)
 
     # Search for barcode directories in read_dir
-    barcode_dirs = sorted(glob.glob(os.path.join(read_dir, f"{prefix}*")))
+    barcode_dirs = sorted(glob.glob(os.path.join(read_dir, prefix)))
 
     # If not found, search in subdirectories (read_dir/*/)
     if not barcode_dirs:
-        barcode_dirs = sorted(glob.glob(os.path.join(read_dir, "*", f"{prefix}*")))
+        barcode_dirs = sorted(glob.glob(os.path.join(read_dir, "*", prefix)))
 
     # If still not found, raise an error
     if not barcode_dirs:
         raise FileNotFoundError(
-            f"No files matching '{prefix}*{extension}' found in '{read_dir}' or its subdirectories."
+            f"No files matching '{prefix}/*.{extension}' found in '{read_dir}' or its subdirectories."
         )
 
     for barcode_path in barcode_dirs:
