@@ -85,7 +85,6 @@ class PostDevelopCommand(develop):
         print("\n" + "="*60)
         print("Configurating Singularity for ViralFlow...")
         print("="*60)
-        # Chamada nativa da função, sem subprocess!
         configure_singularity()
 
 class PostInstallCommand(install):
@@ -95,7 +94,6 @@ class PostInstallCommand(install):
         print("\n" + "="*60)
         print("Configurating Singularity for ViralFlow...")
         print("="*60)
-        # Chamada nativa da função, sem subprocess!
         configure_singularity()
 
 
