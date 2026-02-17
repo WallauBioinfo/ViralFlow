@@ -6,10 +6,9 @@ build:
     python: "3.11"
 
 sphinx:
-  configuration: conf.py
+  configuration: docs-es/conf.py
+
 
 python:
-  install:
-    - method: pip
-      path: .
-    - requirements: requirements-docs.txt
+   install:
+   - requirements: docs/requirements.in
