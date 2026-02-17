@@ -3,7 +3,9 @@ from setuptools import setup
 setup(name='ViralFlow',
       version='1.3.5',
       description='''
-      Workflows for viral genome Assembly at FioCruz/IAM
+      Nextflow workflow for reference-based viral genome assembly, quality control, 
+      variant calling, and lineage assignment. Supports multiple viruses with 
+      containerized tools for reproducible genomic surveillance.
       ''',
       url='https://github.com/dezordi/ViralFlow/',
       author='Antonio Marinho & Filipe Z. Dezordi',
