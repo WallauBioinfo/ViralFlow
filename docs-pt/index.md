@@ -44,7 +44,7 @@ outputs
 
 - **Versão 0.1**: Dezordi, F. Z., et al. (2022). ViralFlow: A Versatile Automated Workflow for SARS-CoV-2 Genome Assembly, Lineage Assignment, Mutations and Intrahost Variant Detection. *Viruses*, 14(2), 217. [https://www.mdpi.com/1999-4915/14/2/217](https://www.mdpi.com/1999-4915/14/2/217)
 
-- **Versão 1.0**: Dezordi, F. Z., et al. (2024). ViralFlow v1.0: characterization and annotation of viral genomes. *NAR Genomics and Bioinformatics*, 6(2), lqae056. [https://academic.oup.com/nargab/article/6/2/lqae056/7682253](https://academic.oup.com/nargab/article/6/2/lqae056/7682253)
+- **Versão 1.0**: da Silva, A. F., et al. (2024). ViralFlow v1.0: characterization and annotation of viral genomes. *NAR Genomics and Bioinformatics*, 6(2), lqae056. [https://academic.oup.com/nargab/article/6/2/lqae056/7682253](https://academic.oup.com/nargab/article/6/2/lqae056/7682253)
 
 ## Links Rápidos
 
