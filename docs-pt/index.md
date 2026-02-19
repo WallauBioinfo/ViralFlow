@@ -51,4 +51,4 @@ outputs
 - [Repositório GitHub](https://github.com/WallauBioinfo/ViralFlow)
 - [Versões das Ferramentas](https://github.com/WallauBioinfo/ViralFlow/tree/main/versions)
 - [Issues/Bugs](https://github.com/WallauBioinfo/ViralFlow/issues)
-- **Licença:** Não especificada
+- **Licença:** MIT
