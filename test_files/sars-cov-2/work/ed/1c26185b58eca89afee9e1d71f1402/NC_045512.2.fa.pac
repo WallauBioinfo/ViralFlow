@@ -1,1 +1,0 @@
-/home/pinho/ViralFlow/test_files/sars-cov-2/work/b2/9ee74c036a982b1fd09cc3761ff437/NC_045512.2.fa.pac
