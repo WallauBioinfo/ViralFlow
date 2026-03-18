@@ -1,0 +1,405 @@
+dez.-15 13:47:46.405 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/pinho/ViralFlow/vfnext/main.nf --virus sars-cov2 --help
+dez.-15 13:47:46.475 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 22.04.0
+dez.-15 13:47:46.495 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /home/pinho/ViralFlow/vfnext/nextflow.config
+dez.-15 13:47:46.496 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/pinho/ViralFlow/vfnext/nextflow.config
+dez.-15 13:47:46.528 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+dez.-15 13:47:47.587 [main] INFO  nextflow.cli.CmdRun - Launching `/home/pinho/ViralFlow/vfnext/main.nf` [goofy_crick] DSL2 - revision: bfe3f86de6
+dez.-15 13:47:47.602 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; plugins-dir=/home/pinho/.nextflow/plugins; core-plugins: nf-amazon@1.7.1,nf-azure@0.13.1,nf-console@1.0.3,nf-ga4gh@1.0.3,nf-google@1.1.4,nf-sqldb@0.4.0,nf-tower@1.4.0
+dez.-15 13:47:47.604 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+dez.-15 13:47:47.616 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+dez.-15 13:47:47.617 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+dez.-15 13:47:47.620 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.4.1 in 'deployment' mode
+dez.-15 13:47:47.633 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+dez.-15 13:47:47.689 [main] DEBUG nextflow.Session - Session uuid: 7543469d-f368-492d-b9bb-8bf22c6b58ac
+dez.-15 13:47:47.689 [main] DEBUG nextflow.Session - Run name: goofy_crick
+dez.-15 13:47:47.690 [main] DEBUG nextflow.Session - Executor pool size: 12
+dez.-15 13:47:47.730 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 22.04.0 build 5697
+  Created: 23-04-2022 18:00 UTC (15:00 BRST)
+  System: Linux 6.8.0-88-generic
+  Runtime: Groovy 3.0.10 on OpenJDK 64-Bit Server VM 17.0.15-internal+0-adhoc..src
+  Encoding: UTF-8 (UTF-8)
+  Process: 317484@pinho-IdeaPad-3-15ALC6 [127.0.1.1]
+  CPUs: 12 - Mem: 17.4 GB (4.4 GB) - Swap: 2 GB (2 GB)
+dez.-15 13:47:47.760 [main] DEBUG nextflow.Session - Work-dir: /home/pinho/ViralFlow/test_files/sars-cov-2/work [ext2/ext3]
+dez.-15 13:47:47.780 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+dez.-15 13:47:47.794 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+dez.-15 13:47:47.833 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+dez.-15 13:47:47.850 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 13; maxThreads: 1000
+dez.-15 13:47:47.944 [main] DEBUG nextflow.Session - Session start invoked
+dez.-15 13:47:48.415 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+dez.-15 13:47:49.625 [main] INFO  nextflow.Nextflow - 
+===========================================
+VFNEXT v1.3.4
+parameters:
+-------------------------------------------
+--inDir            : /home/pinho/ViralFlow/test_files/sars-cov-2/input/
+--outDir           : /home/pinho/ViralFlow/test_files/sars-cov-2/output/
+--virus            : sars-cov2
+--refGenomeCode   *: null
+--referenceGenome *: null
+--referenceGFF    *: null
+--primersBED       : null
+--minLen           : 75
+--depth            : 25
+--minDpIntrahost   : 100
+--trimLen          : 0
+--databaseDir      : /home/pinho/ViralFlow/vfnext/databases/
+--runSnpEff        : true
+--writeMappedReads : true
+--nextflowSimCalls : 6
+--fastp_threads    : 1
+--dedup            : false
+--ndedup           : 3
+--bwa_threads      : 1
+--mafft_threads    : 1
+--mapping_quality  : 30
+--base_quality     : 30
+--minBamSize       : 500
+
+
+* Only required for "custom" virus
+Runtime data:
+-------------------------------------------
+Running with profile:   [1;32mstandard[0m
+Run container:          [1;32m[:][0m
+Running as user:        [1;32mpinho[0m
+Launch dir:             [1;32m/home/pinho/ViralFlow/test_files/sars-cov-2[0m
+Base dir:               [1;32m/home/pinho/ViralFlow/vfnext[0m
+------------------------------------------
+
+dez.-15 13:47:49.634 [main] WARN  nextflow.Nextflow - An BED file with primer positions was not provided. The pipeline will not run samtools clip to remove primer regions
+dez.-15 13:47:49.700 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:prepareDatabase` matches process processInputs:prepareDatabase
+dez.-15 13:47:49.721 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:49.721 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:49.726 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+dez.-15 13:47:49.734 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=6; memory=17.4 GB; capacity=12; pollInterval=100ms; dumpInterval=5m
+dez.-15 13:47:49.922 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:indexReferenceBWA` matches process indexReferenceBWA
+dez.-15 13:47:49.924 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:49.924 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:49.933 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:genFaIdx` matches process genFaIdx
+dez.-15 13:47:49.935 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:49.935 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:49.953 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runFastp` matches process runFastp
+dez.-15 13:47:49.954 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:49.954 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:49.981 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:align2ref` matches process align2ref
+dez.-15 13:47:49.983 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:49.983 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:49.996 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:coveragePlot` matches process coveragePlot
+dez.-15 13:47:49.998 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:49.998 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.005 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:getMappedReads` matches process getMappedReads
+dez.-15 13:47:50.006 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.006 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.014 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:getUnmappedReads` matches process getUnmappedReads
+dez.-15 13:47:50.015 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.015 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.021 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runIvar` matches process runIvar
+dez.-15 13:47:50.022 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.022 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.028 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runReadCounts` matches process runReadCounts
+dez.-15 13:47:50.029 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.029 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.033 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:checkSnpEffDB` matches process checkSnpEffDB
+dez.-15 13:47:50.033 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.033 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.038 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runSnpEff` matches process runSnpEff
+dez.-15 13:47:50.040 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.040 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.049 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runVfReport` matches process runVfReport
+dez.-15 13:47:50.050 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.050 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.056 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:alignConsensus2Ref` matches process alignConsensus2Ref
+dez.-15 13:47:50.056 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.057 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.062 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:snpPlot` matches process snpPlot
+dez.-15 13:47:50.063 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.063 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.068 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runPicard` matches process runPicard
+dez.-15 13:47:50.069 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.069 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.083 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.084 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.089 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.089 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.096 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runPangolin` matches process runPangolin
+dez.-15 13:47:50.096 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.097 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.100 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runNextClade` matches process runNextClade
+dez.-15 13:47:50.101 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.101 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.106 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:compileOutputs` matches process compileOutputs_SC2
+dez.-15 13:47:50.106 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+dez.-15 13:47:50.106 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+dez.-15 13:47:50.109 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: align2ref, indexReferenceBWA, fixWGS, snpPlot, runPangolin, prepareDatabase, checkSnpEffDB, processInputs:prepareDatabase, runVfReport, runSnpEff, getUnmappedReads, compileOutputs_SC2, runFastp, runIvar, coveragePlot, runReadCounts, genFaIdx, runIntraHostScript, compileOutputs, runNextClade, alignConsensus2Ref, runPicard, getMappedReads
+dez.-15 13:47:50.111 [main] DEBUG nextflow.Session - Ignite dataflow network (23)
+dez.-15 13:47:50.111 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > processInputs:prepareDatabase
+dez.-15 13:47:50.119 [PathVisitor-1] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/sars-cov-2/input/; pattern: *_R{1,2}*.fq.gz; options: [:]
+dez.-15 13:47:50.120 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > indexReferenceBWA
+dez.-15 13:47:50.120 [PathVisitor-2] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/sars-cov-2/input/; pattern: *.fq.gz; options: [:]
+dez.-15 13:47:50.120 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > genFaIdx
+dez.-15 13:47:50.120 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runFastp
+dez.-15 13:47:50.120 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > align2ref
+dez.-15 13:47:50.120 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > coveragePlot
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > getMappedReads
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > getUnmappedReads
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runIvar
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runReadCounts
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > checkSnpEffDB
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runSnpEff
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runVfReport
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > alignConsensus2Ref
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > snpPlot
+dez.-15 13:47:50.121 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runPicard
+dez.-15 13:47:50.122 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > fixWGS
+dez.-15 13:47:50.122 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runIntraHostScript
+dez.-15 13:47:50.122 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runPangolin
+dez.-15 13:47:50.122 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runNextClade
+dez.-15 13:47:50.122 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > compileOutputs_SC2
+dez.-15 13:47:50.122 [main] DEBUG nextflow.script.ScriptRunner - > Await termination 
+dez.-15 13:47:50.122 [main] DEBUG nextflow.Session - Session await
+dez.-15 13:47:50.127 [PathVisitor-3] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/sars-cov-2/input/; pattern: *_R{1,2}*.fastq.gz; options: [:]
+dez.-15 13:47:50.127 [PathVisitor-4] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/sars-cov-2/input/; pattern: *.fastq.gz; options: [:]
+dez.-15 13:47:50.280 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:47:50.284 [Task submitter] INFO  nextflow.Session - [2a/07ea81] Submitted process > checkSnpEffDB
+dez.-15 13:47:50.293 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:47:50.293 [Task submitter] INFO  nextflow.Session - [d4/caafe7] Submitted process > processInputs:prepareDatabase
+dez.-15 13:47:50.307 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:47:50.308 [Task submitter] INFO  nextflow.Session - [2e/42c068] Submitted process > runFastp (4)
+dez.-15 13:47:50.316 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:47:50.317 [Task submitter] INFO  nextflow.Session - [17/5f2703] Submitted process > runFastp (2)
+dez.-15 13:47:50.324 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:47:50.325 [Task submitter] INFO  nextflow.Session - [61/41d05b] Submitted process > runFastp (1)
+dez.-15 13:47:50.332 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:47:50.333 [Task submitter] INFO  nextflow.Session - [e7/99f85a] Submitted process > runFastp (3)
+dez.-15 13:47:50.743 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: checkSnpEffDB; status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/2a/07ea813a64bfaa2c043f402cc5baa3]
+dez.-15 13:47:50.773 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=4; maxSize=4; workQueue=LinkedBlockingQueue[10000]; allowCoreThreadTimeout=false
+dez.-15 13:49:04.113 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 5; name: runFastp (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/e7/99f85ad5062a2ce0fe54f7c6019fd3]
+dez.-15 13:49:04.281 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: processInputs:prepareDatabase; status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/d4/caafe7f5321fe01192d61e9b87bff0]
+dez.-15 13:49:04.291 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:49:04.292 [Task submitter] INFO  nextflow.Session - [f3/4687d9] Submitted process > genFaIdx
+dez.-15 13:49:04.299 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:49:04.300 [Task submitter] INFO  nextflow.Session - [b2/9ee74c] Submitted process > indexReferenceBWA
+dez.-15 13:49:07.768 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 6; name: runFastp (4); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/2e/42c068d48bec140b3298d3ac00748e]
+dez.-15 13:49:10.801 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: runFastp (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/61/41d05bc6627317b9f93ab055e1823b]
+dez.-15 13:49:14.277 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 4; name: runFastp (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/17/5f270391315048886c5cf39b7403e1]
+dez.-15 13:49:37.196 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 7; name: genFaIdx; status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/f3/4687d9585e534275a90da07c63b657]
+dez.-15 13:49:41.587 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 8; name: indexReferenceBWA; status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/b2/9ee74c036a982b1fd09cc3761ff437]
+dez.-15 13:49:41.616 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:49:41.616 [Task submitter] INFO  nextflow.Session - [d8/54c1d0] Submitted process > align2ref (4)
+dez.-15 13:49:41.621 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:49:41.621 [Task submitter] INFO  nextflow.Session - [25/9b66c8] Submitted process > align2ref (3)
+dez.-15 13:49:41.626 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:49:41.627 [Task submitter] INFO  nextflow.Session - [ed/1c2618] Submitted process > align2ref (2)
+dez.-15 13:49:41.632 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:49:41.632 [Task submitter] INFO  nextflow.Session - [18/fd05dd] Submitted process > align2ref (1)
+dez.-15 13:52:35.071 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 9; name: align2ref (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/18/fd05ddd77a100b2f6282aaf94f7c53]
+dez.-15 13:52:35.076 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process `align2ref (1)` is unable to find [UnixPath]: `/home/pinho/ViralFlow/test_files/sars-cov-2/work/18/fd05ddd77a100b2f6282aaf94f7c53/Cneg.trimmed_reads.txt` (pattern: `Cneg.trimmed_reads.txt`)
+dez.-15 13:52:35.162 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process align2ref > Skipping output binding because one or more optional files are missing: fileoutparam<1>
+dez.-15 13:52:35.183 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:52:35.183 [Task submitter] INFO  nextflow.Session - [d3/cb121c] Submitted process > getUnmappedReads (1)
+dez.-15 13:52:35.191 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:52:35.192 [Task submitter] INFO  nextflow.Session - [44/2da10e] Submitted process > getMappedReads (1)
+dez.-15 13:52:35.196 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:52:35.196 [Task submitter] INFO  nextflow.Session - [2f/baba41] Submitted process > coveragePlot (1)
+dez.-15 13:52:39.319 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 10; name: align2ref (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/ed/1c26185b58eca89afee9e1d71f1402]
+dez.-15 13:52:39.325 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:52:39.325 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process `align2ref (2)` is unable to find [UnixPath]: `/home/pinho/ViralFlow/test_files/sars-cov-2/work/ed/1c26185b58eca89afee9e1d71f1402/ART3.trimmed_reads.txt` (pattern: `ART3.trimmed_reads.txt`)
+dez.-15 13:52:39.326 [Task submitter] INFO  nextflow.Session - [a8/14a9d3] Submitted process > runReadCounts (1)
+dez.-15 13:52:39.327 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process align2ref > Skipping output binding because one or more optional files are missing: fileoutparam<1>
+dez.-15 13:52:43.628 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 11; name: align2ref (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/25/9b66c8339f912bbaf6fd1c6bd62dd6]
+dez.-15 13:52:43.630 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:52:43.630 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process `align2ref (3)` is unable to find [UnixPath]: `/home/pinho/ViralFlow/test_files/sars-cov-2/work/25/9b66c8339f912bbaf6fd1c6bd62dd6/ART2.trimmed_reads.txt` (pattern: `ART2.trimmed_reads.txt`)
+dez.-15 13:52:43.630 [Task submitter] INFO  nextflow.Session - [82/328d37] Submitted process > runPicard (1)
+dez.-15 13:52:43.631 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process align2ref > Skipping output binding because one or more optional files are missing: fileoutparam<1>
+dez.-15 13:52:44.990 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 12; name: align2ref (4); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/d8/54c1d081b055e944d66969ce1b6f19]
+dez.-15 13:52:44.993 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:52:44.993 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process `align2ref (4)` is unable to find [UnixPath]: `/home/pinho/ViralFlow/test_files/sars-cov-2/work/d8/54c1d081b055e944d66969ce1b6f19/ART1.trimmed_reads.txt` (pattern: `ART1.trimmed_reads.txt`)
+dez.-15 13:52:44.993 [Task submitter] INFO  nextflow.Session - [9d/68c501] Submitted process > runIvar (1)
+dez.-15 13:52:44.994 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process align2ref > Skipping output binding because one or more optional files are missing: fileoutparam<1>
+dez.-15 13:52:50.733 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 6 -- submitted tasks are shown below
+~> TaskHandler[id: 18; name: getUnmappedReads (1); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/d3/cb121c99e57709e3b00245b631ba7b]
+~> TaskHandler[id: 16; name: getMappedReads (1); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/44/2da10ed503b40ecde677fce40c7e61]
+~> TaskHandler[id: 13; name: coveragePlot (1); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/2f/baba41b7623c38b54d946045d11350]
+~> TaskHandler[id: 14; name: runReadCounts (1); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/a8/14a9d35728db61db074e27afa31896]
+~> TaskHandler[id: 19; name: runPicard (1); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/82/328d37b2f3c08f095f39b6e7e17c2a]
+~> TaskHandler[id: 17; name: runIvar (1); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/9d/68c501e2b047948f62efe4919c3bb6]
+dez.-15 13:53:50.925 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 16; name: getMappedReads (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/44/2da10ed503b40ecde677fce40c7e61]
+dez.-15 13:53:50.936 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:53:50.937 [Task submitter] INFO  nextflow.Session - [4e/f94cb1] Submitted process > runSnpEff (1)
+dez.-15 13:53:51.394 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 18; name: getUnmappedReads (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/d3/cb121c99e57709e3b00245b631ba7b]
+dez.-15 13:53:51.399 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:53:51.399 [Task submitter] INFO  nextflow.Session - [bd/1f5749] Submitted process > runSnpEff (2)
+dez.-15 13:55:43.330 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 17; name: runIvar (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/9d/68c501e2b047948f62efe4919c3bb6]
+dez.-15 13:55:43.358 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:55:43.359 [Task submitter] INFO  nextflow.Session - [0c/2f8a9b] Submitted process > runReadCounts (2)
+dez.-15 13:55:43.616 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 14; name: runReadCounts (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/a8/14a9d35728db61db074e27afa31896]
+dez.-15 13:55:43.619 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:55:43.620 [Task submitter] INFO  nextflow.Session - [88/f28ca7] Submitted process > runPicard (2)
+dez.-15 13:55:47.486 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 15; name: runSnpEff (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/4e/f94cb169f220f0a8f9a3fcb0ab2794]
+dez.-15 13:55:47.489 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:55:47.489 [Task submitter] INFO  nextflow.Session - [5b/04888c] Submitted process > runIvar (2)
+dez.-15 13:55:48.152 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 20; name: runSnpEff (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/bd/1f5749ee0c9ff38c44fc7b3737d74e]
+dez.-15 13:55:48.154 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:55:48.154 [Task submitter] INFO  nextflow.Session - [24/6e588b] Submitted process > getMappedReads (2)
+dez.-15 13:55:49.964 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 13; name: coveragePlot (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/2f/baba41b7623c38b54d946045d11350]
+dez.-15 13:55:49.965 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process `coveragePlot (1)` is unable to find [UnixPath]: `/home/pinho/ViralFlow/test_files/sars-cov-2/work/2f/baba41b7623c38b54d946045d11350/coveragePlot_result.txt` (pattern: `coveragePlot_result.txt`)
+dez.-15 13:55:49.966 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process coveragePlot > Skipping output binding because one or more optional files are missing: fileoutparam<1>
+dez.-15 13:55:49.966 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:55:49.966 [Task submitter] INFO  nextflow.Session - [9b/7a9e4c] Submitted process > getUnmappedReads (2)
+dez.-15 13:57:35.997 [Task submitter] DEBUG n.processor.TaskPollingMonitor - %% executor local > tasks in the submission queue: 16 -- tasks to be submitted are shown below
+~> TaskHandler[id: 23; name: coveragePlot (2); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/f5/f97c5a1b79d2bffd03a1e556ba58a8]
+~> TaskHandler[id: 28; name: getUnmappedReads (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/5d/113b461010e81ba8e9abfd07806065]
+~> TaskHandler[id: 30; name: runIvar (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/67/07efa51cd88e7f9c57bb04c41ed12b]
+~> TaskHandler[id: 29; name: getMappedReads (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/7d/13a1de0eec4ad612a963a3ffe02adc]
+~> TaskHandler[id: 27; name: coveragePlot (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/e5/a24f1addc0347a0268704da41dca4f]
+~> TaskHandler[id: 32; name: runSnpEff (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/49/d0e5389984c64cd9c24cf438969d20]
+~> TaskHandler[id: 31; name: runReadCounts (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/3f/a43085a1653941b3764479812a1dc1]
+~> TaskHandler[id: 33; name: runPicard (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/fc/418eefb191f535dafee3df43d957c8]
+~> TaskHandler[id: 39; name: getMappedReads (4); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/dd/34dc031e023043c2c0f60b96f9db04]
+~> TaskHandler[id: 38; name: runSnpEff (4); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/de/fe7df23ed003ed3eff1e38f2d396de]
+.. remaining tasks omitted.
+dez.-15 13:57:49.929 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 6 -- submitted tasks are shown below
+~> TaskHandler[id: 19; name: runPicard (1); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/82/328d37b2f3c08f095f39b6e7e17c2a]
+~> TaskHandler[id: 22; name: runReadCounts (2); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/0c/2f8a9bb6c172e41259969feb5db40e]
+~> TaskHandler[id: 21; name: runPicard (2); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f]
+~> TaskHandler[id: 24; name: runIvar (2); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/5b/04888cf3621399765d9631f13563a1]
+~> TaskHandler[id: 26; name: getMappedReads (2); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/24/6e588b312b9cd2f92bec722212b727]
+~> TaskHandler[id: 25; name: getUnmappedReads (2); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/9b/7a9e4c1695b1e81902a408081e6bf8]
+dez.-15 13:58:08.011 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 19; name: runPicard (1); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/82/328d37b2f3c08f095f39b6e7e17c2a]
+dez.-15 13:58:08.042 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:58:08.042 [Task submitter] INFO  nextflow.Session - [f5/f97c5a] Submitted process > coveragePlot (2)
+dez.-15 13:59:23.924 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 25; name: getUnmappedReads (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/9b/7a9e4c1695b1e81902a408081e6bf8]
+dez.-15 13:59:23.950 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:59:23.951 [Task submitter] INFO  nextflow.Session - [5d/113b46] Submitted process > getUnmappedReads (3)
+dez.-15 13:59:25.211 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 26; name: getMappedReads (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/24/6e588b312b9cd2f92bec722212b727]
+dez.-15 13:59:25.216 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:59:25.216 [Task submitter] INFO  nextflow.Session - [67/07efa5] Submitted process > runIvar (3)
+dez.-15 13:59:42.419 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 22; name: runReadCounts (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/0c/2f8a9bb6c172e41259969feb5db40e]
+dez.-15 13:59:42.421 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:59:42.421 [Task submitter] INFO  nextflow.Session - [7d/13a1de] Submitted process > getMappedReads (3)
+dez.-15 13:59:50.510 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 24; name: runIvar (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/5b/04888cf3621399765d9631f13563a1]
+dez.-15 13:59:50.512 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 13:59:50.512 [Task submitter] INFO  nextflow.Session - [e5/a24f1a] Submitted process > coveragePlot (3)
+dez.-15 14:00:30.083 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 21; name: runPicard (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/88/f28ca798e72f8874405e23dcf1430f]
+dez.-15 14:00:30.086 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:00:30.086 [Task submitter] INFO  nextflow.Session - [49/d0e538] Submitted process > runSnpEff (3)
+dez.-15 14:01:08.630 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 32; name: runSnpEff (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/49/d0e5389984c64cd9c24cf438969d20]
+dez.-15 14:01:08.761 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:01:08.761 [Task submitter] INFO  nextflow.Session - [3f/a43085] Submitted process > runReadCounts (3)
+dez.-15 14:02:14.985 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 28; name: getUnmappedReads (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/5d/113b461010e81ba8e9abfd07806065]
+dez.-15 14:02:14.988 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:02:14.989 [Task submitter] INFO  nextflow.Session - [fc/418eef] Submitted process > runPicard (3)
+dez.-15 14:02:17.360 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 29; name: getMappedReads (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/7d/13a1de0eec4ad612a963a3ffe02adc]
+dez.-15 14:02:17.362 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:02:17.362 [Task submitter] INFO  nextflow.Session - [dd/34dc03] Submitted process > getMappedReads (4)
+dez.-15 14:02:27.113 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 30; name: runIvar (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/67/07efa51cd88e7f9c57bb04c41ed12b]
+dez.-15 14:02:27.115 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:02:27.116 [Task submitter] INFO  nextflow.Session - [de/fe7df2] Submitted process > runSnpEff (4)
+dez.-15 14:02:36.118 [Task submitter] DEBUG n.processor.TaskPollingMonitor - %% executor local > tasks in the submission queue: 10 -- tasks to be submitted are shown below
+~> TaskHandler[id: 35; name: runIvar (4); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/66/7d21b12059f4a0b93c94dd484e69bd]
+~> TaskHandler[id: 36; name: getUnmappedReads (4); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/4f/e4efba5f900697414eb7bb92b98f46]
+~> TaskHandler[id: 40; name: runPicard (4); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/65/eb0f73b7594fa6a1c973a69d55aea2]
+~> TaskHandler[id: 34; name: coveragePlot (4); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/f9/052b98938b4f7ea3bc9d8c8972fdbb]
+~> TaskHandler[id: 37; name: runReadCounts (4); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/e2/0add138c8ac73a99da03c95480befc]
+~> TaskHandler[id: 41; name: alignConsensus2Ref (1); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/73/4679622e9ca7befe9a59d6f5cdadc3]
+~> TaskHandler[id: 42; name: fixWGS (1); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/ab/6d526c3386630155bbc2ac8380405d]
+~> TaskHandler[id: 43; name: alignConsensus2Ref (2); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/e8/0f019ed23c33ffded6fb689c703815]
+~> TaskHandler[id: 44; name: fixWGS (2); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/18/b1c39fd5a8c49e08a20f567f30a75d]
+~> TaskHandler[id: 45; name: alignConsensus2Ref (3); status: NEW; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/0c/937dd939d57f280de42d41b3adb78b]
+dez.-15 14:02:40.957 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 27; name: coveragePlot (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/e5/a24f1addc0347a0268704da41dca4f]
+dez.-15 14:02:40.958 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process `coveragePlot (3)` is unable to find [UnixPath]: `/home/pinho/ViralFlow/test_files/sars-cov-2/work/e5/a24f1addc0347a0268704da41dca4f/coveragePlot_result.txt` (pattern: `coveragePlot_result.txt`)
+dez.-15 14:02:40.959 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process coveragePlot > Skipping output binding because one or more optional files are missing: fileoutparam<1>
+dez.-15 14:02:40.959 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:02:40.959 [Task submitter] INFO  nextflow.Session - [66/7d21b1] Submitted process > runIvar (4)
+dez.-15 14:02:49.969 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 6 -- submitted tasks are shown below
+~> TaskHandler[id: 23; name: coveragePlot (2); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/f5/f97c5a1b79d2bffd03a1e556ba58a8]
+~> TaskHandler[id: 31; name: runReadCounts (3); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/3f/a43085a1653941b3764479812a1dc1]
+~> TaskHandler[id: 33; name: runPicard (3); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/fc/418eefb191f535dafee3df43d957c8]
+~> TaskHandler[id: 39; name: getMappedReads (4); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/dd/34dc031e023043c2c0f60b96f9db04]
+~> TaskHandler[id: 38; name: runSnpEff (4); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/de/fe7df23ed003ed3eff1e38f2d396de]
+~> TaskHandler[id: 35; name: runIvar (4); status: RUNNING; exit: -; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/66/7d21b12059f4a0b93c94dd484e69bd]
+dez.-15 14:02:50.209 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 23; name: coveragePlot (2); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/f5/f97c5a1b79d2bffd03a1e556ba58a8]
+dez.-15 14:02:50.210 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process `coveragePlot (2)` is unable to find [UnixPath]: `/home/pinho/ViralFlow/test_files/sars-cov-2/work/f5/f97c5a1b79d2bffd03a1e556ba58a8/coveragePlot_result.txt` (pattern: `coveragePlot_result.txt`)
+dez.-15 14:02:50.211 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:02:50.211 [Task monitor] DEBUG nextflow.processor.TaskProcessor - Process coveragePlot > Skipping output binding because one or more optional files are missing: fileoutparam<1>
+dez.-15 14:02:50.211 [Task submitter] INFO  nextflow.Session - [4f/e4efba] Submitted process > getUnmappedReads (4)
+dez.-15 14:03:32.368 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 31; name: runReadCounts (3); status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/3f/a43085a1653941b3764479812a1dc1]
+dez.-15 14:03:32.378 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:03:32.378 [Task submitter] INFO  nextflow.Session - [65/eb0f73] Submitted process > runPicard (4)
+dez.-15 14:03:49.168 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 36; name: getUnmappedReads (4); status: COMPLETED; exit: 130; error: -; workDir: /home/pinho/ViralFlow/test_files/sars-cov-2/work/4f/e4efba5f900697414eb7bb92b98f46]
+dez.-15 14:03:49.436 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+dez.-15 14:03:49.437 [Task submitter] INFO  nextflow.Session - [f9/052b98] Submitted process > coveragePlot (4)
+dez.-15 14:03:49.514 [SIGINT handler] DEBUG nextflow.Session - Session aborted -- Cause: SIGINT
+dez.-15 14:03:50.727 [SIGINT handler] DEBUG nextflow.Session - The following nodes are still active:
+[process] runVfReport
+  status=ACTIVE
+  port 0: (value) bound ; channel: fastp_htmls
+  port 1: (value) OPEN  ; channel: snpeff_htmls
+  port 2: (cntrl) -     ; channel: $
+
+[process] alignConsensus2Ref
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_fa
+  port 2: (cntrl) -     ; channel: $
+
+[process] snpPlot
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] fixWGS
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] runIntraHostScript
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_gff
+  port 2: (cntrl) -     ; channel: $
+
+[process] runPangolin
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] runNextClade
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_fa
+  port 2: (cntrl) -     ; channel: $
+
+[process] compileOutputs_SC2
+  status=ACTIVE
+  port 0: (value) OPEN  ; channel: go
+  port 1: (value) bound ; channel: virus_tag
+  port 2: (cntrl) -     ; channel: $
+
+dez.-15 14:03:50.728 [main] DEBUG nextflow.Session - Session await > all process finished
+dez.-15 14:03:50.728 [main] DEBUG nextflow.Session - Session await > all barriers passed
+dez.-15 14:03:50.730 [main] INFO  nextflow.Nextflow - 
+===========================================
+[1;31mFinished with errors![0m
+
+dez.-15 14:03:51.745 [main] WARN  n.processor.TaskPollingMonitor - Killing running tasks (6)
+dez.-15 14:03:53.701 [main] DEBUG nextflow.executor.LocalTaskHandler - Unable to kill runPicard (3) -- command: kill -TERM 336097; exit: 1 
+ bash: linha 1: kill: (336097) - Processo inexistente
+
+dez.-15 14:03:53.713 [main] DEBUG nextflow.executor.LocalTaskHandler - Unable to kill getMappedReads (4) -- command: kill -TERM 336190; exit: 1 
+ bash: linha 1: kill: (336190) - Processo inexistente
+
+dez.-15 14:03:53.717 [main] DEBUG nextflow.executor.LocalTaskHandler - Unable to kill runSnpEff (4) -- command: kill -TERM 336535; exit: 1 
+ bash: linha 1: kill: (336535) - Processo inexistente
+
+dez.-15 14:03:53.720 [main] DEBUG nextflow.executor.LocalTaskHandler - Unable to kill runIvar (4) -- command: kill -TERM 336930; exit: 1 
+ bash: linha 1: kill: (336930) - Processo inexistente
+
+dez.-15 14:03:53.724 [main] DEBUG nextflow.executor.LocalTaskHandler - Unable to kill runPicard (4) -- command: kill -TERM 338076; exit: 1 
+ bash: linha 1: kill: (338076) - Processo inexistente
+
+dez.-15 14:03:53.771 [main] DEBUG nextflow.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=32; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=6; submittedCount=1; runningCount=-1; retriesCount=0; abortedCount=6; succeedDuration=1h 19m 44s; failedDuration=58.9s; cachedDuration=0ms;loadCpus=-1; loadMemory=0; peakRunning=6; peakCpus=6; peakMemory=0; ]
+dez.-15 14:03:54.351 [SIGINT handler] INFO  nextflow.Session - Adieu
+dez.-15 14:03:55.271 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
