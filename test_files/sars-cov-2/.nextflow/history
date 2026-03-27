@@ -1,0 +1,3 @@
+2025-12-15 13:27:29	8m 24s	elated_hugle	ERR	bfe3f86de614d1a8355c4309adf0059f	bc719efd-cd26-4e81-b1c5-39e933709a97	nextflow run /home/pinho/ViralFlow/vfnext/main.nf --virus sars-cov2 --help
+2025-12-15 13:47:47	-	goofy_crick	-	bfe3f86de614d1a8355c4309adf0059f	7543469d-f368-492d-b9bb-8bf22c6b58ac	nextflow run /home/pinho/ViralFlow/vfnext/main.nf --virus sars-cov2 --help
+2025-12-15 16:01:08	30.3s	voluminous_leakey	ERR	bfe3f86de614d1a8355c4309adf0059f	60c0f6a7-9fed-4660-834b-5c8528d75f45	nextflow run /home/pinho/ViralFlow/vfnext/main.nf --virus sars-cov2 --help

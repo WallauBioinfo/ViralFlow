@@ -1,0 +1,75 @@
+dez.-14 20:46:43.279 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/pinho/ViralFlow//vfnext/main.nf --virus sars-cov2 --outDir /home/pinho/myGit/ViralFlow/test_files/sars-cov-2/outputs --inDir /home/pinho/myGit/ViralFlow/test_files/sars-cov-2/input --runSnpEff true --writeMappedReads true --minLen 75 --depth 25 --minDpIntrahost 100 --trimLen 0 --nextflowSimCalls 6 --fastp_threads 1 --bwa_threads 1 --mafft_threads 1 --dedup false --ndedup 3 -resume
+dez.-14 20:46:43.348 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 22.04.0
+dez.-14 20:46:43.369 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /home/pinho/ViralFlow/vfnext/nextflow.config
+dez.-14 20:46:43.371 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/pinho/ViralFlow/vfnext/nextflow.config
+dez.-14 20:46:43.403 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+dez.-14 20:46:44.367 [main] INFO  nextflow.cli.CmdRun - Launching `/home/pinho/ViralFlow/vfnext/main.nf` [jolly_monod] DSL2 - revision: bfe3f86de6
+dez.-14 20:46:44.381 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; plugins-dir=/home/pinho/.nextflow/plugins; core-plugins: nf-amazon@1.7.1,nf-azure@0.13.1,nf-console@1.0.3,nf-ga4gh@1.0.3,nf-google@1.1.4,nf-sqldb@0.4.0,nf-tower@1.4.0
+dez.-14 20:46:44.384 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+dez.-14 20:46:44.396 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+dez.-14 20:46:44.398 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+dez.-14 20:46:44.404 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.4.1 in 'deployment' mode
+dez.-14 20:46:44.414 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+dez.-14 20:46:44.464 [main] DEBUG nextflow.Session - Session uuid: 92f9af69-9073-4c22-9e2a-5ef9d6c1d6f5
+dez.-14 20:46:44.464 [main] DEBUG nextflow.Session - Run name: jolly_monod
+dez.-14 20:46:44.465 [main] DEBUG nextflow.Session - Executor pool size: 12
+dez.-14 20:46:44.496 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 22.04.0 build 5697
+  Created: 23-04-2022 18:00 UTC (15:00 BRST)
+  System: Linux 6.8.0-87-generic
+  Runtime: Groovy 3.0.10 on OpenJDK 64-Bit Server VM 17.0.15-internal+0-adhoc..src
+  Encoding: UTF-8 (UTF-8)
+  Process: 28997@pinho-IdeaPad-3-15ALC6 [127.0.1.1]
+  CPUs: 12 - Mem: 17.4 GB (7.1 GB) - Swap: 2 GB (2 GB)
+dez.-14 20:46:44.528 [main] DEBUG nextflow.Session - Work-dir: /home/pinho/ViralFlow/work [ext2/ext3]
+dez.-14 20:46:44.544 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+dez.-14 20:46:44.556 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+dez.-14 20:46:44.596 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+dez.-14 20:46:44.607 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 13; maxThreads: 1000
+dez.-14 20:46:44.705 [main] DEBUG nextflow.Session - Session start invoked
+dez.-14 20:46:45.217 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+dez.-14 20:46:46.494 [main] INFO  nextflow.Nextflow - 
+===========================================
+VFNEXT v1.3.4
+parameters:
+-------------------------------------------
+--inDir            : /home/pinho/myGit/ViralFlow/test_files/sars-cov-2/input
+--outDir           : /home/pinho/myGit/ViralFlow/test_files/sars-cov-2/outputs
+--virus            : sars-cov2
+--refGenomeCode   *: null
+--referenceGenome *: null
+--referenceGFF    *: null
+--primersBED       : null
+--minLen           : 75
+--depth            : 25
+--minDpIntrahost   : 100
+--trimLen          : 0
+--databaseDir      : /home/pinho/ViralFlow/vfnext/databases/
+--runSnpEff        : true
+--writeMappedReads : true
+--nextflowSimCalls : 6
+--fastp_threads    : 1
+--dedup            : false
+--ndedup           : 3
+--bwa_threads      : 1
+--mafft_threads    : 1
+--mapping_quality  : 30
+--base_quality     : 30
+--minBamSize       : 500
+
+
+* Only required for "custom" virus
+Runtime data:
+-------------------------------------------
+Running with profile:   [1;32mstandard[0m
+Run container:          [1;32m[:][0m
+Running as user:        [1;32mpinho[0m
+Launch dir:             [1;32m/home/pinho/ViralFlow[0m
+Base dir:               [1;32m/home/pinho/ViralFlow/vfnext[0m
+------------------------------------------
+
+dez.-14 20:46:46.503 [main] WARN  nextflow.Nextflow - An BED file with primer positions was not provided. The pipeline will not run samtools clip to remove primer regions
+dez.-14 20:46:46.513 [main] WARN  nextflow.Nextflow - /home/pinho/myGit/ViralFlow/test_files/sars-cov-2/outputs does not exist, the directory will be created
+dez.-14 20:46:46.515 [main] ERROR nextflow.Nextflow - /home/pinho/myGit/ViralFlow/test_files/sars-cov-2/outputs is not a directory
+dez.-14 20:46:46.518 [main] ERROR nextflow.Nextflow - /home/pinho/myGit/ViralFlow/test_files/sars-cov-2/input is not a directory
+dez.-14 20:46:46.520 [main] ERROR nextflow.Nextflow - 2 errors detected

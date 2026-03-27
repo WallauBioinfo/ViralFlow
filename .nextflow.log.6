@@ -1,0 +1,243 @@
+jan.-08 18:21:36.437 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/pinho/ViralFlow//vfnext/main.nf --virus custom --outDir /home/pinho/ViralFlow/test_files/denv/outputs --inDir /home/pinho/ViralFlow/test_files/denv/input --runSnpEff true --writeMappedReads false --minLen 75 --depth 25 --minDpIntrahost 100 --trimLen 0 --refGenomeCode NC_001474.2 --nextflowSimCalls 6 --fastp_threads 1 --bwa_threads 1 --mafft_threads 1 --dedup false --ndedup 3 -resume
+jan.-08 18:21:36.519 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 22.04.0
+jan.-08 18:21:36.538 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /home/pinho/ViralFlow/vfnext/nextflow.config
+jan.-08 18:21:36.540 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/pinho/ViralFlow/vfnext/nextflow.config
+jan.-08 18:21:36.574 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+jan.-08 18:21:37.546 [main] INFO  nextflow.cli.CmdRun - Launching `/home/pinho/ViralFlow/vfnext/main.nf` [peaceful_mercator] DSL2 - revision: bfe3f86de6
+jan.-08 18:21:37.559 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; plugins-dir=/home/pinho/.nextflow/plugins; core-plugins: nf-amazon@1.7.1,nf-azure@0.13.1,nf-console@1.0.3,nf-ga4gh@1.0.3,nf-google@1.1.4,nf-sqldb@0.4.0,nf-tower@1.4.0
+jan.-08 18:21:37.561 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+jan.-08 18:21:37.572 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+jan.-08 18:21:37.573 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+jan.-08 18:21:37.578 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.4.1 in 'deployment' mode
+jan.-08 18:21:37.588 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+jan.-08 18:21:37.637 [main] DEBUG nextflow.Session - Session uuid: 92f9af69-9073-4c22-9e2a-5ef9d6c1d6f5
+jan.-08 18:21:37.637 [main] DEBUG nextflow.Session - Run name: peaceful_mercator
+jan.-08 18:21:37.637 [main] DEBUG nextflow.Session - Executor pool size: 12
+jan.-08 18:21:37.668 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 22.04.0 build 5697
+  Created: 23-04-2022 18:00 UTC (15:00 BRST)
+  System: Linux 6.8.0-90-generic
+  Runtime: Groovy 3.0.10 on OpenJDK 64-Bit Server VM 17.0.15-internal+0-adhoc..src
+  Encoding: UTF-8 (UTF-8)
+  Process: 57040@pinho-IdeaPad-3-15ALC6 [127.0.1.1]
+  CPUs: 12 - Mem: 17.4 GB (7.3 GB) - Swap: 2 GB (2 GB)
+jan.-08 18:21:37.700 [main] DEBUG nextflow.Session - Work-dir: /home/pinho/ViralFlow/work [ext2/ext3]
+jan.-08 18:21:37.716 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+jan.-08 18:21:37.727 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+jan.-08 18:21:37.769 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+jan.-08 18:21:37.779 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 13; maxThreads: 1000
+jan.-08 18:21:37.885 [main] DEBUG nextflow.Session - Session start invoked
+jan.-08 18:21:38.409 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+jan.-08 18:21:39.566 [main] INFO  nextflow.Nextflow - 
+===========================================
+VFNEXT v1.3.4
+parameters:
+-------------------------------------------
+--inDir            : /home/pinho/ViralFlow/test_files/denv/input
+--outDir           : /home/pinho/ViralFlow/test_files/denv/outputs
+--virus            : custom
+--refGenomeCode   *: NC_001474.2
+--referenceGenome *: null
+--referenceGFF    *: null
+--primersBED       : null
+--minLen           : 75
+--depth            : 25
+--minDpIntrahost   : 100
+--trimLen          : 0
+--databaseDir      : /home/pinho/ViralFlow/vfnext/databases/
+--runSnpEff        : true
+--writeMappedReads : false
+--nextflowSimCalls : 6
+--fastp_threads    : 1
+--dedup            : false
+--ndedup           : 3
+--bwa_threads      : 1
+--mafft_threads    : 1
+--mapping_quality  : 30
+--base_quality     : 30
+--minBamSize       : 500
+
+
+* Only required for "custom" virus
+Runtime data:
+-------------------------------------------
+Running with profile:   [1;32mstandard[0m
+Run container:          [1;32m[:][0m
+Running as user:        [1;32mpinho[0m
+Launch dir:             [1;32m/home/pinho/ViralFlow[0m
+Base dir:               [1;32m/home/pinho/ViralFlow/vfnext[0m
+------------------------------------------
+
+jan.-08 18:21:39.574 [main] WARN  nextflow.Nextflow - An BED file with primer positions was not provided. The pipeline will not run samtools clip to remove primer regions
+jan.-08 18:21:39.584 [main] WARN  nextflow.Nextflow - /home/pinho/ViralFlow/test_files/denv/outputs does not exist, the directory will be created
+jan.-08 18:21:39.643 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:prepareDatabase` matches process processInputs:prepareDatabase
+jan.-08 18:21:39.664 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.664 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.669 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+jan.-08 18:21:39.678 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=6; memory=17.4 GB; capacity=12; pollInterval=100ms; dumpInterval=5m
+jan.-08 18:21:39.877 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:indexReferenceBWA` matches process indexReferenceBWA
+jan.-08 18:21:39.879 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.879 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.888 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:genFaIdx` matches process genFaIdx
+jan.-08 18:21:39.889 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.889 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.907 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runFastp` matches process runFastp
+jan.-08 18:21:39.909 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.909 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.939 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:align2ref` matches process align2ref
+jan.-08 18:21:39.941 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.942 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.957 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:coveragePlot` matches process coveragePlot
+jan.-08 18:21:39.959 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.959 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.969 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runIvar` matches process runIvar
+jan.-08 18:21:39.970 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.970 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.980 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runReadCounts` matches process runReadCounts
+jan.-08 18:21:39.981 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.981 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.988 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:checkSnpEffDB` matches process checkSnpEffDB
+jan.-08 18:21:39.989 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.989 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:39.994 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runSnpEff` matches process runSnpEff
+jan.-08 18:21:39.996 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:39.996 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.006 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runVfReport` matches process runVfReport
+jan.-08 18:21:40.006 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:40.007 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.013 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:alignConsensus2Ref` matches process alignConsensus2Ref
+jan.-08 18:21:40.014 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:40.014 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.020 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:snpPlot` matches process snpPlot
+jan.-08 18:21:40.022 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:40.022 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.029 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:runPicard` matches process runPicard
+jan.-08 18:21:40.030 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:40.030 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.044 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:40.044 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.052 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:40.052 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.064 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withName:compileOutputs` matches process compileOutputs
+jan.-08 18:21:40.065 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+jan.-08 18:21:40.065 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+jan.-08 18:21:40.068 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: align2ref, indexReferenceBWA, fixWGS, snpPlot, runPangolin, prepareDatabase, checkSnpEffDB, processInputs:prepareDatabase, runVfReport, runSnpEff, getUnmappedReads, compileOutputs_SC2, runFastp, runIvar, runReadCounts, coveragePlot, runIntraHostScript, genFaIdx, runNextClade, compileOutputs, alignConsensus2Ref, runPicard, getMappedReads
+jan.-08 18:21:40.070 [main] DEBUG nextflow.Session - Ignite dataflow network (19)
+jan.-08 18:21:40.071 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > processInputs:prepareDatabase
+jan.-08 18:21:40.077 [PathVisitor-1] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/denv/input/; pattern: *_R{1,2}*.fq.gz; options: [:]
+jan.-08 18:21:40.078 [PathVisitor-2] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/denv/input/; pattern: *.fq.gz; options: [:]
+jan.-08 18:21:40.078 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > indexReferenceBWA
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > genFaIdx
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runFastp
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > align2ref
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > coveragePlot
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runIvar
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runReadCounts
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > checkSnpEffDB
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runSnpEff
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runVfReport
+jan.-08 18:21:40.079 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > alignConsensus2Ref
+jan.-08 18:21:40.080 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > snpPlot
+jan.-08 18:21:40.080 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runPicard
+jan.-08 18:21:40.080 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > fixWGS
+jan.-08 18:21:40.080 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > runIntraHostScript
+jan.-08 18:21:40.081 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > compileOutputs
+jan.-08 18:21:40.081 [main] DEBUG nextflow.script.ScriptRunner - > Await termination 
+jan.-08 18:21:40.081 [main] DEBUG nextflow.Session - Session await
+jan.-08 18:21:40.083 [PathVisitor-4] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/denv/input/; pattern: *.fastq.gz; options: [:]
+jan.-08 18:21:40.083 [PathVisitor-3] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /home/pinho/ViralFlow/test_files/denv/input/; pattern: *_R{1,2}*.fastq.gz; options: [:]
+jan.-08 18:21:40.247 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+jan.-08 18:21:40.252 [Task submitter] INFO  nextflow.Session - [3b/46d59c] Submitted process > processInputs:prepareDatabase
+jan.-08 18:21:40.259 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+jan.-08 18:21:40.259 [Task submitter] INFO  nextflow.Session - [0c/99c423] Submitted process > checkSnpEffDB
+jan.-08 18:21:40.269 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+jan.-08 18:21:40.270 [Task submitter] INFO  nextflow.Session - [4b/e2e63f] Submitted process > runFastp (2)
+jan.-08 18:21:40.277 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+jan.-08 18:21:40.278 [Task submitter] INFO  nextflow.Session - [61/fc274a] Submitted process > runFastp (1)
+jan.-08 18:21:41.500 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: checkSnpEffDB; status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/work/0c/99c423f1938a4c12dae3e131d0941d]
+jan.-08 18:21:41.522 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=4; maxSize=4; workQueue=LinkedBlockingQueue[10000]; allowCoreThreadTimeout=false
+jan.-08 18:21:47.299 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: processInputs:prepareDatabase; status: COMPLETED; exit: 0; error: -; workDir: /home/pinho/ViralFlow/work/3b/46d59c4bcdf58e78fb981c9a0e3b1b]
+jan.-08 18:21:47.313 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+jan.-08 18:21:47.314 [Task submitter] INFO  nextflow.Session - [d8/bb766a] Submitted process > genFaIdx
+jan.-08 18:21:47.327 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+jan.-08 18:21:47.328 [Task submitter] INFO  nextflow.Session - [b9/f69849] Submitted process > indexReferenceBWA
+jan.-08 18:22:06.369 [SIGINT handler] DEBUG nextflow.Session - Session aborted -- Cause: SIGINT
+jan.-08 18:22:06.369 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 4; name: runFastp (2); status: COMPLETED; exit: 130; error: -; workDir: /home/pinho/ViralFlow/work/4b/e2e63ff0b6f23c42bbdad4ea57d780]
+jan.-08 18:22:06.377 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: runFastp (1); status: COMPLETED; exit: 130; error: -; workDir: /home/pinho/ViralFlow/work/61/fc274a3b76a8c6461bb92a6875a713]
+jan.-08 18:22:06.394 [SIGINT handler] DEBUG nextflow.Session - The following nodes are still active:
+[process] align2ref
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_fa
+  port 2: (cntrl) -     ; channel: $
+
+[process] coveragePlot
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] runIvar
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_fa
+  port 2: (cntrl) -     ; channel: $
+
+[process] runReadCounts
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_fa
+  port 2: (cntrl) -     ; channel: $
+
+[process] runSnpEff
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: genome_code
+  port 2: (value) bound ; channel: refGenomeFasta
+  port 3: (value) OPEN  ; channel: refIndexFiles
+  port 4: (value) bound ; channel: entry_found_file
+  port 5: (cntrl) -     ; channel: $
+
+[process] alignConsensus2Ref
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_fa
+  port 2: (cntrl) -     ; channel: $
+
+[process] snpPlot
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] runPicard
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_fa
+  port 2: (cntrl) -     ; channel: $
+
+[process] fixWGS
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] runIntraHostScript
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: ref_gff
+  port 2: (cntrl) -     ; channel: $
+
+[process] compileOutputs
+  status=ACTIVE
+  port 0: (value) OPEN  ; channel: go
+  port 1: (value) bound ; channel: virus_tag
+  port 2: (cntrl) -     ; channel: $
+
+jan.-08 18:22:06.395 [main] DEBUG nextflow.Session - Session await > all process finished
+jan.-08 18:22:06.395 [main] DEBUG nextflow.Session - Session await > all barriers passed
+jan.-08 18:22:06.397 [main] INFO  nextflow.Nextflow - 
+===========================================
+[1;31mFinished with errors![0m
+
+jan.-08 18:22:06.400 [main] WARN  n.processor.TaskPollingMonitor - Killing running tasks (2)
+jan.-08 18:22:06.596 [main] DEBUG nextflow.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=2; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=2; succeedDuration=8.2s; failedDuration=52.2s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=4; peakCpus=4; peakMemory=0; ]
+jan.-08 18:22:06.608 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+jan.-08 18:22:06.879 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
