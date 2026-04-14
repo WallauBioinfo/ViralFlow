@@ -17,7 +17,7 @@ From: arm64v8/debian:11
     micromamba activate
     micromamba config append channels conda-forge --env
     micromamba self-update
-    micromamba install -c bioconda snpeff=5.0 entrez-direct
+    micromamba install -c bioconda snpeff=5.0 entrez-direct procps-ng
 
     # Clean apt cache + docs
     apt-get clean

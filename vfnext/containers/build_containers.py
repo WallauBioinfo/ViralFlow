@@ -5,13 +5,13 @@ import sys
 arch = sys.argv[1]
 
 containers = [
-    "pangolin:4.3.sif",
+    "pangolin:4.4.sif",
     "snpeff:5.0.sif",
 ]
 
 # temporary logic, before push to remote repo
 container_commands = [
-    f"singularity build -F --fakeroot --sandbox pangolin:4.3.sif def_files/{arch}/Singularity_pangolin",
+    f"singularity build -F --fakeroot --sandbox pangolin:4.4.sif def_files/{arch}/Singularity_pangolin",
     f"singularity build -F --fakeroot --sandbox snpeff:5.0.sif def_files/{arch}/Singularity_snpEff"
 ]
 
@@ -100,4 +100,4 @@ if success:
 
 if success:
     print("\nAll steps from '-build_containers' completed successfully. You can test ViralFlow using the following command:")
-    print("   > viralflow -run --params_file test_files/sars-cov-2.params")
+    print("   > viralflow run --params-file test_files/sars-cov-2.params")
