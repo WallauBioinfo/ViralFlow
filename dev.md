@@ -24,7 +24,7 @@ sudo apt update
 sudo apt install -y build-essential git wget pkg-config \
     libseccomp-dev squashfs-tools cryptsetup \
     libglib2.0-dev uuid-dev libssl-dev libgpgme-dev \
-    libarchive-dev runc
+    libarchive-dev runc golang
 
 git clone --recursive https://github.com/sylabs/singularity.git
 cd singularity

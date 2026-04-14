@@ -8,7 +8,7 @@ apt-get update -y && \
 CONDA_EXPERIMENTAL_SOLVER=classic conda install -n base conda=22.11.0
 CONDA_EXPERIMENTAL_SOLVER=classic conda install -n base conda-libmamba-solver=22.12
 conda config --set solver libmamba
-
+conda install -c conda-forge procps-ng
 conda install -c bioconda snpeff=5.0 entrez-direct --force-reinstall
 apt-get clean
 conda clean --all --yes

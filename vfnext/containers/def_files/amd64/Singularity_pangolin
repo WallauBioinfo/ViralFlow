@@ -16,9 +16,7 @@ From: debian:11
     micromamba shell init --shell=bash --prefix=/usr/local/bin/mm
     micromamba activate
     micromamba config append channels conda-forge --env
-    micromamba self-update
-    micromamba install -c bioconda -c conda-forge pangolin==4.3 procps-ng
-
+    micromamba install -c bioconda -c conda-forge python=3.11 usher=0.6.2 snakemake-minimal==9.19.0 pangolin=4.4 gofasta ucsc-fatovcf procps-ng git pip
     apt-get clean
     micromamba clean --all --yes
     rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale
