@@ -9,33 +9,33 @@ process runNextClade {
   output:
   tuple path("*.csv"), path("*.fasta")
   
-  shell:
-  nxt_dataset = "${workflow.projectDir}/containers/nextclade_dataset/sars-cov-2/"
-  '''
+  script:
+  def nxt_dataset = "${workflow.projectDir}/containers/nextclade_dataset/sars-cov-2/"
+  """
   # check if intravariants are present:
   #     if yes, compile all on a single file and use it as input
   #     if no, use the consensus sequence as input
 
-  NUMLINES=$(wc -l < !{meta.id}.depth!{params.depth}.fa.bc.intrahost.short.tsv)
+  NUMLINES=\$(wc -l < ${meta.id}.depth${params.depth}.fa.bc.intrahost.short.tsv)
 
-  if [ $NUMLINES -gt 1 ]; then
-      cat !{meta.id}.depth!{params.depth}.fa !{meta.id}.depth!{params.depth}.fa.algn.minor.fa  > !{meta.id}.depth!{params.depth}.all.fa
-      nextclade run --jobs !{params.nxtclade_jobs} \
-                --input-ref=!{ref_fa} \
-                --input-dataset=!{nxt_dataset} \
-                --output-csv=!{meta.id}.depth!{params.depth}.all.fa.nextclade.csv \
+  if [ \$NUMLINES -gt 1 ]; then
+      cat ${meta.id}.depth${params.depth}.fa ${meta.id}.depth${params.depth}.fa.algn.minor.fa  > ${meta.id}.depth${params.depth}.all.fa
+      nextclade run --jobs ${params.nxtclade_jobs} \
+                --input-ref=${ref_fa} \
+                --input-dataset=${nxt_dataset} \
+                --output-csv=${meta.id}.depth${params.depth}.all.fa.nextclade.csv \
                 --output-all=./ \
-                !{meta.id}.depth!{params.depth}.all.fa
+                ${meta.id}.depth${params.depth}.all.fa
   fi
 
-  if [ $NUMLINES -eq 1 ]; then
-      nextclade run --jobs !{params.nxtclade_jobs} \
-             --input-ref=!{ref_fa} \
-             --input-dataset=!{nxt_dataset} \
-             --output-csv=!{meta.id}.depth!{params.depth}.fa.nextclade.csv \
+  if [ \$NUMLINES -eq 1 ]; then
+      nextclade run --jobs ${params.nxtclade_jobs} \
+             --input-ref=${ref_fa} \
+             --input-dataset=${nxt_dataset} \
+             --output-csv=${meta.id}.depth${params.depth}.fa.nextclade.csv \
              --output-all=./ \
-             !{meta.id}.depth!{params.depth}.fa
+             ${meta.id}.depth${params.depth}.fa
   fi
 
-  '''
+  """
 }

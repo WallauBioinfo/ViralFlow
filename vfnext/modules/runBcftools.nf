@@ -41,17 +41,17 @@ process run_bcftools_consensus {
     output:
         tuple val(meta), path("${meta.id}.consensus.fa"), path("${meta.id}.low_cov.bed"), path("${meta.id}.cov.bed")
   
-    shell:
-    '''
+    script:
+    """
     set -euo pipefail
 
     # create a bed file with low coverage regions
     # this is used to mask low coverage regions in the consensus sequence
-    samtools depth -J -a !{bam} > !{meta.id}.cov.bed
-    awk '$3 <= int(!{min_depth}) {print $1 "\t" $2-1 "\t" $2}' !{meta.id}.cov.bed > !{meta.id}.low_cov.bed
+    samtools depth -J -a ${bam} > ${meta.id}.cov.bed
+    awk '\$3 <= int(${min_depth}) {print \$1 "\t" \$2-1 "\t" \$2}' ${meta.id}.cov.bed > ${meta.id}.low_cov.bed
     
     # call consensus sequence and rename it
-    bcftools consensus -f !{ref} --mask !{meta.id}.low_cov.bed !{vcf} > !{meta.id}.consensus.fa
-    sed -i -e 's/>.*/>!{meta.id}/' !{meta.id}.consensus.fa
-    '''
+    bcftools consensus -f ${ref} --mask ${meta.id}.low_cov.bed ${vcf} > ${meta.id}.consensus.fa
+    sed -i -e 's/>.*/>${meta.id}/' ${meta.id}.consensus.fa
+    """
 }
