@@ -1,6 +1,7 @@
 import os
 import glob
 import subprocess
+import shlex
 
 
 def add_entries_to_DB(root_path, org_name, refseq_code, arch):
@@ -49,6 +50,7 @@ def parse_params(in_flpath):
         "primersBED",
         "outDir",
         "inDir",
+        "samplesheet",
         "runSnpEff",
         "writeMappedReads",
         "minLen",
@@ -69,7 +71,7 @@ def parse_params(in_flpath):
         "dedup",
         "ndedup"
     ]
-    path_params = ["inDir", "outDir", "referenceGFF", "referenceGenome", "primersBED"]
+    path_params = ["inDir", "samplesheet", "outDir", "referenceGFF", "referenceGenome", "primersBED"]
     in_file = open(in_flpath, "r")
     dct = {}
     for l in in_file:
@@ -134,7 +136,7 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
     If params_fl is provided, file parameters are the rule (CLI defaults are ignored).
     If no params_fl, CLI parameters are used.
     """
-    path_params = ["inDir", "outDir", "referenceGFF", "referenceGenome", "primersBED"]
+    path_params = ["inDir", "samplesheet", "outDir", "referenceGFF", "referenceGenome", "primersBED"]
 
     if params_fl:
         # Params file takes full precedence — ignore CLI defaults
@@ -162,7 +164,7 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
     run_env = os.environ.copy()
     run_env["NXF_VER"] = nxtflw_ver
     command = ["nextflow", "run", f"{root_path}/vfnext/main.nf"]
-    command.extend(args_str.split())
+    command.extend(shlex.split(args_str))
     command.extend(["--mode", mode])
     if profile:
         command.extend(["-profile", profile])

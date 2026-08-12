@@ -4,6 +4,31 @@ ViralFlow constitutes a computational workflow implemented in Nextflow. Below, y
 
 ## quick start guide
 
+### Input sample sheet
+
+`--samplesheet` is the canonical input interface. The CSV must contain
+`sample_id,fastq_1,fastq_2`; paths may be absolute or relative to the CSV file.
+Repeat a sample ID to provide ordered chunks or lanes. `fastq_2` must be empty
+for Nanopore and single-end Illumina inputs.
+
+```csv
+sample_id,fastq_1,fastq_2,batch
+sample_a,reads/sample_a_chunk1.fastq.gz,,batch_1
+sample_a,reads/sample_a_chunk2.fastq,,batch_1
+```
+
+```bash
+nextflow run /path/to/vfnext/main.nf \
+    --mode NANOPORE \
+    --samplesheet /path/to/samples.csv \
+    --referenceGenome /path/to/reference.fa
+```
+
+Additional metadata columns are propagated to the sample metadata and must be
+consistent across repeated rows. `--samplesheet` and `--inDir` are mutually
+exclusive. Automatic `--inDir` discovery remains available in v2 with strict
+validation and a deprecation warning, and is scheduled for removal in v3.
+
 * How to setup vfnext ?
 
 ```{bash}

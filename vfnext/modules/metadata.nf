@@ -106,12 +106,25 @@ workflow METADATA {
         checksum_inputs
         tool_specs
         container_specs
+        resolved_inputs
         metadata_dir
 
     main:
         checksum_metadata_input(checksum_inputs)
         capture_tool_version(tool_specs)
         capture_container_metadata(container_specs)
+
+        resolved_inputs
+            .flatMap { rows -> rows }
+            .map { row -> row.collect { value -> value.toString().replace('\t', ' ').replace('\n', ' ') }.join('\t') + '\n' }
+            .collectFile(
+                name: "resolved_sample_inputs.tsv",
+                seed: "sample_id\\tchunk_index\\tlayout\\tfastq_1\\tfastq_2\\n",
+                sort: false,
+                newLine: false,
+                storeDir: metadata_dir
+            )
+            .set { resolved_sample_inputs }
 
         checksum_metadata_input.out
             .collectFile(
@@ -147,4 +160,5 @@ workflow METADATA {
         input_checksums
         software_versions
         container_manifest
+        resolved_sample_inputs
 }

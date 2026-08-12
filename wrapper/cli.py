@@ -106,8 +106,10 @@ def add_entry_to_snpeff(org_name, genome_code, arch):
               default="ILLUMINA", show_default=True, help="Sequencing technology used")
 @click.option("--virus", type=click.Choice(["sars-cov2", "custom"], case_sensitive=True),
               default="sars-cov2", show_default=True, help="Virus preset")
-@click.option("--in-dir", type=click.Path(), default="./input/",
-              show_default=True, help="Input directory with fastq files")
+@click.option("--in-dir", type=click.Path(), default=None,
+              help="Deprecated input directory with FASTQ files (removed in v3)")
+@click.option("--samplesheet", type=click.Path(exists=True, dir_okay=False), default=None,
+              help="CSV sample sheet with sample_id, fastq_1, and fastq_2 columns")
 @click.option("--out-dir", type=click.Path(), default="./output/",
               show_default=True, help="Output directory")
 @click.option("--primers-bed", type=click.Path(), default=None,
@@ -146,7 +148,7 @@ def add_entry_to_snpeff(org_name, genome_code, arch):
               show_default=True, help="Enable deduplication")
 @click.option("--ndedup", type=int, default=3,
               show_default=True, help="Number of allowed duplicates")
-def run(params_file, profile, mode, virus, in_dir, out_dir, primers_bed, run_snpeff,
+def run(params_file, profile, mode, virus, in_dir, samplesheet, out_dir, primers_bed, run_snpeff,
         write_mapped_reads, min_len, depth, min_dp_intrahost, trim_len,
         ref_genome_code, reference_gff, reference_genome, nextflow_sim_calls,
         fastp_threads, bwa_threads, mafft_threads, mapping_quality,
@@ -159,6 +161,7 @@ def run(params_file, profile, mode, virus, in_dir, out_dir, primers_bed, run_snp
     cli_to_nf = {
         "virus": virus,
         "inDir": in_dir,
+        "samplesheet": samplesheet,
         "outDir": out_dir,
         "primersBED": primers_bed,
         "runSnpEff": run_snpeff,
@@ -181,9 +184,12 @@ def run(params_file, profile, mode, virus, in_dir, out_dir, primers_bed, run_snp
     }
     cli_params = {k: v for k, v in cli_to_nf.items() if v is not None}
 
+    if in_dir and samplesheet:
+        raise click.UsageError("--samplesheet and --in-dir cannot be used together")
+
     # Validate paths only when no params file is provided
     if not params_file:
-        if not os.path.exists(in_dir):
+        if in_dir and not os.path.exists(in_dir):
             raise click.BadParameter(f"Path '{in_dir}' does not exist.", param_hint=f"'--in-dir'")
 
     for k, v in cli_params.items():

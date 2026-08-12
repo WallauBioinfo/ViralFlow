@@ -72,6 +72,7 @@ log.info """
   parameters:
   -------------------------------------------
   --inDir            : ${params.inDir}
+  --samplesheet      : ${params.samplesheet}
   -output-dir        : ${workflow.outputDir}
   --virus            : ${params.virus}
   --refGenomeCode   *: ${params.refGenomeCode}
@@ -113,17 +114,7 @@ log.info """
   ref_fa = processInputs.out.ref_fa
   ref_gcode = processInputs.out.ref_gcode
 
-  reads_metadata_ch = reads_ch.flatMap { meta, files ->
-    def inputFiles = files instanceof List ? files : [files]
-    inputFiles.withIndex().collect { inputFile, index ->
-      tuple(
-        meta.id,
-        "fastq_${index + 1}",
-        inputFile.toAbsolutePath().normalize().toString(),
-        inputFile
-      )
-    }
-  }
+  reads_metadata_ch = processInputs.out.source_inputs_ch
 
   reference_metadata_ch = ref_fa.map { reference ->
     tuple(
@@ -158,10 +149,22 @@ log.info """
       )
     : channel.empty()
 
+  samplesheet_metadata_ch = params.samplesheet
+    ? channel.of(
+        tuple(
+          "__run__",
+          "samplesheet",
+          file(params.samplesheet).toAbsolutePath().normalize().toString(),
+          file(params.samplesheet)
+        )
+      )
+    : channel.empty()
+
   checksum_inputs_ch = reads_metadata_ch
     .concat(reference_metadata_ch)
     .concat(gff_metadata_ch)
     .concat(primer_metadata_ch)
+    .concat(samplesheet_metadata_ch)
 
   tool_specs_ch = channel.fromList(
     toolSpecs(params, workflow).collect { spec ->
@@ -179,6 +182,7 @@ log.info """
     checksum_inputs_ch,
     tool_specs_ch,
     container_specs_ch,
+    processInputs.out.resolved_inputs_ch,
     metadataDir(workflow.outputDir).toString()
   )
 

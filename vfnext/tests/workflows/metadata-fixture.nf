@@ -47,6 +47,7 @@ workflow METADATA_FIXTURE {
             checksum_inputs,
             tool_specs,
             container_specs,
+            channel.of([["sample", 1, "single", inputFile.toString(), ""]]),
             params.metadataDir
         )
 

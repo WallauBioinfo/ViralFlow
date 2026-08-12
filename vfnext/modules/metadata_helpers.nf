@@ -106,7 +106,10 @@ def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessa
             launch_dir: absoluteMetadataPath(safeMetadataValue { -> workflow.launchDir }),
             project_dir: absoluteMetadataPath(safeMetadataValue { -> workflow.projectDir }),
             work_dir: absoluteMetadataPath(safeMetadataValue { -> workflow.workDir }),
-            input_dir: absoluteMetadataPath(params.inDir),
+            input_dir: params.samplesheet
+                ? null
+                : absoluteMetadataPath(params.inDir ?: workflow.launchDir.resolve('input')),
+            samplesheet: absoluteMetadataPath(params.samplesheet),
             output_dir: absoluteMetadataPath(configuredOutputDir)
         ],
         analysis: [
@@ -124,6 +127,7 @@ def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessa
         }),
         files: [
             input_checksums: 'input_checksums.tsv',
+            resolved_sample_inputs: 'resolved_sample_inputs.tsv',
             software_versions: 'software_versions.tsv',
             containers: 'container_manifest.tsv',
             trace: executionMetadataDir.resolve('execution_trace.tsv').toString(),
