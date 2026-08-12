@@ -151,7 +151,7 @@ def parseLegacyDirectory(String inDir, String mode) {
   def paired = [:].withDefault { [:] }
   def singles = []
   files.each { path ->
-    def matcher = path.fileName.toString() =~ /(?i)^(.+)_R([12])(?:_[^.]+)?\.(fastq|fq)\.gz$/
+    def matcher = path.fileName.toString() =~ /(?i)^(.+)_R([12])(?:_[^.]+)?\.(fastq|fq)(\.gz)?$/
     if (matcher.matches()) {
       def sampleId = matcher[0][1]
       def mate = matcher[0][2]

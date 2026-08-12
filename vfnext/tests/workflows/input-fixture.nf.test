@@ -62,4 +62,57 @@ nextflow_pipeline {
             assert workflow.stdout.contains('--samplesheet and --inDir cannot be used together')
         }
     }
+
+    test("Discovers an uncompressed FASTQ pair") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                inDir = "${projectDir}/tests/data/legacy-input/uncompressed-fastq"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.stdout.any { it.contains('PREPARED sample_fastq paired=true files=sample_fastq.R1.fastq.gz,sample_fastq.R2.fastq.gz') }
+        }
+    }
+
+    test("Discovers an uncompressed FQ pair") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                inDir = "${projectDir}/tests/data/legacy-input/uncompressed-fq"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.stdout.any { it.contains('PREPARED sample_fq paired=true files=sample_fq.R1.fastq.gz,sample_fq.R2.fastq.gz') }
+        }
+    }
+
+    test("Rejects an uncompressed orphan Illumina mate") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                inDir = "${projectDir}/tests/data/legacy-input/orphan"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains("Legacy input sample 'orphan' has an orphan Illumina mate")
+        }
+    }
 }
