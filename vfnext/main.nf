@@ -9,6 +9,13 @@ include {ILLUMINA} from './workflows/ILLUMINA.nf'
 include {NANOPORE} from './workflows/NANOPORE.nf'
 include {GENPLOTS} from './workflows/GENPLOTS.nf'
 include {METADATA} from './modules/metadata.nf'
+include {
+  metadataDir;
+  metadataFailureMessage;
+  writeRunManifest;
+  containerSpecs;
+  toolSpecs
+} from './modules/metadata_helpers.nf'
 
 // The code for the inital log info is based on the one found at FASTQC PIPELINE
 // https://github.com/angelovangel/nxf-fastqc/blob/master/main.nf
@@ -24,24 +31,24 @@ def ANSI_GREEN = "\033[1;32m"
 def ANSI_RED = "\033[1;31m"
 def ANSI_RESET = "\033[0m"
 
-MetadataHelper.writeManifest(workflow, params, "RUNNING")
+writeRunManifest(workflow, params, "RUNNING")
 
 workflow.onError = {
-  MetadataHelper.writeManifest(
+  writeRunManifest(
     workflow,
     params,
     "FAILED",
-    MetadataHelper.failureMessage(workflow)
+    metadataFailureMessage(workflow)
   )
 }
 
 workflow.onComplete = {
   def finalStatus = workflow.success ? "SUCCESS" : "FAILED"
-  MetadataHelper.writeManifest(
+  writeRunManifest(
     workflow,
     params,
     finalStatus,
-    workflow.success ? null : MetadataHelper.failureMessage(workflow)
+    workflow.success ? null : metadataFailureMessage(workflow)
   )
 
   if (workflow.success) {
@@ -155,13 +162,13 @@ log.info """
     .concat(primer_metadata_ch)
 
   tool_specs_ch = channel.fromList(
-    MetadataHelper.toolSpecs(params, workflow).collect { spec ->
+    toolSpecs(params, workflow).collect { spec ->
       tuple(spec.mode, spec.tool, spec.command, spec.container)
     }
   )
 
   container_specs_ch = channel.fromList(
-    MetadataHelper.containerSpecs(params, workflow).collect { spec ->
+    containerSpecs(params, workflow).collect { spec ->
       tuple(spec.name, spec.kind, spec.identity)
     }
   )
@@ -170,7 +177,7 @@ log.info """
     checksum_inputs_ch,
     tool_specs_ch,
     container_specs_ch,
-    MetadataHelper.metadataDir(params).toString()
+    metadataDir(params).toString()
   )
 
   if (params.mode == "ILLUMINA"){
