@@ -1,5 +1,5 @@
 process runIvar{
-  publishDir "${params.outDir}/${meta.id}_results/", mode: "copy", pattern: "*.{fa,tsv,gz,tbi}"
+  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy", pattern: "*.{fa,tsv,gz,tbi}"
   input:
     tuple val(meta), path(bams), val(is_paired_end)
     path(ref_fa)

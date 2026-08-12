@@ -1,5 +1,5 @@
 process runSnpEff{
-  publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
+  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
 
   input:
   val(genome_code)
@@ -19,4 +19,3 @@ process runSnpEff{
   mv snpEff_summary.html ${sample_id}_snpEff_summary.html
   """
 }
-

@@ -1,6 +1,6 @@
 process runPangolin {
   tag "${meta.id}"
-  publishDir "${params.outDir}/${meta.id}_results/",mode: "copy"
+  publishDir { "${params.outDir}/${meta.id}_results/" },mode: "copy"
   input:
   tuple val(meta), path(intrahost_tsvs), path(algn_fasta), path(consensus_fa), path(ivar_txt), path(mut_tsv)
   //temporary solution, no need for ivar_txt and mut_tsv

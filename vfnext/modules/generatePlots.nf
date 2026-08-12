@@ -1,6 +1,6 @@
 process coveragePlot {
     tag "${meta.id}"
-    publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
+    publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
 
     input:
 
@@ -55,7 +55,7 @@ process coveragePlot {
 
 process snpPlot {
     tag "${meta.id}"
-    publishDir "${params.outDir}/${meta.id}_results/", mode: "copy"
+    publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
 
     input:
 
