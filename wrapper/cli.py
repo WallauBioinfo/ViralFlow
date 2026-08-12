@@ -103,7 +103,8 @@ def add_entry_to_snpeff(org_name, genome_code, arch):
 @click.option("--profile", type=str, default=None,
               help="Nextflow profile (e.g. apptainer, fiocruz_default, fiocruz_pbs)")
 @click.option("--mode", type=click.Choice(["ILLUMINA", "NANOPORE"], case_sensitive=True),
-              default="ILLUMINA", show_default=True, help="Sequencing technology used")
+              default=None,
+              help="Sequencing technology used (defaults to ILLUMINA without --params-file)")
 @click.option("--virus", type=click.Choice(["sars-cov2", "custom"], case_sensitive=True),
               default="sars-cov2", show_default=True, help="Virus preset")
 @click.option("--in-dir", type=click.Path(), default=None,
@@ -156,7 +157,7 @@ def run(params_file, profile, mode, virus, in_dir, samplesheet, out_dir, primers
     """Run the ViralFlow pipeline.
 
     All parameters have sensible defaults from nextflow.config.
-    Optionally pass --params-file to load from a file (CLI options still override).
+    A parameter file is authoritative and cannot be combined with --mode.
     """
     cli_to_nf = {
         "virus": virus,
@@ -183,6 +184,9 @@ def run(params_file, profile, mode, virus, in_dir, samplesheet, out_dir, primers
         "ndedup": ndedup,
     }
     cli_params = {k: v for k, v in cli_to_nf.items() if v is not None}
+
+    if params_file and mode is not None:
+        raise click.UsageError("--mode cannot be used with --params-file; set mode in the parameter file")
 
     if in_dir and samplesheet:
         raise click.UsageError("--samplesheet and --in-dir cannot be used together")

@@ -133,13 +133,15 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
     """
     Run the vfnext pipeline.
 
-    If params_fl is provided, file parameters are the rule (CLI defaults are ignored).
-    If no params_fl, CLI parameters are used.
+    If params_fl is provided, file parameters are authoritative, including mode.
+    If no params_fl, CLI parameters are used and mode defaults to ILLUMINA.
     """
     path_params = ["inDir", "samplesheet", "outDir", "referenceGFF", "referenceGenome", "primersBED"]
 
     if params_fl:
-        # Params file takes full precedence — ignore CLI defaults
+        if mode is not None:
+            raise ValueError("mode cannot be provided with a parameter file")
+        # Params file takes full precedence — do not append CLI defaults.
         args_str = parse_params(params_fl)
     else:
         # No file provided — use CLI params
@@ -159,13 +161,16 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
 
     nxtflw_ver = os.environ.get("NXF_VER", "26.04.6")
     profile_str = f" -profile {profile}" if profile else ""
-    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str} --mode {mode}{profile_str}"
+    resolved_mode = None if params_fl else (mode or "ILLUMINA")
+    mode_str = f" --mode {resolved_mode}" if resolved_mode else ""
+    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str}{mode_str}{profile_str}"
     print(run_nxtfl_cmd)
     run_env = os.environ.copy()
     run_env["NXF_VER"] = nxtflw_ver
     command = ["nextflow", "run", f"{root_path}/vfnext/main.nf"]
     command.extend(shlex.split(args_str))
-    command.extend(["--mode", mode])
+    if resolved_mode:
+        command.extend(["--mode", resolved_mode])
     if profile:
         command.extend(["-profile", profile])
     subprocess.run(command, env=run_env, check=True)
