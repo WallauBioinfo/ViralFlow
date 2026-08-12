@@ -90,7 +90,7 @@ workflow {
     // Define the input files
     reads_ch = parse_mnf(params.mnf) // tuple (meta, fastq)
 
-    log.info("${params.base_container} ${params.mnf} ${params.outDir}")
+    log.info("${params.base_container} ${params.mnf} ${workflow.outputDir}")
     // run workflow
     NANOPORE(reads_ch, params.ref)
 }
