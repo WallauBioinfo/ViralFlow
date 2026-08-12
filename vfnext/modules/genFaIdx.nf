@@ -2,7 +2,7 @@ process genFaIdx {
     /*
     * Indexes reference fasta file using bwa.
     */
-    //publishDir "${params.outDir}/"
+    //publishDir "${workflow.outputDir}/"
     label "singlethread"
     input:
         path(reference_fasta)

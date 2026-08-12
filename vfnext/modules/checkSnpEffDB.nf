@@ -1,5 +1,5 @@
 process checkSnpEffDB{
-    publishDir "${params.outDir}", mode: "copy"
+    publishDir "${workflow.outputDir}", mode: "copy"
     label "singlethread"
     
     input:
@@ -40,7 +40,7 @@ with open("${params.snpEffDBCatalog}", 'r') as srch_fl:
         out_fl.write(line)
     if n_founds > 1:
         print("ERROR: more than one entry found for ${genome_code}")
-        print("       check ${params.outDir}/snpEffDB_entry_found.log")
+        print("       check ${workflow.outputDir}/snpEffDB_entry_found.log")
         for data in dct_lst:
             line = f"{data['gnm']},{data['organism']},{data['status']},{data['bundle']},{data['download-link']}"
             out_fl.write(line)

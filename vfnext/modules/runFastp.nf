@@ -1,7 +1,7 @@
 
 process runFastp{
   tag "${meta.id}"
-  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy", pattern: "*.fastp.html"
+  publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode: "copy", pattern: "*.fastp.html"
   label "multithread"
 
   input:

@@ -2,7 +2,7 @@ process fixWGS {
   tag "${meta.id}"
   label "singlethread"
   errorStrategy 'ignore'
-  publishDir { "${params.outDir}/${meta.id}_results/" }, mode : "copy"
+  publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode : "copy"
 
   input:
      tuple val(meta), path(wgs), path(metrics), path(consensus), path(ivar_txt), path(mut_tsv), path(vcf_file), path(vcf_index)

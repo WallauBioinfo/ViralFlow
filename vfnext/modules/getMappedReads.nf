@@ -1,6 +1,6 @@
 process getMappedReads{
   tag "${meta.id}"
-  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
+  publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode: "copy"
   label "singlethread"
   input:
     tuple val(meta), path(bam_files), val(is_paired_end)

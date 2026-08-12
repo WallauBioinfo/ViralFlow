@@ -1,6 +1,6 @@
 process runIntraHostScript{
   tag "${meta.id}"
-  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
+  publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode: "copy"
 
   input:
      tuple val(meta), path(fa_bc), path(fa_algn)

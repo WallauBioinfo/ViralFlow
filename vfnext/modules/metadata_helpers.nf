@@ -1,5 +1,5 @@
-def metadataDir(params) {
-    java.nio.file.Path.of(params.outDir.toString()).toAbsolutePath().normalize()
+def metadataDir(outputDir) {
+    java.nio.file.Path.of(outputDir.toString()).toAbsolutePath().normalize()
         .resolve('RUN_METADATA')
 }
 
@@ -62,9 +62,11 @@ def metadataFailureMessage(workflow) {
     safeMetadataValue { -> workflow.errorMessage } ?: safeMetadataValue { -> workflow.errorReport }
 }
 
-def writeRunManifest(workflow, params, status, failureMessage = null) {
-    def outputDir = metadataDir(params)
-    java.nio.file.Files.createDirectories(outputDir)
+def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessage = null) {
+    def metadataOutputDir = metadataDir(configuredOutputDir)
+    def executionMetadataDir = java.nio.file.Path.of(workflow.launchDir.toString())
+        .toAbsolutePath().normalize().resolve('output').resolve('RUN_METADATA')
+    java.nio.file.Files.createDirectories(metadataOutputDir)
 
     def profile = safeMetadataValue { -> workflow.profile }?.toString() ?: ''
     def gitStatus = gitMetadataValue(workflow.projectDir, ['status', '--porcelain'])
@@ -105,7 +107,7 @@ def writeRunManifest(workflow, params, status, failureMessage = null) {
             project_dir: absoluteMetadataPath(safeMetadataValue { -> workflow.projectDir }),
             work_dir: absoluteMetadataPath(safeMetadataValue { -> workflow.workDir }),
             input_dir: absoluteMetadataPath(params.inDir),
-            output_dir: absoluteMetadataPath(params.outDir)
+            output_dir: absoluteMetadataPath(configuredOutputDir)
         ],
         analysis: [
             mode: normalizeMetadata(params.mode),
@@ -124,14 +126,14 @@ def writeRunManifest(workflow, params, status, failureMessage = null) {
             input_checksums: 'input_checksums.tsv',
             software_versions: 'software_versions.tsv',
             containers: 'container_manifest.tsv',
-            trace: 'execution_trace.tsv',
-            report: 'execution_report.html',
-            timeline: 'execution_timeline.html'
+            trace: executionMetadataDir.resolve('execution_trace.tsv').toString(),
+            report: executionMetadataDir.resolve('execution_report.html').toString(),
+            timeline: executionMetadataDir.resolve('execution_timeline.html').toString()
         ]
     ]
 
-    def target = outputDir.resolve('run_manifest.json')
-    def temporary = outputDir.resolve('run_manifest.json.tmp')
+    def target = metadataOutputDir.resolve('run_manifest.json')
+    def temporary = metadataOutputDir.resolve('run_manifest.json.tmp')
     temporary.toFile().text = groovy.json.JsonOutput.prettyPrint(
         groovy.json.JsonOutput.toJson(manifest)
     ) + System.lineSeparator()
