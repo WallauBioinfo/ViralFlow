@@ -1,5 +1,5 @@
-from spython.main import Client
 import os
+import subprocess
 
 
 def get_repository(repository_list):
@@ -25,7 +25,11 @@ def container_pull(containers_dir, containers_name_list):
         container_version = container[1]
         full_repo = container[2]
         print(f"Downloading container {container_version}. This could be take a while. Please Wait ...")
-        os.system(f"singularity pull -F {container_version}.sif library://{full_repo}")  
+        subprocess.run(
+            ["singularity", "pull", "-F", f"{container_version}.sif", f"library://{full_repo}"],
+            cwd=containers_dir,
+            check=True,
+        )
 
 
 
@@ -44,10 +48,14 @@ def check_containers(containers_name_list, downloaded_list):
 def containers_routine_pull(missing_containers_list, containers_dir, containers_names_list):
     lost_containers = missing_containers_list
     attempts = len(lost_containers) * 3
-    while len(lost_containers) > 0 or attempts > 0:
-        container_pull(containers_dir, missing_containers_list)
+    last_error = None
+    while lost_containers and attempts > 0:
+        try:
+            container_pull(containers_dir, lost_containers)
+        except subprocess.CalledProcessError as error:
+            last_error = error
         lost_containers = check_containers(containers_names_list, containers_dir)
         attempts -= 1
-        if len(lost_containers) == 0:
-            break
-
+    if lost_containers:
+        names = ", ".join(container[1] for container in lost_containers)
+        raise RuntimeError(f"Failed to download containers after retries: {names}") from last_error

@@ -11,8 +11,8 @@ containers = [
 
 # temporary logic, before push to remote repo
 container_commands = [
-    f"singularity build -F --fakeroot --sandbox pangolin:4.4.sif def_files/{arch}/Singularity_pangolin",
-    f"singularity build -F --fakeroot --sandbox snpeff:5.0.sif def_files/{arch}/Singularity_snpEff"
+    ["singularity", "build", "-F", "--fakeroot", "--sandbox", "pangolin:4.4.sif", f"def_files/{arch}/Singularity_pangolin"],
+    ["singularity", "build", "-F", "--fakeroot", "--sandbox", "snpeff:5.0.sif", f"def_files/{arch}/Singularity_snpEff"]
 ]
 
 failed_containers = []
@@ -32,7 +32,7 @@ def build_container(container, command):
         return True
 
     try:
-        subprocess.check_call(command, shell=True)
+        subprocess.run(command, check=True)
         print(f"  > Done <")
         return True
     except subprocess.CalledProcessError as e:
@@ -66,9 +66,9 @@ if success:
     print("\nExecuting additional steps:\n")
 
     print("  > Loading sars-cov2 nextclade dataset...\n")
-    nextclade_command = "singularity exec -B nextclade_dataset/sars-cov-2:/tmp nextclade:3.18.sif nextclade dataset get --name 'sars-cov-2' --output-dir '/tmp'"
+    nextclade_command = ["singularity", "exec", "-B", "nextclade_dataset/sars-cov-2:/tmp", "nextclade:3.18.sif", "nextclade", "dataset", "get", "--name", "sars-cov-2", "--output-dir", "/tmp"]
     try:
-        subprocess.check_call(nextclade_command, shell=True)
+        subprocess.run(nextclade_command, check=True)
         print("    > Done <\n")
     except subprocess.CalledProcessError as e:
         print("    > Failed <")
@@ -76,9 +76,10 @@ if success:
         success = False
 
     print("  > Downloading snpeff database catalog...")
-    snpeff_command = "singularity exec snpeff:5.0.sif snpEff databases > snpEff_DB.catalog"
+    snpeff_command = ["singularity", "exec", "snpeff:5.0.sif", "snpEff", "databases"]
     try:
-        subprocess.check_call(snpeff_command, shell=True)
+        with open("snpEff_DB.catalog", "w") as catalog:
+            subprocess.run(snpeff_command, stdout=catalog, check=True)
         print("    > Done <")
     except subprocess.CalledProcessError as e:
         print("    > Failed <")
@@ -88,6 +89,7 @@ if success:
     # Check if unsquashfs is in the correct location
     unsquashfs_desired_location = "/usr/local/bin/unsquashfs"
     if not os.path.exists(unsquashfs_desired_location):
+        success = False
         print("\n\033[91mError:\n  > unsquashfs executable not found at expected location. You should create a symbolic link using the following command:\033[0m")
         unsquashfs_location = os.path.join(os.environ["HOME"], "miniconda3/envs/viralflow/bin/unsquashfs")
         print(f"   >  sudo ln -s {unsquashfs_location} /usr/local/bin/unsquashfs\n")
@@ -101,3 +103,5 @@ if success:
 if success:
     print("\nAll steps from '-build_containers' completed successfully. You can test ViralFlow using the following command:")
     print("   > viralflow run --params-file test_files/sars-cov-2.params")
+else:
+    sys.exit(1)

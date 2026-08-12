@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import subprocess
 from importlib.metadata import version
 
 import click
@@ -17,6 +18,17 @@ __version__ = version("ViralFlow")
 # Get root paths
 script_file = os.path.realpath(__file__)
 VF_ROOT_PATH = "/".join(script_file.split("/")[0:-2]) + "/"
+
+
+def _call_helper(function, *args):
+    try:
+        return function(*args)
+    except subprocess.CalledProcessError as error:
+        raise click.ClickException(
+            f"Command failed with exit status {error.returncode}: {error.cmd}"
+        ) from error
+    except (OSError, RuntimeError, ValueError) as error:
+        raise click.ClickException(str(error)) from error
 
 
 @click.group(invoke_without_command=True)
@@ -50,19 +62,19 @@ def cli(ctx):
 )
 def build_containers(arch):
     """Build containers for vfnext."""
-    _build_containers(VF_ROOT_PATH, arch)
+    _call_helper(_build_containers, VF_ROOT_PATH, arch)
 
 
 @cli.command("update-pangolin")
 def update_pangolin():
     """Update pangolin container to the latest pangolin version."""
-    _update_pangolin(VF_ROOT_PATH)
+    _call_helper(_update_pangolin, VF_ROOT_PATH)
 
 
 @cli.command("update-pangolin-data")
 def update_pangolin_data():
     """Update pangolin container with the latest pangolin version databases."""
-    _update_pangolin_data(VF_ROOT_PATH)
+    _call_helper(_update_pangolin_data, VF_ROOT_PATH)
 
 
 # =============================================================================
@@ -90,7 +102,7 @@ def update_pangolin_data():
 )
 def add_entry_to_snpeff(org_name, genome_code, arch):
     """Add a new entry to the SnpEff database."""
-    _add_entries_to_DB(VF_ROOT_PATH, org_name, genome_code, arch)
+    _call_helper(_add_entries_to_DB, VF_ROOT_PATH, org_name, genome_code, arch)
 
 
 # =============================================================================
@@ -240,7 +252,7 @@ def run(params_file, profile, mode, virus, in_dir, samplesheet, out_dir, primers
 )
 def concat_fastqs(path, prefix, extension, min_len, max_len):
     click.echo(f"Concat fastq files on path {path} with prefix {prefix} and extension {extension} with min length {min_len} and max length {max_len}")
-    _concat_fastqs(path, prefix, extension, min_len, max_len)
+    _call_helper(_concat_fastqs, path, prefix, extension, min_len, max_len)
 
 if __name__ == "__main__":
     cli()

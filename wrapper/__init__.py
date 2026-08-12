@@ -1,16 +1,24 @@
 import os
-import glob
 import subprocess
 import shlex
+import tempfile
+import re
+import sys
+from pathlib import Path
 
 
 def add_entries_to_DB(root_path, org_name, refseq_code, arch):
     """
     add entries provided to snpeff database
     """
-    run_bash = f"bash {root_path}/vfnext/containers/add_entries_SnpeffDB.sh"
-    print(f"{run_bash} {org_name} {refseq_code} {arch}")
-    os.system(f"{run_bash} {org_name} {refseq_code} {arch}")
+    if any(ord(character) < 32 or ord(character) == 127 for character in org_name):
+        raise ValueError("Organism name cannot contain control characters")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", refseq_code):
+        raise ValueError("Genome code must start with a letter or number and contain only letters, numbers, dots, underscores, and hyphens")
+    containers_dir = Path(root_path) / "vfnext" / "containers"
+    command = ["bash", str(containers_dir / "add_entries_SnpeffDB.sh"), org_name, refseq_code, arch]
+    print(shlex.join(command))
+    subprocess.run(command, cwd=containers_dir, check=True)
 
 def parse_csv(csv_flpath):
     with open(csv_flpath, "r") as csv_fl:
@@ -30,13 +38,9 @@ def build_containers(root_path, arch: str):
     """
     run script to build container for vfnext
     """
-    # build containers
-    cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    build_sandbox = f"python ./build_containers.py {arch}"
-    pull_containers = f"python ./pull_containers.py {arch}"
-    os.system(cd_to_dir+';'+pull_containers) 
-    print(cd_to_dir+';'+build_sandbox)
-    os.system(cd_to_dir+';'+build_sandbox)
+    containers_dir = Path(root_path) / "vfnext" / "containers"
+    subprocess.run([sys.executable, "pull_containers.py", arch], cwd=containers_dir, check=True)
+    subprocess.run([sys.executable, "build_containers.py", arch], cwd=containers_dir, check=True)
     
 
 # input args file load
@@ -104,14 +108,20 @@ def parse_params(in_flpath):
     return args
 
 def update_pangolin(root_path):
-    cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    run_update = "singularity exec --writable ./pangolin:4.4.sif pangolin --update"
-    os.system(cd_to_dir+';'+run_update)
+    containers_dir = Path(root_path) / "vfnext" / "containers"
+    subprocess.run(
+        ["singularity", "exec", "--writable", "./pangolin:4.4.sif", "pangolin", "--update"],
+        cwd=containers_dir,
+        check=True,
+    )
 
 def update_pangolin_data(root_path):
-    cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    run_update_data = "singularity exec --writable ./pangolin:4.4.sif pangolin --update-data"
-    os.system(cd_to_dir+';'+run_update_data)
+    containers_dir = Path(root_path) / "vfnext" / "containers"
+    subprocess.run(
+        ["singularity", "exec", "--writable", "./pangolin:4.4.sif", "pangolin", "--update-data"],
+        cwd=containers_dir,
+        check=True,
+    )
 
 def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
     """
@@ -164,43 +174,78 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
     For each directory matching {prefix}* (e.g. barcode01, barcode02, ...),
     concatenates all fastq files and filters reads by min/max length using seqkit.
     """
-    read_dir = os.path.abspath(path)
-    output_dir = os.path.join(read_dir, "filtered")
-    os.makedirs(output_dir, exist_ok=True)
+    read_dir = Path(path).resolve()
+    output_dir = read_dir / "filtered"
+    output_dir.mkdir(exist_ok=True)
 
-    # Search for barcode directories in read_dir
-    barcode_dirs = sorted(glob.glob(os.path.join(read_dir, f"{prefix}*")))
+    def matching_directories(parent):
+        return sorted(
+            entry for entry in parent.iterdir()
+            if entry.is_dir() and entry.name.startswith(prefix)
+        )
 
-    # If not found, search in subdirectories (read_dir/*/)
+    barcode_dirs = matching_directories(read_dir)
     if not barcode_dirs:
-        barcode_dirs = sorted(glob.glob(os.path.join(read_dir, "*", f"{prefix}*")))
-
-    # If still not found, raise an error
+        barcode_dirs = sorted(
+            barcode
+            for parent in read_dir.iterdir() if parent.is_dir()
+            for barcode in matching_directories(parent)
+        )
     if not barcode_dirs:
         raise FileNotFoundError(
             f"No files matching '{prefix}*/*{extension}' found in '{read_dir}' or its subdirectories."
         )
 
+    failures = []
     for barcode_path in barcode_dirs:
-        if not os.path.isdir(barcode_path):
-            continue
-
-        barcode_id = os.path.basename(barcode_path)
-
-        fastq_files = glob.glob(os.path.join(barcode_path, f"*{extension}"))
+        barcode_id = barcode_path.name
+        fastq_files = sorted(
+            entry for entry in barcode_path.iterdir()
+            if entry.is_file() and entry.name.endswith(extension)
+        )
         if not fastq_files:
             print(f"Skipping {barcode_id}: no {extension} files found")
             continue
 
-        output_file = os.path.join(output_dir, f"{barcode_id}.concat.fastq.gz")
-        fastq_pattern = os.path.join(barcode_path, f"*{extension}")
-
-        cmd = (
-            f"zcat {fastq_pattern} | "
-            f"seqkit seq -w 0 -g --min-len {min_len} --max-len {max_len} | "
-            f"gzip > {output_file}"
-        )
-
+        output_file = output_dir / f"{barcode_id}.concat.fastq.gz"
+        temporary_path = None
         print(f"Processing {barcode_id}...")
-        os.system(cmd)
-        print(f"   The reads were written in {output_file}")
+        processes = []
+        try:
+            with tempfile.NamedTemporaryFile(dir=output_dir, prefix=f".{barcode_id}.", suffix=".tmp", delete=False) as temporary:
+                temporary_path = Path(temporary.name)
+                reader = ["gzip", "-cd", "--", *map(str, fastq_files)] if extension.endswith(".gz") else ["cat", "--", *map(str, fastq_files)]
+                source = subprocess.Popen(reader, stdout=subprocess.PIPE)
+                processes.append(source)
+                seqkit = subprocess.Popen(
+                    ["seqkit", "seq", "-w", "0", "-g", "--min-len", str(min_len), "--max-len", str(max_len)],
+                    stdin=source.stdout,
+                    stdout=subprocess.PIPE,
+                )
+                processes.append(seqkit)
+                source.stdout.close()
+                compressor = subprocess.Popen(["gzip", "-c"], stdin=seqkit.stdout, stdout=temporary)
+                processes.append(compressor)
+                seqkit.stdout.close()
+                compressor_status = compressor.wait()
+                seqkit_status = seqkit.wait()
+                source_status = source.wait()
+            statuses = {"reader": source_status, "seqkit": seqkit_status, "gzip": compressor_status}
+            failed_stages = [name for name, status in statuses.items() if status != 0]
+            if failed_stages:
+                raise RuntimeError(f"failed pipeline stages: {', '.join(failed_stages)}")
+            os.replace(temporary_path, output_file)
+            print(f"   The reads were written in {output_file}")
+        except (OSError, RuntimeError) as error:
+            for process in processes:
+                if process.poll() is None:
+                    process.terminate()
+            for process in processes:
+                if process.poll() is None:
+                    process.wait()
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+            failures.append(f"{barcode_id}: {error}")
+
+    if failures:
+        raise RuntimeError("FASTQ concatenation failed:\n - " + "\n - ".join(failures))
