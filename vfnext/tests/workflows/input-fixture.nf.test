@@ -1,0 +1,65 @@
+nextflow_pipeline {
+    name "Canonical sample input handling"
+    script "tests/workflows/input-fixture.nf"
+
+    test("Consolidates repeated Nanopore rows into one logical sample") {
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-multichunk.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.stdout.contains('PREPARED sample_a paired=false files=sample_a.SE.fastq.gz batch=batch_1')
+        }
+    }
+
+    test("Rejects a source file assigned more than once") {
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/reused-fastq.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains('is already assigned')
+        }
+    }
+
+    test("Rejects mixed single and paired rows") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                samplesheet = "${projectDir}/tests/data/input/mixed-layout.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains('mixes single-end and paired-end rows')
+        }
+    }
+
+    test("Rejects conflicting input interfaces") {
+        when {
+            params {
+                mode = "NANOPORE"
+                inDir = "${projectDir}/tests/data/input"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-multichunk.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains('--samplesheet and --inDir cannot be used together')
+        }
+    }
+}
