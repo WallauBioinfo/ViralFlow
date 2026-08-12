@@ -8,7 +8,6 @@ nextflow_workflow {
 
         when {
             params {
-                outDir = ".nf-test/results/nanopore-truth"
                 base_container = "${projectDir}/containers/baseContainer.sif"
                 clair3_chunk_size = 10000
                 clair3_qual = 10
