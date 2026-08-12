@@ -42,9 +42,12 @@ def build_containers(root_path, arch: str):
 # input args file load
 def parse_params(in_flpath):
     """
-    load text file containing viralflow arguments
+    Load a legacy parameter file as a subprocess argument list.
+
+    Path parameters consume the entire remainder of their line so unquoted paths
+    containing spaces remain a single argument. All other parameters are scalar.
     """
-    valid_args = [
+    valid_args = {
         "mode",
         "virus",
         "primersBED",
@@ -70,54 +73,35 @@ def parse_params(in_flpath):
         "base_quality",
         "dedup",
         "ndedup"
-    ]
-    path_params = ["inDir", "samplesheet", "outDir", "referenceGFF", "referenceGenome", "primersBED"]
-    in_file = open(in_flpath, "r")
-    dct = {}
-    for l in in_file:
-        # skip lines
-        if (l in ["", " ", "\n"]) or l.startswith("#"):
-            continue
+    }
+    path_params = {"inDir", "samplesheet", "outDir", "referenceGFF", "referenceGenome", "primersBED"}
+    parsed = {}
 
-        # get line data
-        l_dt = l.replace("\n", "").split(" ")
-        
-        # get content
-        key = l_dt[0]
-        if (key not in valid_args):
-            raise Exception(f"ERROR: {key} not a valid argument")
-        # fill dict
-        if key in valid_args:
-        
-            vls_1 = l_dt[1 : len(l_dt)]
-            vls = []
-        
-            for v in vls_1:
-                if v in [""]:
-                    continue
-                vls.append(v)
-            # if single value
-            if len(vls) == 1:
-                # skip null values
-                if vls[0] == "null":
-                    continue
-                # be sure paths are absolute
-                if key in path_params:
-                    dct[key] = os.path.abspath(vls[0])
-                    continue
-                dct[key] = vls[0]
-            # if a list of values
-            if len(vls) > 1:
-                dct[key] = vls
-            continue
-    # get arguments for nextflow
-    
-    args_str = ""
-    for key in dct:
+    with open(in_flpath, "r") as in_file:
+        for line_number, raw_line in enumerate(in_file, start=1):
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            fields = line.split(maxsplit=1)
+            key = fields[0]
+            if key not in valid_args:
+                raise ValueError(f"Line {line_number}: {key} is not a valid argument")
+
+            value = fields[1].strip() if len(fields) == 2 else ""
+            if not value or value == "null":
+                continue
+            if key not in path_params and len(value.split()) > 1:
+                raise ValueError(f"Line {line_number}: {key} accepts a single value")
+
+            parsed[key] = os.path.abspath(value) if key in path_params else value
+
+    args = []
+    for key, value in parsed.items():
         option = "-output-dir" if key == "outDir" else f"--{key}"
-        args_str += f"{option} {dct[key]} "
-    args_str += "-resume"
-    return args_str
+        args.extend([option, value])
+    args.append("-resume")
+    return args
 
 def update_pangolin(root_path):
     cd_to_dir= f"cd {root_path}/vfnext/containers/" 
@@ -142,37 +126,34 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
         if mode is not None:
             raise ValueError("mode cannot be provided with a parameter file")
         # Params file takes full precedence — do not append CLI defaults.
-        args_str = parse_params(params_fl)
+        args = parse_params(params_fl)
     else:
         # No file provided — use CLI params
         if cli_params:
             for k in path_params:
                 if k in cli_params:
                     cli_params[k] = os.path.abspath(str(cli_params[k]))
-            args_str = " ".join(
-                f"{'-output-dir' if k == 'outDir' else f'--{k}'} {v}"
-                for k, v in cli_params.items()
-            )
+            args = []
+            for key, value in cli_params.items():
+                option = "-output-dir" if key == "outDir" else f"--{key}"
+                args.extend([option, str(value)])
         else:
             raise ValueError("No parameters provided. Use --params-file or individual CLI options.")
 
-    if "-resume" not in args_str:
-        args_str += " -resume"
+    if "-resume" not in args:
+        args.append("-resume")
 
     nxtflw_ver = os.environ.get("NXF_VER", "26.04.6")
-    profile_str = f" -profile {profile}" if profile else ""
     resolved_mode = None if params_fl else (mode or "ILLUMINA")
-    mode_str = f" --mode {resolved_mode}" if resolved_mode else ""
-    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str}{mode_str}{profile_str}"
-    print(run_nxtfl_cmd)
     run_env = os.environ.copy()
     run_env["NXF_VER"] = nxtflw_ver
     command = ["nextflow", "run", f"{root_path}/vfnext/main.nf"]
-    command.extend(shlex.split(args_str))
+    command.extend(args)
     if resolved_mode:
         command.extend(["--mode", resolved_mode])
     if profile:
         command.extend(["-profile", profile])
+    print(f"NXF_VER={shlex.quote(nxtflw_ver)} {shlex.join(command)}")
     subprocess.run(command, env=run_env, check=True)
 
 
