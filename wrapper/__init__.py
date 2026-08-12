@@ -1,5 +1,6 @@
 import os
 import glob
+import subprocess
 
 
 def add_entries_to_DB(root_path, org_name, refseq_code, arch):
@@ -150,11 +151,18 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
     if "-resume" not in args_str:
         args_str += " -resume"
 
-    nxtflw_ver="22.04.0"
+    nxtflw_ver = os.environ.get("NXF_VER", "26.04.6")
     profile_str = f" -profile {profile}" if profile else ""
     run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str} --mode {mode}{profile_str}"
     print(run_nxtfl_cmd)
-    os.system(run_nxtfl_cmd)
+    run_env = os.environ.copy()
+    run_env["NXF_VER"] = nxtflw_ver
+    command = ["nextflow", "run", f"{root_path}/vfnext/main.nf"]
+    command.extend(args_str.split())
+    command.extend(["--mode", mode])
+    if profile:
+        command.extend(["-profile", profile])
+    subprocess.run(command, env=run_env, check=True)
 
 
 def concat_fastqs(path, prefix, extension, min_len, max_len):
