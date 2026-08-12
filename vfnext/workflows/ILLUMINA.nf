@@ -148,7 +148,14 @@ workflow  ILLUMINA {
     runIntraHostScript.out.set {runIntraHostScript_Out_ch}
 
     // run Variant Naming (Pangolin and Nextclade)
-    runVariantNaming_In_ch = runIntraHostScript_Out_ch.join(runIvar_Out_ch)
+    // runIvar also emits the compressed VCF and its index.  The lineage tools
+    // only consume the consensus-related fields, so keep their input tuple at
+    // the six elements declared by runPangolin and runNextClade.
+    runVariantNaming_In_ch = runIntraHostScript_Out_ch
+        .join(runIvar_Out_ch)
+        .map { meta, intrahost_tsvs, algn_fasta, consensus_fa, ivar_txt, mut_tsv, vcf_file, vcf_index ->
+            tuple(meta, intrahost_tsvs, algn_fasta, consensus_fa, ivar_txt, mut_tsv)
+        }
 
     if (params.virus=="sars-cov2"){
         runPangolin(runVariantNaming_In_ch)
@@ -170,4 +177,3 @@ workflow  ILLUMINA {
   emit:
     bams_ch = bam_output_ch // meta, sorted_bam, bai, is_paired_end
 }
-

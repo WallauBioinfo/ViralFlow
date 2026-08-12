@@ -9,6 +9,12 @@ process runPangolin {
    path("*.csv")
   script:
   """
+  # Pangolin invokes Snakemake, which needs a writable home/cache directory.
+  # Singularity is run with --no-home, so keep both inside the task work dir.
+  export HOME="\$PWD"
+  export XDG_CACHE_HOME="\$PWD/.cache"
+  mkdir -p "\$XDG_CACHE_HOME"
+
   NUMLINES=\$(wc -l < ${meta.id}.depth${params.depth}.fa.bc.intrahost.short.tsv)
 
   if [ \$NUMLINES -gt 1 ]; then
