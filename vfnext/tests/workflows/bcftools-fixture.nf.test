@@ -8,7 +8,6 @@ nextflow_workflow {
 
         when {
             params {
-                outDir = ".nf-test/results/bcftools-positive"
                 fixture_min_depth = 0
             }
             workflow {
@@ -107,7 +106,6 @@ nextflow_workflow {
 
         when {
             params {
-                outDir = ".nf-test/results/bcftools-thresholds"
                 fixture_min_depth = 1
             }
             workflow {
@@ -157,7 +155,6 @@ nextflow_workflow {
 
         when {
             params {
-                outDir = ".nf-test/results/bcftools-malformed"
                 fixture_min_depth = 0
             }
             workflow {

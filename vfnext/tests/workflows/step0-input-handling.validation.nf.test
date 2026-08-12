@@ -10,7 +10,6 @@ nextflow_workflow {
             params {
                 mode = "INVALID_MODE"
                 inDir = "${projectDir}/test_data/illumina_reads"
-                outDir = "test_results"
             }
         }
 
@@ -27,7 +26,6 @@ nextflow_workflow {
                 mode = "ILLUMINA"
                 virus = "sars-cov2"
                 inDir = "${projectDir}/non_existent_directory"
-                outDir = "test_results"
             }
         }
 
@@ -45,7 +43,6 @@ nextflow_workflow {
                 mode = "ILLUMINA"
                 virus = "custom"
                 inDir = "${projectDir}/test_data/illumina_reads"
-                outDir = "test_results"
                 // Missing referenceGenome and referenceGFF
             }
         }
@@ -62,7 +59,6 @@ nextflow_workflow {
             params {
                 mode = "NANOPORE"
                 inDir = "${projectDir}/test_data/nanopore_reads"
-                outDir = "test_results"
                 // Missing referenceGenome
             }
         }
@@ -80,7 +76,6 @@ nextflow_workflow {
                 mode = "ILLUMINA"
                 virus = "sars-cov2"
                 inDir = "${projectDir}/test_data/illumina_reads"
-                outDir = "test_results"
                 primersBED = "${projectDir}/non_existent_primers.bed"
             }
         }

@@ -9,7 +9,6 @@ nextflow_pipeline {
             params {
                 mode = "INVALID_MODE"
                 inDir = "${projectDir}/missing-input"
-                outDir = "${projectDir}/test_results/metadata-failed-run"
             }
         }
 
@@ -17,7 +16,7 @@ nextflow_pipeline {
             assert workflow.failed
 
             def manifestFile = path(
-                "${projectDir}/test_results/metadata-failed-run/RUN_METADATA/run_manifest.json"
+                "${launchDir}/test_results/RUN_METADATA/run_manifest.json"
             )
             assert manifestFile.exists()
 
