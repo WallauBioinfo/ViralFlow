@@ -12,7 +12,7 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 |----------|---------------|-------------|
 | `virus` | sars-cov2 | Analysis type (sars-cov2 or custom) |
 | `primersBED` | null | Absolute path to bed file with primers information used in genomic amplification (optional) |
-| `outDir` | launchDir/output/ | Absolute path to the directory where the results will be stored |
+| `-output-dir` | launchDir/output/ | Nextflow output directory where the results will be stored |
 | `inDir` | launchDir/input/ | Absolute path to the directory with the input data (directory with the FASTQ files) |
 | `runSnpEff` | true | Needed to run the snpEff tool (true or false) |
 | `writeMappedReads` | true | Needed to generate the FASTQ files containing the sequencing reads that mapped to the reference genome |
