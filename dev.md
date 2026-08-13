@@ -45,6 +45,51 @@ pip install -e .
 viralflow build-containers --arch arm64
 ```
 
+## Development quality checks
+
+The development environments include `pre-commit` and `nf-test`. After creating
+or updating the environment, activate it and install ViralFlow with
+`pip install -e .`. The local hooks use that environment's Python, Nextflow, and
+nf-test executables. Install both Git hook stages from the repository root:
+
+```bash
+pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+The pre-commit stage runs repository hygiene checks, Ruff linting and formatting,
+Nextflow linting, and the Python unit tests. Hooks that modify files will fail the
+first run so the updated files can be reviewed and staged again.
+
+Run the complete commit-time suite manually with:
+
+```bash
+pre-commit run --all-files
+```
+
+The pre-push stage runs the 14 Nextflow tests that do not require local container
+images. Run it manually with:
+
+```bash
+pre-commit run --all-files --hook-stage pre-push
+```
+
+The BCFtools, container metadata, and Nanopore truth tests remain manual because
+they require Singularity and a locally built `vfnext/containers/baseContainer.sif`
+(and the truth test also uses the Clair3 container):
+
+```bash
+cd vfnext
+NXF_VER=26.04.6 nf-test test \
+  tests/workflows/bcftools-fixture.nf.test \
+  tests/workflows/metadata-fixture.nf.test \
+  --ci
+NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test --ci
+```
+
+For an emergency-only bypass, use `git commit --no-verify` or
+`git push --no-verify`, then run the skipped hook stage manually before opening
+or updating a pull request.
+
 ### Customizing snpEff catalog
 
 #### AMD64
