@@ -24,7 +24,7 @@ Para uma pipeline computacional, como o ViralFlow, funcionar, ela precisa de vá
 
 Com a conteinerização, o usuário só precisa instalar uma ferramenta, neste caso o Singularity, e depois construir os containers com base em arquivos de receita (no caso do ViralFlow, isto também foi automatizado com o script setupContainers.sh). Dessa forma, diferentes grupos de pesquisa conseguem rodar a ferramenta com o mesmo ambiente computacional, sem mudanças no comportamento do ViralFlow, o que garante a reprodutibilidade dos resultados.
 
-## Nextflow 22.04
+## Nextflow 26.04.6
 
 Nextflow é um gerenciador de workflows de bioinformática que permite o desenvolvimento de workflows portáteis e reprodutíveis.
 

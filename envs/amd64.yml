@@ -15,7 +15,7 @@ dependencies:
   - biopython
   - numpy
   - pandas
-  - nextflow=22.04.0
+  - nextflow=26.04.6
   - entrez-direct
   - openjdk=17
   - procps-ng

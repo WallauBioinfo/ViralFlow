@@ -83,5 +83,5 @@ BCFtools, consensus generation, and Nanopore QC:
 
 ```bash
 cd vfnext
-NXF_VER=25.04.6 nf-test test integration_tests/nanopore-truth.nf.test
+NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test
 ```

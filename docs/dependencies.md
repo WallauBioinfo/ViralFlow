@@ -24,7 +24,7 @@ For a computational pipeline like ViralFlow to work, it requires several depende
 
 With containerization, the user only needs to install one tool, in this case Singularity, and then build the containers based on recipe files (in the case of ViralFlow, this was also automated with the setupContainers.sh script). In this way, different research groups can run the tool with the same computational environment, without changes in ViralFlow's behavior, which guarantees the reproducibility of the results.
 
-## Nextflow 22.04
+## Nextflow 26.04.6
 
 Nextflow is a bioinformatics workflow manager that allows the development of portable and reproducible workflows.
 
