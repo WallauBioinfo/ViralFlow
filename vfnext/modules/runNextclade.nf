@@ -8,7 +8,7 @@ process runNextClade {
   // temporary solution, no need for ivar_txt and mut_tsv
   output:
   tuple path("*.csv"), path("*.fasta")
-  
+
   script:
   def nxt_dataset = "${workflow.projectDir}/containers/nextclade_dataset/sars-cov-2/"
   """

@@ -41,10 +41,10 @@ workflow  ILLUMINA {
 
     // collect htmls for vf reports
     runFastp.out //tuple (meta, [fq.gz file(s)], fastp_html)
-      | map{ it[2]} 
+      | map{ it[2]}
       | set {fastp_html_ch}
     all_fastp_html_ch = fastp_html_ch.collect()
-    
+
     // collect output reads
     runFastp.out // tuple (meta, [fq.gz file(s)], fastp_html)
       | map {tuple(it[0],it[1])} //tuple (meta, [fq.gz file(s)])
@@ -62,12 +62,12 @@ workflow  ILLUMINA {
 
     // align 2 reference -----------------------------------------------------------
     align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch) // tuple(meta, reads, is_paired_end, fasta_amb, fasta_ann, fasta_bwt, fasta_pac, fasta_sa)
-   
+
     align2ref(align2ref_In_ch, ref_fa)
     // Conditionally run ampliconclip for primer trimming if BED file is provided
     if (params.primersBED != null) {
       runAmpliconClipping(align2ref.out.regular_output,
-                          params.primersBED, 
+                          params.primersBED,
                           params.minLen)
       bam_output_ch = runAmpliconClipping.out.regular_output
     } else {
@@ -75,16 +75,16 @@ workflow  ILLUMINA {
     }
 
     // use bam output for downstream processing
-    bam_output_ch 
-      | map { meta, bam, bai, is_pe -> tuple(meta, bam, is_pe) } 
+    bam_output_ch
+      | map { meta, bam, bai, is_pe -> tuple(meta, bam, is_pe) }
       | set { bam_Out_ch }
 
     // remove bam files which are too small (necessary for Picard)
     bam_Out_ch
-      | filter { 
+      | filter {
         def bam = it[1]
         // filter if unix paths
-        ((bam.getClass() == sun.nio.fs.UnixPath) && (bam.size() >= params.minBamSize )) 
+        ((bam.getClass() == sun.nio.fs.UnixPath) && (bam.size() >= params.minBamSize ))
         ||
         ((bam.getClass() == java.util.ArrayList) && (bam[0].size() >= params.minBamSize ) && (bam[1].size() >= params.minBamSize))
       }
@@ -92,7 +92,7 @@ workflow  ILLUMINA {
 
     // raise warning in case anyfile is excluded
     bam_Out_ch
-      | filter { 
+      | filter {
         def bam = it[1]
         // filter if unix paths
         ((bam.getClass() == sun.nio.fs.UnixPath) && (bam.size() <= params.minBamSize ))
@@ -104,24 +104,24 @@ workflow  ILLUMINA {
 
 
     // -----------------------------------------------------------------------------
-    // Call consensus  
+    // Call consensus
     // ivar
     runIvar(bam_Out_ch, ref_fa)
     runIvar.out.set { runIvar_Out_ch }
 
     // get VCFs
     if ((params.runSnpEff==true)) {
-    	// check if genome code is on SnpEff database
-    	checkSnpEffDB(ref_gcode)
-    	// runSnpEffDB
-    	runSnpEff(ref_gcode,
+      // check if genome code is on SnpEff database
+      checkSnpEffDB(ref_gcode)
+      // runSnpEffDB
+      runSnpEff(ref_gcode,
 		checkSnpEffDB.out,
 		runIvar_Out_ch)
-    
+
 	runSnpEff.out
 		| map {it -> it[2]}
 		| set { snpEff_html }
-     
+
         all_snpEff_html_ch = snpEff_html.collect()
         runVfReport(all_fastp_html_ch, all_snpEff_html_ch)
     }

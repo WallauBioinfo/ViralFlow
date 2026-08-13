@@ -33,7 +33,7 @@ lima
 To install ViralFlow, four steps are necessary:
 1. Install system dependencies
 2. Install Conda
-3. Install ViralFlow  
+3. Install ViralFlow
 4. Build the containers for analyses
 
 This process is performed only once.

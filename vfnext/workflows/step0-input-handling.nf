@@ -268,12 +268,12 @@ def check_IL_custom_virus_params(errors) {
 
 def validate_basic_params(accepted_modes) {
     def errors = 0
-    
+
     if (!(params.mode in accepted_modes)) {
         log.error("The mode provided (${params.mode}) is not valid. Accepted modes are: ${accepted_modes.join(', ')}")
         errors += 1
     }
-    
+
     return errors
 }
 
@@ -301,7 +301,7 @@ def validate_primers_bed() {
 def validate_virus_params() {
     def errors = 0
     def valid_virus = ["sars-cov2","custom"]
-    
+
     if (!valid_virus.contains(params.virus)) {
         log.error("The virus provided (${params.virus}) is not valid.")
         errors += 1
@@ -327,25 +327,25 @@ def validate_virus_params() {
     if (params.virus=="custom"){
         errors += check_IL_custom_virus_params(errors)
     }
-    
+
     return errors
 }
 
 def validate_illumina_params() {
     def errors = 0
-    
+
     // Primer BED validation
     errors += validate_primers_bed()
-    
+
     // Virus validation
     errors += validate_virus_params()
-    
+
     return errors
 }
 
 def validate_nanopore_params() {
     def errors = 0
-    
+
     if (!params.referenceGenome) {
         log.error("A reference genome fasta file must be provided for NANOPORE mode")
         errors += 1
@@ -356,7 +356,7 @@ def validate_nanopore_params() {
             errors += 1
         }
     }
-    
+
     return errors
 }
 def validate_directories() {
@@ -368,7 +368,7 @@ def validate_directories() {
     log.error("Conflicting output directories detected: use --outDir instead of Nextflow -output-dir or an outputDir config override")
     errors += 1
   }
-  
+
   // check if output dir exists, if not create the default
   if (params.outDir){
     def outDir_path = file(params.outDir)
@@ -438,21 +438,21 @@ def validate_resources() {
 def validate_parameters() {
     def errors = 0
     def ACCEPTED_MODES = ["ILLUMINA", "NANOPORE"]
-    
+
     // Basic parameter validation
     errors += validate_basic_params(ACCEPTED_MODES)
-    
+
     // Mode-specific validation
     if (params.mode == "ILLUMINA") {
         errors += validate_illumina_params()
     } else if (params.mode == "NANOPORE") {
         errors += validate_nanopore_params()
     }
-    
+
     // Common validation
     errors += validate_directories()
     errors += validate_resources()
-    
+
     // Exit if errors found
     if (errors > 0) {
         error "${errors} validation errors detected"

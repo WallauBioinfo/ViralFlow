@@ -1,4 +1,4 @@
-# Nanopore 
+# Nanopore
 
 This document provides guidelines and instructions on how to run nanopore data on ViralFlow.
 
@@ -26,7 +26,7 @@ apptainer remote list
 
 ---
 
-## Run pipeline 
+## Run pipeline
 
 To run the nanopore mode of the viral pipeline simply run:
 

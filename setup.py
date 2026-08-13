@@ -4,8 +4,8 @@ setup(
     name='ViralFlow',
     version='2.0.0a1',
     description='''
-    Nextflow workflow for reference-based viral genome assembly, quality control, 
-    variant calling, and lineage assignment. Supports multiple viruses with 
+    Nextflow workflow for reference-based viral genome assembly, quality control,
+    variant calling, and lineage assignment. Supports multiple viruses with
     containerized tools for reproducible genomic surveillance.
     ''',
     url='https://github.com/WallauBioinfo/ViralFlow',

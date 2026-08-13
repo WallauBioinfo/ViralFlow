@@ -36,7 +36,7 @@ git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow
 cd ./vfnext/containers/
 /bin/bash setupContainers.sh
-/bin/bash add_entries_SnpeffDB.sh 
+/bin/bash add_entries_SnpeffDB.sh
 ```
 
 * How to run (on SARS-CoV-2)?
@@ -76,8 +76,8 @@ nextflow run path/to/vfnext/main.nf \
         --mode NANOPORE \
         --inDir /path/to/input_dir/ \
         --referenceGenome /path/to/reference_genome/fasta_file.fa
-        
-        
+
+
 
 ```
 ---

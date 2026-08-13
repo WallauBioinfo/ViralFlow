@@ -41,7 +41,7 @@ def build_containers(root_path, arch: str):
     containers_dir = Path(root_path) / "vfnext" / "containers"
     subprocess.run([sys.executable, "pull_containers.py", arch], cwd=containers_dir, check=True)
     subprocess.run([sys.executable, "build_containers.py", arch], cwd=containers_dir, check=True)
-    
+
 
 # input args file load
 def parse_params(in_flpath):
@@ -170,7 +170,7 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
 def concat_fastqs(path, prefix, extension, min_len, max_len):
     """
     Concatenate and filter fastq files from barcode directories.
-    
+
     For each directory matching {prefix}* (e.g. barcode01, barcode02, ...),
     concatenates all fastq files and filters reads by min/max length using seqkit.
     """

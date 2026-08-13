@@ -4,7 +4,7 @@ include { getMappedReads } from '../modules/getMappedReads.nf'
 include { getUnmappedReads } from '../modules/getUnmappedReads.nf'
 
 workflow GENPLOTS {
-    take: 
+    take:
         bams_ch // meta, bam_file, bai_file, is_paired_end
     main:
     // Create sub-channels for each process type
@@ -22,7 +22,7 @@ workflow GENPLOTS {
     if ((params.writeMappedReads == true)){
         // write mapped reads
         getMappedReads(reads_ch)
-  
+
         // write unmappped reads
         getUnmappedReads(reads_ch)
     }

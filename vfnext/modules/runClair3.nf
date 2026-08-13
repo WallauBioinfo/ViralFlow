@@ -3,7 +3,7 @@ process run_clair3{
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
     tag "${meta.id}"
     container "docker://hkubal/clair3:v1.1.0"
-    
+
     input:
         tuple val(meta), path(bam), path(bai)
         path(ref)
@@ -14,13 +14,13 @@ process run_clair3{
 
     output:
         tuple val(meta), path("${meta.id}.merge_output.vcf.gz")
-  
+
     script:
     """
     set -euo pipefail
 
     samtools faidx ${ref}
-    
+
     run_clair3.sh \
         --enable_long_indel \
         --chunk_size=${chunk_size} \
@@ -35,7 +35,7 @@ process run_clair3{
         --include_all_ctgs \
         --qual=${qual} \
         --min_mq=${map_qual}
-    
+
     mv ./merge_output.vcf.gz ${meta.id}.merge_output.vcf.gz
     """
 }

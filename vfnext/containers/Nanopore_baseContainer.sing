@@ -35,12 +35,12 @@ From: ubuntu:24.04
         libgsl-dev
     # Clean up to reduce image size
     apt-get clean && rm -rf /var/lib/apt/lists/*
-    
+
     mkdir /app/
-    
+
     # install minimap2
     cd /app/
-    git clone --depth 1 --branch ${MINIMAP2_TAG} https://github.com/lh3/minimap2 
+    git clone --depth 1 --branch ${MINIMAP2_TAG} https://github.com/lh3/minimap2
     cd minimap2
     make
 
@@ -64,11 +64,11 @@ From: ubuntu:24.04
     tar xf bcftools.tar.gz
     cd bcftools-${HTSLIB_VERSION}
     autoheader
-    autoconf 
-    ./configure --enable-libgsl 
+    autoconf
+    ./configure --enable-libgsl
     make
     mv bcftools /usr/local/bin
-    
+
     # install samtools
     cd /app/
     # Retrieve and compile Samtools
@@ -124,4 +124,3 @@ From: ubuntu:24.04
     # Test installation of BCFtools
     bcftools --version
     echo "---| BCFtools is installed successfully."
-    

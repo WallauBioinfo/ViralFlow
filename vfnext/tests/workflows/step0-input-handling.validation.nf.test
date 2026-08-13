@@ -31,7 +31,7 @@ nextflow_workflow {
 
         then {
             assert workflow.failed
-            assert workflow.stdout[0].contains("is not a directory") 
+            assert workflow.stdout[0].contains("is not a directory")
 
         }
     }
@@ -49,7 +49,7 @@ nextflow_workflow {
 
         then {
             assert workflow.failed
-            assert workflow.stdout.contains("ERROR ~ A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.") 
+            assert workflow.stdout.contains("ERROR ~ A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
         }
     }
 

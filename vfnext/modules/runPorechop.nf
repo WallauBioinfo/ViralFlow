@@ -7,10 +7,10 @@ process run_porechop {
 
     input:
         tuple val(meta), path(fastq)
-    
+
     output:
         tuple val(meta), path("${meta.id}.chopped.fastq")
-  
+
     script:
     """
     set -euo pipefail

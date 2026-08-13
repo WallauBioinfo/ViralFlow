@@ -1,7 +1,7 @@
 
 process runAmpliconClipping {
   publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
-  
+
   input:
     tuple val(meta), path(bam), path(bai), val(is_paired_end)
     path(primers_bed)
@@ -10,7 +10,7 @@ process runAmpliconClipping {
   output:
     tuple val(meta), path("${meta.id}.sorted.bam"), path("${meta.id}.sorted.bam.bai"), val(is_paired_end), emit: regular_output
     path("${meta.id}.trimmed_reads.txt"), emit: trimmed_reads
-    
+
   script:
     sample_id = meta.id
     trim_bam = "${sample_id}.trimmed"

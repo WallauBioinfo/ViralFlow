@@ -14,21 +14,21 @@ workflow NANOPORE {
         ref // path to reference genome
 
     main:
-    
+
     // remove adapters (porechop)
     run_porechop(reads_ch)
     reads_ch = run_porechop.out
 
-    // do alignment (minimap2) 
+    // do alignment (minimap2)
     run_minimap2(reads_ch, ref)
     bams_ch = run_minimap2.out // tuple (meta, sorted_bam, bai)
-    
+
     // do variant calling (clair3)
     run_clair3(bams_ch, ref, params.clair3_chunk_size, params.clair3_qual, params.mapping_quality, params.clair3_model)
 
     // normlalize indes and filter variants (bcftools)
     run_bcftools(run_clair3.out, ref, params.af_threshold)
-    
+
     bams_ch
         .map { meta, bam, bai -> tuple(meta.id, meta, bam, bai) }
         .set { keyed_bams_ch }

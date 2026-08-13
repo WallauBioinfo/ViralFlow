@@ -3,9 +3,9 @@ process run_bam_utils {
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
     tag "${meta.id}"
 
-    input: 
+    input:
         tuple val(meta), path(bam)
-    
+
     output:
         tuple val(meta), path("${meta.id}.trim.sorted.bam*")
 
