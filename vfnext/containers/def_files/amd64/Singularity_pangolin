@@ -3,7 +3,7 @@ From: debian:11
 
 %environment
     export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
-    
+
 %post
     apt-get update
     apt-get install -y curl bzip2

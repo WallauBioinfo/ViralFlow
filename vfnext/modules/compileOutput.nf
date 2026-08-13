@@ -1,7 +1,7 @@
 process compileOutputs{
   publishDir "${params.outDir}/COMPILED_OUTPUT/", mode: "copy"
   label "singlethread"
-  
+
   input:
     val(go)
     val(virus_tag)

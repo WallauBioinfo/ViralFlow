@@ -41,7 +41,7 @@ def validateFastqPath(java.nio.file.Path path, String location, List errors) {
   }
   try {
     return path.toRealPath()
-  } catch (Exception ignored) {
+  } catch (Exception _ignored) {
     return path
   }
 }
@@ -60,7 +60,7 @@ def validateCanonicalRows(List rows, String mode) {
     if (!row.sample_id || !(row.sample_id ==~ safeId)) {
       errors << "${location}: unsafe sample_id '${row.sample_id ?: ''}'; expected [A-Za-z0-9][A-Za-z0-9._-]*"
     }
-    row.metadata.each { key, value ->
+    row.metadata.each { key, _value ->
       if (!(key ==~ safeColumn) || reserved.contains(key)) {
         errors << "${location}: invalid or reserved metadata column '${key}'"
       }
@@ -113,9 +113,9 @@ def parseSamplesheet(String samplesheet, String mode) {
   catch (Exception exception) { error "Invalid sample-sheet header: ${exception.message}" }
   if (headers.size() != headers.unique().size()) error 'Sample sheet contains duplicate column names'
   def required = ['sample_id', 'fastq_1', 'fastq_2']
-  def missing = required.findAll { !headers.contains(it) }
+  def missing = required.findAll { header -> !headers.contains(header) }
   if (missing) error "Sample sheet is missing required columns: ${missing.join(', ')}"
-  def metadataHeaders = headers.findAll { !required.contains(it) }
+  def metadataHeaders = headers.findAll { header -> !required.contains(header) }
   def baseDir = sheetPath.parent
   def rows = []
   lines.drop(1).eachWithIndex { line, index ->
@@ -130,7 +130,7 @@ def parseSamplesheet(String samplesheet, String mode) {
       sample_id: record.sample_id,
       fastq_1: canonicalPath(baseDir, record.fastq_1),
       fastq_2: record.fastq_2 ? canonicalPath(baseDir, record.fastq_2) : null,
-      metadata: metadataHeaders.collectEntries { [(it): record[it]] },
+      metadata: metadataHeaders.collectEntries { header -> [(header): record[header]] },
       location: "sample-sheet row ${index + 2}"
     ]
   }
@@ -143,10 +143,10 @@ def parseLegacyDirectory(String inDir, String mode) {
   if (!java.nio.file.Files.isDirectory(inputPath)) error "${inputPath} is not a directory"
   def files = []
   java.nio.file.Files.list(inputPath).withCloseable { stream ->
-    stream.filter { java.nio.file.Files.isRegularFile(it) }
-      .filter { it.fileName.toString() ==~ /(?i).+\.(fastq|fq)(\.gz)?/ }
+    stream.filter { path -> java.nio.file.Files.isRegularFile(path) }
+      .filter { path -> path.fileName.toString() ==~ /(?i).+\.(fastq|fq)(\.gz)?/ }
       .sorted()
-      .forEach { files << it }
+      .forEach { path -> files << path }
   }
   def paired = [:].withDefault { [:] }
   def singles = []
@@ -171,21 +171,25 @@ def parseLegacyDirectory(String inDir, String mode) {
     def sampleId = path.fileName.toString().replaceFirst(/(?i)\.(fastq|fq)(\.gz)?$/, '')
     rows << [sample_id: sampleId, fastq_1: path, fastq_2: null, metadata: [:], location: "legacy file ${path.fileName}"]
   }
-  def duplicateIds = rows.groupBy { it.sample_id }.findAll { key, value -> value.size() > 1 }.keySet()
+  def duplicateIds = rows.groupBy { row -> row.sample_id }.findAll { _sample_id, sample_rows -> sample_rows.size() > 1 }.keySet()
   if (duplicateIds) error "Legacy input discovery produced duplicate sample IDs: ${duplicateIds.sort().join(', ')}; use --samplesheet to define chunks explicitly"
-  validateCanonicalRows(rows.sort { it.sample_id }, mode)
+  validateCanonicalRows(rows.sort { row -> row.sample_id }, mode)
 }
 
 def groupCanonicalRows(List rows) {
   def grouped = new LinkedHashMap()
-  rows.eachWithIndex { row, index ->
+  rows.each { row ->
     row.chunk_index = (grouped[row.sample_id]?.size() ?: 0) + 1
     grouped.computeIfAbsent(row.sample_id) { [] } << row
   }
   grouped.collect { sampleId, chunks ->
     def paired = chunks[0].fastq_2 != null
     def meta = [id: sampleId, is_paired_end: paired] + chunks[0].metadata
-    tuple(meta, chunks.collect { file(it.fastq_1.toString()) }, paired ? chunks.collect { file(it.fastq_2.toString()) } : [])
+    tuple(
+      meta,
+      chunks.collect { chunk -> file(chunk.fastq_1.toString()) },
+      paired ? chunks.collect { chunk -> file(chunk.fastq_2.toString()) } : []
+    )
   }
 }
 

@@ -44,4 +44,3 @@ NC_001474.2	RefSeq	regulatory_region	10618	10628	.	+	.	ID=id-NC_001474.2:10618..
 NC_001474.2	RefSeq	stem_loop	10631	10644	.	+	.	ID=id-NC_001474.2:10631..10644;Note=short hairpin (sHP);gbkey=stem_loop
 NC_001474.2	RefSeq	promoter	10642	10658	.	+	.	ID=id-NC_001474.2:10642..10658;Note=3' upstream AUG region (UAR);gbkey=regulatory;regulatory_class=promoter
 NC_001474.2	RefSeq	stem_loop	10645	10723	.	+	.	ID=id-NC_001474.2:10645..10723;Note=3' stem-loop (3'SL);gbkey=stem_loop
-

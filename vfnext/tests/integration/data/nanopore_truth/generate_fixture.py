@@ -103,8 +103,7 @@ def write_reads(path, truth):
                             f"strand={strand} copy={copy_number + 1}"
                         )
                         record = (
-                            f"{header}\n{sequence_out}\n+\n"
-                            f"{'I' * len(sequence_out)}\n"
+                            f"{header}\n{sequence_out}\n+\n{'I' * len(sequence_out)}\n"
                         )
                         gzip_handle.write(record.encode())
     return read_number
@@ -116,9 +115,7 @@ def write_vcf(path, contig, reference_length):
         handle.write(f"##contig=<ID={contig},length={reference_length}>\n")
         handle.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
         for chrom, position, ref, alt in VARIANTS:
-            handle.write(
-                f"{chrom}\t{position}\t.\t{ref}\t{alt}\t60\tPASS\t.\n"
-            )
+            handle.write(f"{chrom}\t{position}\t.\t{ref}\t{alt}\t60\tPASS\t.\n")
 
 
 def sha256(path):

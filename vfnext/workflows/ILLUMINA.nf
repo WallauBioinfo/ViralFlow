@@ -41,13 +41,13 @@ workflow  ILLUMINA {
 
     // collect htmls for vf reports
     runFastp.out //tuple (meta, [fq.gz file(s)], fastp_html)
-      | map{ it[2]}
+      | map { output -> output[2] }
       | set {fastp_html_ch}
     all_fastp_html_ch = fastp_html_ch.collect()
 
     // collect output reads
     runFastp.out // tuple (meta, [fq.gz file(s)], fastp_html)
-      | map {tuple(it[0],it[1])} //tuple (meta, [fq.gz file(s)])
+      | map { output -> tuple(output[0], output[1]) } //tuple (meta, [fq.gz file(s)])
       | set {fastp_fqgz_ch}
 
     fastp_fqgz_ch = fastp_fqgz_ch.map { meta, files ->
@@ -58,7 +58,6 @@ workflow  ILLUMINA {
 
     // generate fa index
     genFaIdx(ref_fa)
-    genFaIdx.out.set {faIdx_ch}
 
     // align 2 reference -----------------------------------------------------------
     align2ref_In_ch = fastp_fqgz_ch.combine(bwaidx_Output_ch) // tuple(meta, reads, is_paired_end, fasta_amb, fasta_ann, fasta_bwt, fasta_pac, fasta_sa)
@@ -76,13 +75,13 @@ workflow  ILLUMINA {
 
     // use bam output for downstream processing
     bam_output_ch
-      | map { meta, bam, bai, is_pe -> tuple(meta, bam, is_pe) }
+      | map { meta, bam, _bai, is_pe -> tuple(meta, bam, is_pe) }
       | set { bam_Out_ch }
 
     // remove bam files which are too small (necessary for Picard)
     bam_Out_ch
-      | filter {
-        def bam = it[1]
+      | filter { output ->
+        def bam = output[1]
         // filter if unix paths
         ((bam.getClass() == sun.nio.fs.UnixPath) && (bam.size() >= params.minBamSize ))
         ||
@@ -92,15 +91,15 @@ workflow  ILLUMINA {
 
     // raise warning in case anyfile is excluded
     bam_Out_ch
-      | filter {
-        def bam = it[1]
+      | filter { output ->
+        def bam = output[1]
         // filter if unix paths
         ((bam.getClass() == sun.nio.fs.UnixPath) && (bam.size() <= params.minBamSize ))
         ||
         // filter if is a list with two bam file paths
         ((bam.getClass() == java.util.ArrayList) && (bam[0].size() <= params.minBamSize ) && (bam[1].size() <= params.minBamSize))
       }
-      | view { log.warn("Excluding ${it[0].id} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)") }
+      | view { output -> log.warn("Excluding ${output[0].id} bam files as input for Picard due to small size (< ${params.minBamSize} bytes)") }
 
 
     // -----------------------------------------------------------------------------
@@ -119,7 +118,7 @@ workflow  ILLUMINA {
 		runIvar_Out_ch)
 
 	runSnpEff.out
-		| map {it -> it[2]}
+		| map { output -> output[2] }
 		| set { snpEff_html }
 
         all_snpEff_html_ch = snpEff_html.collect()
@@ -153,7 +152,7 @@ workflow  ILLUMINA {
     // the six elements declared by runPangolin and runNextClade.
     runVariantNaming_In_ch = runIntraHostScript_Out_ch
         .join(runIvar_Out_ch)
-        .map { meta, intrahost_tsvs, algn_fasta, consensus_fa, ivar_txt, mut_tsv, vcf_file, vcf_index ->
+        .map { meta, intrahost_tsvs, algn_fasta, consensus_fa, ivar_txt, mut_tsv, _vcf_file, _vcf_index ->
             tuple(meta, intrahost_tsvs, algn_fasta, consensus_fa, ivar_txt, mut_tsv)
         }
 

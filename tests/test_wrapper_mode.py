@@ -12,7 +12,9 @@ from wrapper.cli import cli
 class WrapperModeTests(unittest.TestCase):
     def test_parameter_file_nanopore_mode_is_not_overridden(self):
         with patch("wrapper.subprocess.run") as run:
-            with patch("wrapper.parse_params", return_value=["--mode", "NANOPORE", "-resume"]):
+            with patch(
+                "wrapper.parse_params", return_value=["--mode", "NANOPORE", "-resume"]
+            ):
                 run_vfnext("/viralflow/", "params.txt", None)
 
         command = run.call_args.args[0]
@@ -21,7 +23,9 @@ class WrapperModeTests(unittest.TestCase):
 
     def test_parameter_file_without_mode_adds_no_mode(self):
         with patch("wrapper.subprocess.run") as run:
-            with patch("wrapper.parse_params", return_value=["--virus", "custom", "-resume"]):
+            with patch(
+                "wrapper.parse_params", return_value=["--virus", "custom", "-resume"]
+            ):
                 run_vfnext("/viralflow/", "params.txt", None)
 
         self.assertNotIn("--mode", run.call_args.args[0])
@@ -78,12 +82,16 @@ class WrapperModeTests(unittest.TestCase):
             params_file.write_text(f"samplesheet {relative_path}\n", encoding="utf-8")
             args = parse_params(params_file)
 
-        self.assertEqual(args[args.index("--samplesheet") + 1], str(Path(relative_path).absolute()))
+        self.assertEqual(
+            args[args.index("--samplesheet") + 1], str(Path(relative_path).absolute())
+        )
 
     def test_empty_and_null_parameter_values_are_omitted(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             params_file = Path(temp_dir) / "params.txt"
-            params_file.write_text("primersBED\nreferenceGFF null\nmode NANOPORE\n", encoding="utf-8")
+            params_file.write_text(
+                "primersBED\nreferenceGFF null\nmode NANOPORE\n", encoding="utf-8"
+            )
             args = parse_params(params_file)
 
         self.assertEqual(args, ["--mode", "NANOPORE", "-resume"])

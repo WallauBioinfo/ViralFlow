@@ -4,7 +4,7 @@ process getMappedReads{
   label "singlethread"
   input:
     tuple val(meta), path(bam_files), val(is_paired_end)
-  
+
   output:
     tuple val(meta), path("*.mapped.*.fq.gz")
   script:
@@ -25,5 +25,5 @@ process getMappedReads{
 This process was designed to get fastqs containing only the mapped reads
 
 1 - "samtools sort -n" organize reads by name (the "sorted.bam" is organized by quality)
-2 - "samtools fastq" filter the mapped reads and write it as fastq 
+2 - "samtools fastq" filter the mapped reads and write it as fastq
 */

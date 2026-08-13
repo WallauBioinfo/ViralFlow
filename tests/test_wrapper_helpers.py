@@ -25,7 +25,9 @@ FASTQ = b"@read1\nACGT\n+\nIIII\n"
 class HelperCommandTests(unittest.TestCase):
     def test_snpeff_arguments_are_literal_and_checked(self):
         with patch("wrapper.subprocess.run") as run:
-            add_entries_to_DB("/viral flow", "Dengue; touch /tmp/pwned", "NC_001474.2", "amd64")
+            add_entries_to_DB(
+                "/viral flow", "Dengue; touch /tmp/pwned", "NC_001474.2", "amd64"
+            )
 
         run.assert_called_once_with(
             [
@@ -46,7 +48,9 @@ class HelperCommandTests(unittest.TestCase):
             add_entries_to_DB("/viralflow", "Dengue", "--help", "amd64")
 
     def test_container_build_steps_stop_and_propagate_failure(self):
-        failure = subprocess.CalledProcessError(9, [sys.executable, "pull_containers.py", "amd64"])
+        failure = subprocess.CalledProcessError(
+            9, [sys.executable, "pull_containers.py", "amd64"]
+        )
         with patch("wrapper.subprocess.run", side_effect=failure) as run:
             with self.assertRaises(subprocess.CalledProcessError):
                 build_containers("/viralflow", "amd64")
@@ -62,10 +66,40 @@ class HelperCommandTests(unittest.TestCase):
         self.assertEqual(
             run.call_args_list,
             [
-                call([sys.executable, "pull_containers.py", "arm64"], cwd=containers, check=True),
-                call([sys.executable, "build_containers.py", "arm64"], cwd=containers, check=True),
-                call(["singularity", "exec", "--writable", "./pangolin:4.4.sif", "pangolin", "--update"], cwd=containers, check=True),
-                call(["singularity", "exec", "--writable", "./pangolin:4.4.sif", "pangolin", "--update-data"], cwd=containers, check=True),
+                call(
+                    [sys.executable, "pull_containers.py", "arm64"],
+                    cwd=containers,
+                    check=True,
+                ),
+                call(
+                    [sys.executable, "build_containers.py", "arm64"],
+                    cwd=containers,
+                    check=True,
+                ),
+                call(
+                    [
+                        "singularity",
+                        "exec",
+                        "--writable",
+                        "./pangolin:4.4.sif",
+                        "pangolin",
+                        "--update",
+                    ],
+                    cwd=containers,
+                    check=True,
+                ),
+                call(
+                    [
+                        "singularity",
+                        "exec",
+                        "--writable",
+                        "./pangolin:4.4.sif",
+                        "pangolin",
+                        "--update-data",
+                    ],
+                    cwd=containers,
+                    check=True,
+                ),
             ],
         )
 
@@ -117,7 +151,9 @@ class ConcatFastqTests(unittest.TestCase):
             (bad / "reads.fastq.gz").write_bytes(b"not gzip")
             environment = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"}
             with patch.dict(os.environ, environment, clear=True):
-                with self.assertRaisesRegex(RuntimeError, "barcode02: failed pipeline stages: reader"):
+                with self.assertRaisesRegex(
+                    RuntimeError, "barcode02: failed pipeline stages: reader"
+                ):
                     concat_fastqs(root, "barcode", ".fastq.gz", 1, 100)
 
             self.assertTrue((root / "filtered" / "barcode01.concat.fastq.gz").is_file())

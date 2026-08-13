@@ -32,7 +32,7 @@ def absoluteMetadataPath(value) {
     try {
         return java.nio.file.Path.of(value.toString()).toAbsolutePath().normalize().toString()
     }
-    catch (Exception ignored) {
+    catch (Exception _ignored) {
         return value.toString()
     }
 }
@@ -41,7 +41,7 @@ def safeMetadataValue(closure) {
     try {
         return closure.call()
     }
-    catch (Exception ignored) {
+    catch (Exception _ignored) {
         return null
     }
 }
@@ -53,7 +53,7 @@ def gitMetadataValue(projectDir, arguments) {
         def output = process.inputStream.text.trim()
         return process.waitFor() == 0 ? output : null
     }
-    catch (Exception ignored) {
+    catch (Exception _ignored) {
         return null
     }
 }

@@ -1,7 +1,7 @@
 process checkSnpEffDB{
     publishDir "${params.outDir}", mode: "copy"
     label "singlethread"
-    
+
     input:
         val(genome_code)
 
@@ -25,11 +25,11 @@ with open("${params.snpEffDBCatalog}", 'r') as srch_fl:
 
         if "${genome_code}" in dct["gnm"]:
             dct_lst.append(dct)
-    
+
     out_fl = open("snpEffDB_entry_found.log", 'w')
     header = "gnm,organism,status,bundle,download-link"
     out_fl.write(header)
-    
+
     n_founds = len(dct_lst)
     if n_founds == 0:
         print("ERROR: ${genome_code} is not available at SnpEFF Database")

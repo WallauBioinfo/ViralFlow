@@ -30,11 +30,11 @@ process fixWGS {
         total_N = sum([1 for i in seq if i == "N"])
         total_bases = len(seq)
         try:
-            assert(total_bases > 0)      
+            assert(total_bases > 0)
         except(AssertionError):
             print("WARN: No sequence at ${consensus_fa}")
             return 0
-        
+
         return (total_bases - total_N) / total_bases
      # ------------------------------------------------------------------------
      # compute coverage

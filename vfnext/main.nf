@@ -95,8 +95,8 @@ log.info """
   --mapping_quality  : ${params.mapping_quality}
   --base_quality     : ${params.base_quality}
   --minBamSize       : ${params.minBamSize}
-         
-        
+
+
   * Only required for "custom" virus
   Runtime data:
   -------------------------------------------
