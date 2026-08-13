@@ -59,7 +59,7 @@ class WrapperModeTests(unittest.TestCase):
         cases = {
             "samplesheet": "--samplesheet",
             "inDir": "--inDir",
-            "outDir": "-output-dir",
+            "outDir": "--outDir",
             "referenceGFF": "--referenceGFF",
             "referenceGenome": "--referenceGenome",
             "primersBED": "--primersBED",

@@ -361,17 +361,24 @@ def validate_nanopore_params() {
 }
 def validate_directories() {
   def errors = 0
+
+  def configuredOutputDir = java.nio.file.Path.of(params.outDir.toString()).toAbsolutePath().normalize()
+  def runtimeOutputDir = java.nio.file.Path.of(workflow.outputDir.toString()).toAbsolutePath().normalize()
+  if (configuredOutputDir != runtimeOutputDir) {
+    log.error("Conflicting output directories detected: use --outDir instead of Nextflow -output-dir or an outputDir config override")
+    errors += 1
+  }
   
   // check if output dir exists, if not create the default
-  if (workflow.outputDir){
-    def outDir_path = file(workflow.outputDir)
+  if (params.outDir){
+    def outDir_path = file(params.outDir)
 
     if (!outDir_path.exists()){
-      log.warn("${workflow.outputDir} does not exist, the directory will be created")
+      log.warn("${params.outDir} does not exist, the directory will be created")
       outDir_path.mkdirs()
     }
     if (!(outDir_path.isDirectory())){
-      log.error("${workflow.outputDir} is not a directory")
+      log.error("${params.outDir} is not a directory")
       errors+=1
     }
   }

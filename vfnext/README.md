@@ -46,7 +46,7 @@ mkdir myRun
 cd MyRun
 nextflow run /path/to/vfnext/main.nf \
         --inDir /path/to/input_dir/ \
-        -output-dir /path/to/output_dir/ \
+        --outDir /path/to/output_dir/ \
         --virus sars-cov2
         --primersBED /path/to/bed_file.bed
 ```
@@ -61,7 +61,7 @@ To run viralflow on a non-supported virus, user must provide:
 nextflow run ../vfnext/main.nf \
         --mode ILLUMINA
         --inDir /path/to/input_dir/ \
-        -output-dir /path/to/output_dir/ \
+        --outDir /path/to/output_dir/ \
         --virus custom \
         --primersBED /path/to/bed_file.bed \
         --referenceGFF /path/to/reference.gff3

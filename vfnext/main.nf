@@ -31,13 +31,13 @@ def ANSI_GREEN = "\033[1;32m"
 def ANSI_RED = "\033[1;31m"
 def ANSI_RESET = "\033[0m"
 
-writeRunManifest(workflow, params, workflow.outputDir, "RUNNING")
+writeRunManifest(workflow, params, params.outDir, "RUNNING")
 
 workflow.onError = {
   writeRunManifest(
     workflow,
     params,
-    workflow.outputDir,
+    params.outDir,
     "FAILED",
     metadataFailureMessage(workflow)
   )
@@ -48,7 +48,7 @@ workflow.onComplete = {
   writeRunManifest(
     workflow,
     params,
-    workflow.outputDir,
+    params.outDir,
     finalStatus,
     workflow.success ? null : metadataFailureMessage(workflow)
   )
@@ -73,7 +73,7 @@ log.info """
   -------------------------------------------
   --inDir            : ${params.inDir}
   --samplesheet      : ${params.samplesheet}
-  -output-dir        : ${workflow.outputDir}
+  --outDir           : ${params.outDir}
   --virus            : ${params.virus}
   --refGenomeCode   *: ${params.refGenomeCode}
   --referenceGenome *: ${params.referenceGenome}
@@ -183,7 +183,7 @@ log.info """
     tool_specs_ch,
     container_specs_ch,
     processInputs.out.resolved_inputs_ch,
-    metadataDir(workflow.outputDir).toString()
+    metadataDir(params.outDir).toString()
   )
 
   if (params.mode == "ILLUMINA"){

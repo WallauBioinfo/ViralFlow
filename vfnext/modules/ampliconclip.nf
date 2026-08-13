@@ -1,6 +1,6 @@
 
 process runAmpliconClipping {
-  publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode: "copy"
+  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
   
   input:
     tuple val(meta), path(bam), path(bai), val(is_paired_end)

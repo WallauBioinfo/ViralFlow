@@ -1,5 +1,5 @@
 process runSnpEff{
-  publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode: "copy"
+  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
 
   input:
   val(genome_code)

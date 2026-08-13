@@ -64,8 +64,6 @@ def metadataFailureMessage(workflow) {
 
 def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessage = null) {
     def metadataOutputDir = metadataDir(configuredOutputDir)
-    def executionMetadataDir = java.nio.file.Path.of(workflow.launchDir.toString())
-        .toAbsolutePath().normalize().resolve('output').resolve('RUN_METADATA')
     java.nio.file.Files.createDirectories(metadataOutputDir)
 
     def profile = safeMetadataValue { -> workflow.profile }?.toString() ?: ''
@@ -130,9 +128,9 @@ def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessa
             resolved_sample_inputs: 'resolved_sample_inputs.tsv',
             software_versions: 'software_versions.tsv',
             containers: 'container_manifest.tsv',
-            trace: executionMetadataDir.resolve('execution_trace.tsv').toString(),
-            report: executionMetadataDir.resolve('execution_report.html').toString(),
-            timeline: executionMetadataDir.resolve('execution_timeline.html').toString()
+            trace: metadataOutputDir.resolve('execution_trace.tsv').toString(),
+            report: metadataOutputDir.resolve('execution_report.html').toString(),
+            timeline: metadataOutputDir.resolve('execution_timeline.html').toString()
         ]
     ]
 

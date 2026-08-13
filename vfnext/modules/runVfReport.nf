@@ -1,5 +1,5 @@
 process runVfReport {
-    publishDir "${workflow.outputDir}/COMPILED_OUTPUT/", mode: "copy"
+    publishDir "${params.outDir}/COMPILED_OUTPUT/", mode: "copy"
 
     input:
         path(fastp_htmls)

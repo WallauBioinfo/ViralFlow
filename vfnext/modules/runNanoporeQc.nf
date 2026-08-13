@@ -1,6 +1,6 @@
 process run_nanopore_qc {
     label "NP_basecontainer"
-    publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
+    publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
     tag "${meta.id}"
 
     input:

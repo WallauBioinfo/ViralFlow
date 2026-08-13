@@ -4,7 +4,7 @@ process indexReferenceBWA {
     /**
     * Indexes reference fasta file using bwa.
     */
-    //publishDir "${workflow.outputDir}/"
+    //publishDir "${params.outDir}/"
     label "singlethread"
     
     input:

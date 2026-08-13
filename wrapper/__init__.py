@@ -102,7 +102,7 @@ def parse_params(in_flpath):
 
     args = []
     for key, value in parsed.items():
-        option = "-output-dir" if key == "outDir" else f"--{key}"
+        option = f"--{key}"
         args.extend([option, value])
     args.append("-resume")
     return args
@@ -145,7 +145,7 @@ def run_vfnext(root_path, params_fl, mode, cli_params=None, profile=None):
                     cli_params[k] = os.path.abspath(str(cli_params[k]))
             args = []
             for key, value in cli_params.items():
-                option = "-output-dir" if key == "outDir" else f"--{key}"
+                option = f"--{key}"
                 args.extend([option, str(value)])
         else:
             raise ValueError("No parameters provided. Use --params-file or individual CLI options.")

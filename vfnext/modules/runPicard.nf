@@ -1,6 +1,6 @@
 process runPicard {
   tag "${meta.id}"
-  publishDir { "${workflow.outputDir}/${meta.id}_results/" }, mode: "copy", pattern: "{wgs,metrics.alignment*}"
+  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy", pattern: "{wgs,metrics.alignment*}"
   
   input:
     tuple val(meta), path(bams), val(is_paired_end)

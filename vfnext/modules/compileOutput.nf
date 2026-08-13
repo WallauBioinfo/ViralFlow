@@ -1,5 +1,5 @@
 process compileOutputs{
-  publishDir "${workflow.outputDir}/COMPILED_OUTPUT/", mode: "copy"
+  publishDir "${params.outDir}/COMPILED_OUTPUT/", mode: "copy"
   label "singlethread"
   
   input:
@@ -10,7 +10,7 @@ process compileOutputs{
     path("*")
   script:
     """
-    compileOutput.py -dD ${workflow.outputDir} \
+    compileOutput.py -dD ${params.outDir} \
                             -oD ./ \
                             --depth ${params.depth} \
                             -virus_tag ${virus_tag}
