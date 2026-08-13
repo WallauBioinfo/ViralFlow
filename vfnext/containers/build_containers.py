@@ -98,10 +98,10 @@ if success:
 
         # Print a message indicating the unsquashfs location
         print(f"  > unsquashfs executable is located at {unsquashfs_location} or at /usr/bin/unsquashfs\n")
-        print(f"  > After create the symbolic link for unsquashfs, please run 'viralflow -build_containers' command again to finish the additional steps necessary to run ViralFlow correctly.")
+        print(f"  > After creating the symbolic link for unsquashfs, run 'viralflow build-containers --arch {arch}' again to finish the additional steps necessary to run ViralFlow correctly.")
 
 if success:
-    print("\nAll steps from '-build_containers' completed successfully. You can test ViralFlow using the following command:")
+    print("\nAll build-containers steps completed successfully. You can test ViralFlow using the following command:")
     print("   > viralflow run --params-file test_files/sars-cov-2.params")
 else:
     sys.exit(1)

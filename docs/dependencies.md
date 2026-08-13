@@ -22,7 +22,7 @@ Singularity is a tool that performs virtualization at the operating system level
 
 For a computational pipeline like ViralFlow to work, it requires several dependencies (other tools and libraries of the operating system) that can be complex to install. In order to make things easier to the user we use the container system which already comes with all dependencies needed to run ViralFlow. Therefore, the user does not need to install everything on his own.
 
-With containerization, the user only needs to install one tool, in this case Singularity, and then build the containers based on recipe files (in the case of ViralFlow, this was also automated with the setupContainers.sh script). In this way, different research groups can run the tool with the same computational environment, without changes in ViralFlow's behavior, which guarantees the reproducibility of the results.
+With containerization, the user only needs to install one tool, in this case Singularity, and then build the containers based on recipe files. ViralFlow automates this with the `viralflow build-containers` command. In this way, different research groups can run the tool with the same computational environment, without changes in ViralFlow's behavior, which guarantees the reproducibility of the results.
 
 ## Nextflow 26.04.6
 

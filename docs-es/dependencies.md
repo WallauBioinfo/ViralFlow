@@ -22,7 +22,7 @@ Singularity es una herramienta que ejecuta la virtualización a nivel del sistem
 
 Para un pipeline computacional funcionar, como el ViralFlow, se necesita de varias dependencias (otras herramientas y bibliotecas del sistema operacional); y para evitar que el usuario necesite instalar todas las dependencias manualmente en su máquina, utilizamos el sistema de contenedores.
 
-Con la creación de contenedores, el usuario solo necesita instalar una herramienta, en este caso el Singularity, y después construir los contenedores basándose en archivos de receta (en el caso del ViralFlow, también fue automatizado con el script setupContainers.sh). De esta forma, diferentes grupos de investigación pueden rodar la herramienta en el mismo ambiente computacional, sin cambios en el comportamiento del ViralFlow, garantizando la reproductibilidad de los resultados.
+Con la creación de contenedores, el usuario solo necesita instalar una herramienta, en este caso Singularity, y después construir los contenedores basándose en archivos de receta. ViralFlow automatiza este proceso con el comando `viralflow build-containers`. De esta forma, diferentes grupos de investigación pueden ejecutar la herramienta en el mismo ambiente computacional, sin cambios en su comportamiento, garantizando la reproducibilidad de los resultados.
 
 ## Nextflow 26.04.6
 

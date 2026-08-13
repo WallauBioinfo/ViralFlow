@@ -34,10 +34,11 @@ validation and a deprecation warning, and is scheduled for removal in v3.
 ```{bash}
 git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow
-cd ./vfnext/containers/
-/bin/bash setupContainers.sh
-/bin/bash add_entries_SnpeffDB.sh
+pip install -e .
+viralflow build-containers --arch amd64
 ```
+
+Use `--arch arm64` on an ARM64/AArch64 system.
 
 * How to run (on SARS-CoV-2)?
 
