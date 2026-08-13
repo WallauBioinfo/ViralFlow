@@ -30,4 +30,43 @@ nextflow_pipeline {
             assert manifest.parameters.mode == "INVALID_MODE"
         }
     }
+
+    test("Should reject a conflicting Nextflow output directory") {
+
+        options "-output-dir conflicting_results"
+
+        when {
+            params {
+                mode = "INVALID_MODE"
+                inDir = "${projectDir}/missing-input"
+                outDir = "authoritative_results"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("Conflicting output directories detected")
+            }
+
+            def authoritativeDir = path(
+                "${launchDir}/authoritative_results"
+            )
+            def manifestFile = path(
+                "${authoritativeDir}/RUN_METADATA/run_manifest.json"
+            )
+            assert manifestFile.exists()
+
+            def manifest = new groovy.json.JsonSlurper()
+                .parse(manifestFile.toFile())
+            assert manifest.execution.status == "FAILED"
+            assert manifest.paths.output_dir ==
+                authoritativeDir.toAbsolutePath().normalize().toString()
+            assert manifest.files.trace == path(
+                "${authoritativeDir}/RUN_METADATA/execution_trace.tsv"
+            ).toAbsolutePath().normalize().toString()
+
+            assert !path("${launchDir}/conflicting_results").exists()
+        }
+    }
 }
