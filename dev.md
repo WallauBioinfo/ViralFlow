@@ -47,10 +47,21 @@ viralflow build-containers --arch arm64
 
 ## Development quality checks
 
-The development environments include `pre-commit` and `nf-test`. After creating
-or updating the environment, activate it and install ViralFlow with
-`pip install -e .`. The local hooks use that environment's Python, Nextflow, and
-nf-test executables. Install both Git hook stages from the repository root:
+Python 3.12 is the supported development version. For a lightweight setup, use
+`uv` to create the Python environment and install ViralFlow and `pre-commit`:
+
+```bash
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -e . "pre-commit==4.6.0"
+```
+
+The Python test hook uses `uv` to create and cache its own Python 3.12
+environment. Nextflow linting and the pre-push tests still require `nextflow` and
+`nf-test` on `PATH`. Alternatively, both architecture-specific development
+environments include Python 3.12, `pre-commit`, Nextflow, and nf-test.
+
+Install both Git hook stages from the repository root:
 
 ```bash
 pre-commit install --hook-type pre-commit --hook-type pre-push

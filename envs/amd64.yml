@@ -8,7 +8,7 @@ channels:
   - pkgs/main
   - wallaulab
 dependencies:
-  - python
+  - python=3.12
   - pip
   - setuptools
   - wheel

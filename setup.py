@@ -12,6 +12,7 @@ setup(
     author="Antonio Marinho & Filipe Z. Dezordi",
     author_email="amarinhosn@pm.me & zimmer.filipe@gmail.com",
     packages=find_packages(),
+    python_requires=">=3.12",
     install_requires=[
         "click>=8.0",
     ],
@@ -21,7 +22,8 @@ setup(
         ],
     },
     classifiers=[
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.12",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],

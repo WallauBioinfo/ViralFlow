@@ -104,9 +104,10 @@ def format_bam(bam_rc_file, gff_df):
     """
     This function format the bam-readcount output, in a way to evaluate the depth of each allele, as well as, to link the genomic position to a gff region
     """
-    with open(bam_rc_file, "r") as bc_file, open(
-        bam_rc_file + ".fmt.tsv", "w"
-    ) as bc_formated_output:
+    with (
+        open(bam_rc_file, "r") as bc_file,
+        open(bam_rc_file + ".fmt.tsv", "w") as bc_formated_output,
+    ):
         output_csv_writer = csv.writer(bc_formated_output, delimiter="\t")
         output_csv_writer.writerow(
             [
