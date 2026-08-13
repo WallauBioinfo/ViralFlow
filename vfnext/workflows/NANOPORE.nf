@@ -85,27 +85,3 @@ workflow NANOPORE {
         consensus_ch = run_bcftools_consensus.out
         qc_ch = run_nanopore_qc.out
 }
-
-workflow {
-    // Define the input files
-    reads_ch = parse_mnf(params.mnf) // tuple (meta, fastq)
-
-    log.info("${params.base_container} ${params.mnf} ${params.outDir}")
-    // run workflow
-    NANOPORE(reads_ch, params.ref)
-}
-
-
-def parse_mnf(mnf) {
-    def mnf_rows = channel.fromPath(mnf)
-            .splitCsv(header: true, sep: ',')
-            .map { row -> 
-                    // set meta
-                    def meta = [id: row.sample_id]
-
-                    // declare channel shape
-                    tuple(meta, row.fastq)
-                 }
-
-    return mnf_rows
-}
