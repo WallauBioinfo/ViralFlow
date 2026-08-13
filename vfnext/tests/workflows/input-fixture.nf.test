@@ -27,7 +27,7 @@ nextflow_pipeline {
         }
         then {
             assert workflow.failed
-            assert workflow.stdout.contains('is already assigned')
+            assert workflow.stdout.any { it.contains('is already assigned') }
         }
     }
 
@@ -44,7 +44,9 @@ nextflow_pipeline {
         }
         then {
             assert workflow.failed
-            assert workflow.stdout.contains('mixes single-end and paired-end rows')
+            assert workflow.stdout.any {
+                it.contains('mixes single-end and paired-end rows')
+            }
         }
     }
 
@@ -59,7 +61,9 @@ nextflow_pipeline {
         }
         then {
             assert workflow.failed
-            assert workflow.stdout.contains('--samplesheet and --inDir cannot be used together')
+            assert workflow.stdout.any {
+                it.contains('--samplesheet and --inDir cannot be used together')
+            }
         }
     }
 
