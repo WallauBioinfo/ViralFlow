@@ -68,14 +68,20 @@ micromamba activate
 
 ### Instalando el ViralFlow
 
-Si usted ya dispone de las dependencias citadas y el conda instalado, podrá instalar el ViralFlow con 5 líneas de código:
+Si ya dispone de las dependencias citadas y de Conda, clone ViralFlow y cree el ambiente correspondiente a la arquitectura de su sistema. En sistemas x86_64/AMD64, utilice `envs/amd64.yml`:
 
 ```bash
 git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow/
-micromamba env create -f envs/env.yml
+micromamba env create -f envs/amd64.yml
 micromamba activate viralflow
 pip install -e .
+```
+
+En sistemas ARM64/AArch64, utilice `envs/arm64.yml`:
+
+```bash
+micromamba env create -f envs/arm64.yml
 ```
 
 ### Construyendo los Contenedores
@@ -91,8 +97,10 @@ sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
 Después de garantizar que el unsquashfs se encuentra en el lugar adecuado, ejecuta el comando para la construcción de los contenedores:
 
 ```bash
-viralflow build_containers
+viralflow build-containers --arch amd64
 ```
+
+Utilice `--arch arm64` para construir los contenedores en un sistema ARM64/AArch64.
 
 ```{note}
 Este proceso descargará aproximadamente 4.4GB de imágenes de contenedores. Asegúrese de tener suficiente espacio en disco y una conexión de internet estable.

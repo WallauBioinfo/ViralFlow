@@ -12,7 +12,7 @@ O ViralFlow requer um arquivo de parâmetros que contém todas as opções de co
 |-----------|--------------|-----------|
 | `virus` | sars-cov2 | Tipo de análise (sars-cov2 ou custom) |
 | `primersBED` | null | Caminho absoluto para o arquivo bed com informações dos primers usados na amplificação genômica (opcional) |
-| `outDir` | launchDir/output/ | Caminho absoluto para o diretório onde os resultados serão armazenados |
+| `--outDir` | launchDir/output/ | Diretório de saída do ViralFlow onde os resultados e os metadados da execução serão armazenados |
 | `inDir` | launchDir/input/ | Caminho absoluto para o diretório com os dados de entrada (diretório com os arquivos FASTQ) |
 | `runSnpEff` | true | Necessário para executar a ferramenta snpEff (true ou false) |
 | `writeMappedReads` | true | Necessário para gerar os arquivos FASTQ contendo as reads de sequenciamento que mapearam no genoma de referência |

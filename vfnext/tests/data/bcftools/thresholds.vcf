@@ -1,0 +1,9 @@
+##fileformat=VCFv4.2
+##contig=<ID=chr1,length=20>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele frequency">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
+chr1	5	.	A	G	60	PASS	.	GT:AF:DP	1:0.80:0
+chr1	6	.	C	T	60	PASS	.	GT:AF:DP	1:0.80:1
+chr1	7	.	G	A	60	PASS	.	GT:AF:DP	1:0.80:2

@@ -1,0 +1,122 @@
+nextflow_pipeline {
+    name "Canonical sample input handling"
+    script "tests/workflows/input-fixture.nf"
+
+    test("Consolidates repeated Nanopore rows into one logical sample") {
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-multichunk.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.stdout.contains('PREPARED sample_a paired=false files=sample_a.SE.fastq.gz batch=batch_1')
+        }
+    }
+
+    test("Rejects a source file assigned more than once") {
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/reused-fastq.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any { it.contains('is already assigned') }
+        }
+    }
+
+    test("Rejects mixed single and paired rows") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                samplesheet = "${projectDir}/tests/data/input/mixed-layout.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains('mixes single-end and paired-end rows')
+            }
+        }
+    }
+
+    test("Rejects conflicting input interfaces") {
+        when {
+            params {
+                mode = "NANOPORE"
+                inDir = "${projectDir}/tests/data/input"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-multichunk.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains('--samplesheet and --inDir cannot be used together')
+            }
+        }
+    }
+
+    test("Discovers an uncompressed FASTQ pair") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                inDir = "${projectDir}/tests/data/legacy-input/uncompressed-fastq"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.stdout.any { it.contains('PREPARED sample_fastq paired=true files=sample_fastq.R1.fastq.gz,sample_fastq.R2.fastq.gz') }
+        }
+    }
+
+    test("Discovers an uncompressed FQ pair") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                inDir = "${projectDir}/tests/data/legacy-input/uncompressed-fq"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.stdout.any { it.contains('PREPARED sample_fq paired=true files=sample_fq.R1.fastq.gz,sample_fq.R2.fastq.gz') }
+        }
+    }
+
+    test("Rejects an uncompressed orphan Illumina mate") {
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                inDir = "${projectDir}/tests/data/legacy-input/orphan"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+                runSnpEff = false
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.contains("Legacy input sample 'orphan' has an orphan Illumina mate")
+        }
+    }
+}

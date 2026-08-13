@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import re
 import sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Read version from setup.py
 setup_py_path = Path(__file__).parent.parent / "setup.py"
-import re
+
 with open(setup_py_path) as f:
     content = f.read()
     version = re.search(r"version\s*=\s*['\"]([^'\"]+)['\"]", content).group(1)

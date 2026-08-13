@@ -1,0 +1,181 @@
+nextflow_workflow {
+
+    name "Test BCFtools filtering and consensus fixture"
+    script "tests/workflows/bcftools-fixture.nf"
+    workflow "BCFTOOLS_FIXTURE"
+
+    test("Should normalize, filter, index, mask, and build consensus") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 4
+
+            def filtered = workflow.out.filtered.get(0)
+            assert filtered[0].id == "sample"
+
+            def filteredVcf = path(filtered[1])
+            def filteredTbi = path(filtered[2])
+            def variantLines = filteredVcf.linesGzip.findAll {
+                !it.startsWith("#")
+            }
+
+            assert variantLines == [
+                "chr1\t5\t.\tA\tG\t60\tPASS\t.\tGT:AF\t1:0.8"
+            ]
+            assert filteredTbi.exists()
+            assert filteredTbi.size() > 0
+
+            def consensus = workflow.out.consensus.get(0)
+            assert consensus[0].id == "sample"
+            assert path(consensus[1]).text.trim() ==
+                ">sample\nACGTGCGTACNNNNNNNNNN"
+            assert path(consensus[2]).readLines() == [
+                "chr1\t10\t11",
+                "chr1\t11\t12",
+                "chr1\t12\t13",
+                "chr1\t13\t14",
+                "chr1\t14\t15",
+                "chr1\t15\t16",
+                "chr1\t16\t17",
+                "chr1\t17\t18",
+                "chr1\t18\t19",
+                "chr1\t19\t20"
+            ]
+            assert path(consensus[3]).readLines() == [
+                "chr1\t1\t1",
+                "chr1\t2\t1",
+                "chr1\t3\t1",
+                "chr1\t4\t1",
+                "chr1\t5\t1",
+                "chr1\t6\t1",
+                "chr1\t7\t1",
+                "chr1\t8\t1",
+                "chr1\t9\t1",
+                "chr1\t10\t1",
+                "chr1\t11\t0",
+                "chr1\t12\t0",
+                "chr1\t13\t0",
+                "chr1\t14\t0",
+                "chr1\t15\t0",
+                "chr1\t16\t0",
+                "chr1\t17\t0",
+                "chr1\t18\t0",
+                "chr1\t19\t0",
+                "chr1\t20\t0"
+            ]
+
+            def qc = workflow.out.qc.get(0)
+            assert qc[0].id == "sample"
+            def qcMetrics = path(qc[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert qcMetrics.raw_variant_count == "1"
+            assert qcMetrics.af_filtered_variant_count == "1"
+            assert qcMetrics.filtered_variants_depth_missing == "1"
+            assert qcMetrics.masked_bases == "10"
+            assert qcMetrics.consensus_n_bases == "10"
+            assert qcMetrics.callable_bases == "10"
+            assert qcMetrics.callable_percent == "50.000000"
+        }
+    }
+
+    test("Should report variant depth relative to the unchanged consensus threshold") {
+
+        when {
+            params {
+                fixture_min_depth = 1
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/thresholds.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def filtered = workflow.out.filtered.get(0)
+            def variantLines = path(filtered[1]).linesGzip.findAll {
+                !it.startsWith("#")
+            }
+            assert variantLines.size() == 3
+
+            def consensus = workflow.out.consensus.get(0)
+            assert path(consensus[1]).text.trim() == ">sample\nNNNNNNNNNNNNNNNNNNNN"
+
+            def qc = workflow.out.qc.get(0)
+            def qcMetrics = path(qc[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert qcMetrics.filtered_variants_depth_below_min == "1"
+            assert qcMetrics.filtered_variants_depth_equal_min == "1"
+            assert qcMetrics.filtered_variants_depth_above_min == "1"
+            assert qcMetrics.masked_bases == "20"
+            assert qcMetrics.consensus_mask_rule == "depth <= consensus_min_depth"
+        }
+    }
+
+    test("Should fail on a malformed VCF") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/malformed.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.errorReport.contains("run_bcftools")
+        }
+    }
+}

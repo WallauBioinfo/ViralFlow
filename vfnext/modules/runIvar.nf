@@ -1,12 +1,13 @@
 process runIvar{
-  publishDir "${params.outDir}/${sample_id}_results/", mode: "copy", pattern: "*.{fa,tsv,gz,tbi}"
+  publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy", pattern: "*.{fa,tsv,gz,tbi}"
   input:
-    tuple val(sample_id), path(bams), val(is_paired_end)
+    tuple val(meta), path(bams), val(is_paired_end)
     path(ref_fa)
   output:
-    tuple val(sample_id), path("*.depth*.fa"), path("*.txt"), path("${sample_id}.tsv"), path("${sample_id}.ivar.vcf.gz"), path("${sample_id}.ivar.vcf.gz.tbi")
+    tuple val(meta), path("*.depth*.fa"), path("*.txt"), path("${meta.id}.tsv"), path("${meta.id}.ivar.vcf.gz"), path("${meta.id}.ivar.vcf.gz.tbi")
 
   script:
+    sample_id = meta.id
     sorted_bam = "${bams[0].getSimpleName()}.sorted.bam"
     d = "${params.depth}"
     """
@@ -19,15 +20,15 @@ process runIvar{
 
     # IVAR STEP 2 ----------------------------------------------------------------
     samtools mpileup -aa -d 50000 --reference ${ref_fa} -a -B ${sorted_bam} | \
-       ivar consensus -p ${sample_id} -q ${params.mapping_quality} -t 0 -m ${d} -n N -c 0.51
+       ivar consensus -p ${meta.id} -q ${params.mapping_quality} -t 0 -m ${d} -n N -c 0.51
 
     # IVAR STEP 3 ----------------------------------------------------------------
     samtools mpileup -aa -d 50000 --reference ${ref_fa} -a -B ${sorted_bam} | \
-       ivar consensus -p ${sample_id}.ivar060 -q ${params.mapping_quality} -t 0.60 -n N -m ${params.depth} -c 0.51
+       ivar consensus -p ${meta.id}.ivar060 -q ${params.mapping_quality} -t 0.60 -n N -m ${params.depth} -c 0.51
     # EDIT FILE NAMES
-    mv ${sample_id}.fa ${sample_id}.depth${d}.fa
-    mv ${sample_id}.ivar060.fa ${sample_id}.depth${d}.amb.fa
-    sed -i -e 's/>.*/>${sample_id}/g' ${sample_id}.depth${d}.fa
-    sed -i -e 's/>.*/>${sample_id}/g' ${sample_id}.depth${d}.amb.fa
+    mv ${meta.id}.fa ${meta.id}.depth${d}.fa
+    mv ${meta.id}.ivar060.fa ${meta.id}.depth${d}.amb.fa
+    sed -i -e 's/>.*/>${meta.id}/g' ${meta.id}.depth${d}.fa
+    sed -i -e 's/>.*/>${meta.id}/g' ${meta.id}.depth${d}.amb.fa
     """
 }

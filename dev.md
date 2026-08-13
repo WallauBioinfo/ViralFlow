@@ -45,6 +45,62 @@ pip install -e .
 viralflow build-containers --arch arm64
 ```
 
+## Development quality checks
+
+Python 3.12 is the supported development version. For a lightweight setup, use
+`uv` to create the Python environment and install ViralFlow and `pre-commit`:
+
+```bash
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -e . "pre-commit==4.6.0"
+```
+
+The Python test hook uses `uv` to create and cache its own Python 3.12
+environment. Nextflow linting and the pre-push tests still require `nextflow` and
+`nf-test` on `PATH`. Alternatively, both architecture-specific development
+environments include Python 3.12, `pre-commit`, Nextflow, and nf-test.
+
+Install both Git hook stages from the repository root:
+
+```bash
+pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+The pre-commit stage runs repository hygiene checks, Ruff linting and formatting,
+Nextflow linting, and the Python unit tests. Hooks that modify files will fail the
+first run so the updated files can be reviewed and staged again.
+
+Run the complete commit-time suite manually with:
+
+```bash
+pre-commit run --all-files
+```
+
+The pre-push stage runs the 14 Nextflow tests that do not require local container
+images. Run it manually with:
+
+```bash
+pre-commit run --all-files --hook-stage pre-push
+```
+
+The BCFtools, container metadata, and Nanopore truth tests remain manual because
+they require Singularity and a locally built `vfnext/containers/baseContainer.sif`
+(and the truth test also uses the Clair3 container):
+
+```bash
+cd vfnext
+NXF_VER=26.04.6 nf-test test \
+  tests/workflows/bcftools-fixture.nf.test \
+  tests/workflows/metadata-fixture.nf.test \
+  --ci
+NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test --ci
+```
+
+For an emergency-only bypass, use `git commit --no-verify` or
+`git push --no-verify`, then run the skipped hook stage manually before opening
+or updating a pull request.
+
 ### Customizing snpEff catalog
 
 #### AMD64

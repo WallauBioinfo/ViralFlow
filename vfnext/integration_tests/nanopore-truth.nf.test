@@ -1,0 +1,136 @@
+nextflow_workflow {
+
+    name "Nanopore FASTQ-to-consensus truth integration"
+    script "tests/integration/nanopore-truth.nf"
+    workflow "NANOPORE_TRUTH"
+
+    test("Should recover the designed variants and masked consensus") {
+
+        when {
+            params {
+                base_container = "${projectDir}/containers/baseContainer.sif"
+                clair3_chunk_size = 10000
+                clair3_qual = 10
+                clair3_model = "r941_prom_sup_g5014"
+                mapping_quality = 30
+                af_threshold = 0.51
+                np_min_depth = 20
+            }
+            workflow {
+                """
+                meta = [id: "nanopore_truth"]
+                input[0] = Channel.of(
+                    tuple(
+                        meta,
+                        file(
+                            "${projectDir}/tests/integration/data/nanopore_truth/reads.fastq.gz"
+                        )
+                    )
+                )
+                input[1] = Channel.value(
+                    file(
+                        "${projectDir}/tests/integration/data/nanopore_truth/reference.fasta"
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 6
+
+            def fixtureDir = path(
+                "${projectDir}/tests/integration/data/nanopore_truth"
+            )
+            def sha256 = { filePath ->
+                def digest = java.security.MessageDigest.getInstance("SHA-256")
+                filePath.toFile().withInputStream { stream ->
+                    byte[] buffer = new byte[1024 * 1024]
+                    int count
+                    while ((count = stream.read(buffer)) > 0) {
+                        digest.update(buffer, 0, count)
+                    }
+                }
+                digest.digest().encodeHex().toString()
+            }
+
+            path("${fixtureDir}/SHA256SUMS").readLines().each { line ->
+                def fields = line.split(/\s+/, 2)
+                assert sha256(path("${fixtureDir}/${fields[1]}")) == fields[0]
+            }
+
+            def containerRows = path(
+                "${fixtureDir}/expected_containers.tsv"
+            ).readLines().drop(1).collect { it.split("\t") }
+            def baseContainer = containerRows.find { it[0] == "nanopore_base" }
+            assert sha256(path("${projectDir}/${baseContainer[1]}")) ==
+                baseContainer[2]
+            def clair3Container = containerRows.find { it[0] == "clair3" }
+            assert clair3Container[1].endsWith(clair3Container[2])
+
+            def parseVariants = { lines ->
+                lines.findAll { !it.startsWith("#") }.collect { line ->
+                    def fields = line.split("\t")
+                    [fields[0], fields[1], fields[3], fields[4]]
+                }
+            }
+
+            def truthVariants = parseVariants(
+                path("${fixtureDir}/truth.vcf").readLines()
+            )
+            def filtered = workflow.out.filtered.get(0)
+            assert filtered[0].id == "nanopore_truth"
+            def observedVariants = parseVariants(path(filtered[1]).linesGzip)
+            assert observedVariants == truthVariants
+
+            def consensus = workflow.out.consensus.get(0)
+            assert consensus[0].id == "nanopore_truth"
+            def maskedPositions = path(consensus[2]).readLines().collect {
+                line ->
+                    def fields = line.split("\t")
+                    (fields[1].toInteger()..<fields[2].toInteger()).toList()
+            }.flatten() as Set
+            assert (15000..<15500).every { maskedPositions.contains(it) }
+
+            def fastaSequence = { fastaPath ->
+                fastaPath.readLines()
+                    .findAll { !it.startsWith(">") }
+                    .join("")
+                    .toUpperCase()
+            }
+            def truthSequence = fastaSequence(path("${fixtureDir}/truth.fasta"))
+            def expectedConsensus = truthSequence.toList()
+            maskedPositions.each { referenceIndex ->
+                def deletedBefore = referenceIndex > 21989 ? 3 : 0
+                def truthIndex = referenceIndex - deletedBefore
+                if (truthIndex < expectedConsensus.size()) {
+                    expectedConsensus[truthIndex] = "N"
+                }
+            }
+            expectedConsensus = expectedConsensus.join("")
+            assert fastaSequence(path(consensus[1])) == expectedConsensus
+
+            def expectedMetrics = path(
+                "${fixtureDir}/expected_metrics.tsv"
+            ).readLines().drop(1).collectEntries { line ->
+                def fields = line.split("\t", 2)
+                [(fields[0]): fields[1]]
+            }
+            def qc = workflow.out.qc.get(0)
+            assert qc[0].id == "nanopore_truth"
+            def observedMetrics = path(qc[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            expectedMetrics
+                .findAll { key, _value -> key != "read_count" }
+                .each { key, value ->
+                    assert observedMetrics[key] == value
+                }
+            assert observedMetrics.callable_percent.toDouble() >= 95.0
+        }
+    }
+}

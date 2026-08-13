@@ -4,15 +4,41 @@ ViralFlow constitutes a computational workflow implemented in Nextflow. Below, y
 
 ## quick start guide
 
+### Input sample sheet
+
+`--samplesheet` is the canonical input interface. The CSV must contain
+`sample_id,fastq_1,fastq_2`; paths may be absolute or relative to the CSV file.
+Repeat a sample ID to provide ordered chunks or lanes. `fastq_2` must be empty
+for Nanopore and single-end Illumina inputs.
+
+```csv
+sample_id,fastq_1,fastq_2,batch
+sample_a,reads/sample_a_chunk1.fastq.gz,,batch_1
+sample_a,reads/sample_a_chunk2.fastq,,batch_1
+```
+
+```bash
+nextflow run /path/to/vfnext/main.nf \
+    --mode NANOPORE \
+    --samplesheet /path/to/samples.csv \
+    --referenceGenome /path/to/reference.fa
+```
+
+Additional metadata columns are propagated to the sample metadata and must be
+consistent across repeated rows. `--samplesheet` and `--inDir` are mutually
+exclusive. Automatic `--inDir` discovery remains available in v2 with strict
+validation and a deprecation warning, and is scheduled for removal in v3.
+
 * How to setup vfnext ?
 
 ```{bash}
 git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow
-cd ./vfnext/containers/
-/bin/bash setupContainers.sh
-/bin/bash add_entries_SnpeffDB.sh 
+pip install -e .
+viralflow build-containers --arch amd64
 ```
+
+Use `--arch arm64` on an ARM64/AArch64 system.
 
 * How to run (on SARS-CoV-2)?
 
@@ -34,6 +60,7 @@ To run viralflow on a non-supported virus, user must provide:
 
 ```{bash}
 nextflow run ../vfnext/main.nf \
+        --mode ILLUMINA
         --inDir /path/to/input_dir/ \
         --outDir /path/to/output_dir/ \
         --virus custom \
@@ -43,9 +70,19 @@ nextflow run ../vfnext/main.nf \
         --refGenomeCode my_genome_code
 ```
 
+* How to run on NANOPORE data
+
+```
+nextflow run path/to/vfnext/main.nf \
+        --mode NANOPORE \
+        --inDir /path/to/input_dir/ \
+        --referenceGenome /path/to/reference_genome/fasta_file.fa
+
+
+
+```
 ---
 ## NOTES
 Paths provided for the parameters **must be absolute paths**
 
 ---
-

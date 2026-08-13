@@ -1,0 +1,109 @@
+nextflow_workflow {
+
+    name "Test reproducibility metadata"
+    script "tests/workflows/metadata-fixture.nf"
+
+    test("Should write deterministic checksum, version, and container metadata") {
+        workflow "METADATA_FIXTURE"
+
+        when {
+            params {
+                metadataDir = ".nf-test/results/metadata-positive"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def checksumFile = path(workflow.out.checksums.get(0))
+            def checksumRows = checksumFile.readLines()
+            assert checksumRows[0] ==
+                "sample_id\trole\tabsolute_path\tsize_bytes\tsha256"
+            assert checksumRows[1].startsWith(
+                "reference\treference_fasta\t"
+            )
+            assert checksumRows[1].endsWith(
+                "\t27\tfc81e5e00a24b59561d5ae85ccb19d631d4b044581fe02f19348fda9f38a267f"
+            )
+
+            def versionRows = path(workflow.out.versions.get(0)).readLines()
+            assert versionRows[0] ==
+                "mode\ttool\tversion\tcontainer\texit_status\traw_output"
+            assert versionRows[1].contains("\tbcftools\t")
+            assert versionRows[1].contains("bcftools 1.21")
+
+            def containerRows = path(workflow.out.containers.get(0)).readLines()
+            assert containerRows[0] ==
+                "name\tkind\tidentity\tsize_bytes\tsha256"
+            def containersByName = containerRows.drop(1).collectEntries { row ->
+                [(row.split("\t", 2)[0]): row]
+            }
+            assert containersByName.test_remote ==
+                "test_remote\tremote_uri\tdocker://example/test:1.0\tNA\tNA"
+            assert containersByName.test_sandbox.startsWith(
+                "test_sandbox\tlocal_sandbox\t"
+            )
+            assert containersByName.test_sandbox.endsWith("\tNA\tNA")
+            assert containersByName.test_sif.startsWith(
+                "test_sif\tlocal_sif\t"
+            )
+            assert containersByName.test_sif.endsWith(
+                "\t27\tfc81e5e00a24b59561d5ae85ccb19d631d4b044581fe02f19348fda9f38a267f"
+            )
+        }
+    }
+
+    test("Should classify local SIF and sandbox containers") {
+        workflow "CLASSIFY_LOCAL_CONTAINERS_FIXTURE"
+
+        then {
+            assert workflow.success
+            def specs = workflow.out.specs_ch.get(0)
+            assert specs*.name == ["sandbox", "sif"]
+            assert specs*.kind == ["local_sandbox", "local_sif"]
+        }
+    }
+
+    test("Should reject a missing local container") {
+        workflow "MISSING_CONTAINER_FIXTURE"
+
+        then {
+            assert workflow.failed
+            assert workflow.errorReport.contains(
+                "Configured SIF file does not exist"
+            )
+        }
+    }
+
+    test("Should normalize parameter values for JSON") {
+        workflow "NORMALIZE_METADATA_FIXTURE"
+
+        then {
+            assert workflow.success
+            def normalized = workflow.out.normalized_ch.get(0)
+            assert normalized.null_value == null
+            assert normalized.enabled == true
+            assert normalized.count == 3
+            assert normalized.memory == "4 GB"
+            assert normalized.values == ["a", 2]
+            assert normalized.path.endsWith(
+                "/tests/data/bcftools/ref.fa"
+            )
+        }
+    }
+
+    test("Should ignore an absent optional GFF") {
+        workflow "OPTIONAL_GFF_METADATA_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.out.gff_metadata_ch.size() == 0
+        }
+    }
+}

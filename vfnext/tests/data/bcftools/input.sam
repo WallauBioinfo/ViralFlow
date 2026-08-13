@@ -1,0 +1,3 @@
+@HD	VN:1.6	SO:coordinate
+@SQ	SN:chr1	LN:20
+read1	0	chr1	1	60	10M	*	0	0	ACGTACGTAC	IIIIIIIIII

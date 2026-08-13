@@ -1,0 +1,58 @@
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(test_files/|vfnext/databases/|vfnext/tests/(data|integration/data)/)
+      - id: end-of-file-fixer
+        exclude: ^(test_files/|vfnext/databases/|vfnext/tests/(data|integration/data)/)
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: ^(test_files/|vfnext/databases/|vfnext/tests/(data|integration/data)/)
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        exclude: ^(test_files/|vfnext/tests/integration/data/)
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.14
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: nextflow-lint
+        name: nextflow lint
+        entry: nextflow lint -project-dir vfnext -o concise
+        language: system
+        files: ^vfnext/.*\.(nf|config)$
+
+      - id: python-unit-tests
+        name: Python unit tests
+        entry: >-
+          uv run --no-project --python 3.12 --with-editable .
+          python -m unittest discover -s tests -v
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: nextflow-unit-tests
+        name: Nextflow non-container tests
+        entry: >-
+          bash -c 'cd vfnext && NXF_VER=26.04.6 nf-test test
+          tests/workflows/input-fixture.nf.test
+          tests/workflows/step0-input-handling.validation.nf.test
+          tests/main.metadata.nf.test --ci'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
