@@ -16,6 +16,8 @@ dependencies:
   - numpy
   - pandas
   - nextflow=26.04.6
+  - nf-test=0.9.4
+  - pre-commit=4.6.0
   - entrez-direct
   - openjdk=17
   - procps-ng
