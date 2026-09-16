@@ -165,7 +165,7 @@ def containerSpecs(params, workflow) {
     def specs = []
     if (params.mode == 'NANOPORE') {
         specs << localContainerSpec('nanopore_base', params.base_container)
-        specs << remoteContainerSpec('clair3', 'docker://hkubal/clair3:v1.2.0')
+        specs << remoteContainerSpec('clair3', params.clair3_container)
     }
     else if (params.mode == 'ILLUMINA') {
         def containerDir = java.nio.file.Path.of(workflow.projectDir.toString()).resolve('containers')
@@ -199,7 +199,7 @@ def toolSpecs(params, workflow) {
             toolSpec('NANOPORE', 'minimap2', 'minimap2 --version', params.base_container),
             toolSpec('NANOPORE', 'samtools', 'samtools --version | head -n 1', params.base_container),
             toolSpec('NANOPORE', 'bcftools', 'bcftools --version | head -n 1', params.base_container),
-            toolSpec('NANOPORE', 'clair3', 'run_clair3.sh -v ', 'docker://hkubal/clair3:v1.2.0')
+            toolSpec('NANOPORE', 'clair3', 'run_clair3.sh -v ', params.clair3_container)
         ]
     }
 

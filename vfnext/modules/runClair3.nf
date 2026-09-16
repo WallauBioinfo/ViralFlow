@@ -2,7 +2,7 @@ process run_clair3{
     // Define the process parameters
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
     tag "${meta.id}"
-    container "docker://hkubal/clair3:v1.1.0"
+    // container is set from params.clair3_container in nextflow.config
 
     input:
         tuple val(meta), path(bam), path(bai)
