@@ -4,6 +4,10 @@ include {
     METADATA
     capture_container_metadata as capture_missing_container
 } from '../../modules/metadata.nf'
+include {
+    localContainerSpec
+    normalizeMetadata
+} from '../../modules/metadata_helpers.nf'
 
 workflow METADATA_FIXTURE {
     main:
@@ -59,7 +63,7 @@ workflow METADATA_FIXTURE {
 
 workflow MISSING_CONTAINER_FIXTURE {
     main:
-        missing_spec = MetadataHelper.localContainerSpec(
+        missing_spec = localContainerSpec(
             "missing",
             file("${projectDir}/tests/data/metadata/missing.sif")
         )
@@ -77,11 +81,11 @@ workflow MISSING_CONTAINER_FIXTURE {
 workflow CLASSIFY_LOCAL_CONTAINERS_FIXTURE {
     main:
         specs = [
-            MetadataHelper.localContainerSpec(
+            localContainerSpec(
                 "sandbox",
                 file("${projectDir}/tests/data/metadata/sandbox-container")
             ),
-            MetadataHelper.localContainerSpec(
+            localContainerSpec(
                 "sif",
                 file("${projectDir}/tests/data/bcftools/ref.fa")
             )
@@ -94,7 +98,7 @@ workflow CLASSIFY_LOCAL_CONTAINERS_FIXTURE {
 
 workflow NORMALIZE_METADATA_FIXTURE {
     main:
-        normalized = MetadataHelper.normalizeMap([
+        normalized = normalizeMetadata([
             null_value: null,
             enabled: true,
             count: 3,
