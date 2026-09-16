@@ -10,14 +10,16 @@ O ViralFlow requer um arquivo de parâmetros que contém todas as opções de co
 
 | Argumento | Valor Padrão | Descrição |
 |-----------|--------------|-----------|
+| `mode` | ILLUMINA | Tecnologia de sequenciamento dos dados de entrada (ILLUMINA ou NANOPORE) |
 | `virus` | sars-cov2 | Tipo de análise (sars-cov2 ou custom) |
-| `primersBED` | null | Caminho absoluto para o arquivo bed com informações dos primers usados na amplificação genômica (opcional) |
-| `--outDir` | launchDir/output/ | Diretório de saída do ViralFlow onde os resultados e os metadados da execução serão armazenados |
-| `inDir` | launchDir/input/ | Caminho absoluto para o diretório com os dados de entrada (diretório com os arquivos FASTQ) |
+| `primersBED` | null | Caminho absoluto para o arquivo bed com informações dos primers usados na amplificação genômica (opcional). Não é suportado no modo NANOPORE, que não realiza o recorte de primers |
+| `outDir` | launchDir/output/ | Diretório de saída do ViralFlow onde os resultados e os metadados da execução serão armazenados |
+| `samplesheet` | null | Arquivo CSV com as colunas `sample_id`, `fastq_1` e `fastq_2`. Repita um sample ID para fornecer chunks ou lanes ordenados. Não pode ser combinado com `inDir` |
+| `inDir` | null | Obsoleto, será removido na v3; use `samplesheet`. Caminho absoluto para o diretório com os dados de entrada (diretório com os arquivos FASTQ). Se não for definido, o ViralFlow usa `launchDir/input/` |
 | `runSnpEff` | true | Necessário para executar a ferramenta snpEff (true ou false) |
 | `writeMappedReads` | true | Necessário para gerar os arquivos FASTQ contendo as reads de sequenciamento que mapearam no genoma de referência |
 | `minLen` | 75 | Tamanho mínimo que as reads devem ter. Reads abaixo deste limite serão eliminadas pelo FastP |
-| `depth` | 5 | Profundidade de cobertura mínima para chamar bases consenso. Posições com profundidade de cobertura menor não serão chamadas e um "-" será adicionado à respectiva posição genômica consenso |
+| `depth` | 25 | Profundidade de cobertura mínima para chamar bases consenso. Posições com profundidade de cobertura menor não serão chamadas e um "-" será adicionado à respectiva posição genômica consenso |
 | `mapping_quality` | 30 | Limiar de qualidade de mapeamento usado para variant calling |
 | `base_quality` | 30 | Limiar de qualidade de base usado para variant calling |
 | `minDpIntrahost` | 100 | Profundidade mínima de cobertura por sítio genômico para ser considerado na análise intrahospedeiro |
@@ -25,7 +27,7 @@ O ViralFlow requer um arquivo de parâmetros que contém todas as opções de co
 | `refGenomeCode` | null | Código do genoma a ser usado na análise custom |
 | `referenceGFF` | null | Arquivo GFF do genoma a ser usado na análise custom |
 | `referenceGenome` | null | Arquivo Fasta do genoma a ser usado na análise custom |
-| `nextflowSimCalls` | null | Número de chamadas simultâneas que o nextflow pode realizar |
+| `nextflowSimCalls` | 6 | Número de chamadas simultâneas que o nextflow pode realizar |
 | `fastp_threads` | 1 | Número de threads a serem usadas na etapa de filtragem de reads do fastp |
 | `bwa_threads` | 1 | Número de threads a serem usadas na etapa de mapeamento do bwa |
 | `mafft_threads` | 1 | Número de threads a serem usadas na etapa de alinhamento do mafft |

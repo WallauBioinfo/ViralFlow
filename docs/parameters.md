@@ -12,15 +12,16 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 
 | Argument | Default Value | Description |
 |----------|---------------|-------------|
+| `mode` | ILLUMINA | Sequencing technology of the input data (ILLUMINA or NANOPORE) |
 | `virus` | sars-cov2 | Analysis type (sars-cov2 or custom) |
-| `primersBED` | null | Absolute path to bed file with primers information used in genomic amplification (optional) |
-| `--outDir` | launchDir/output/ | ViralFlow output directory where results and run metadata will be stored |
-| `inDir` | launchDir/input/ | Absolute path to the directory with the input data (directory with the FASTQ files) |
+| `primersBED` | null | Absolute path to bed file with primers information used in genomic amplification (optional). Not supported in NANOPORE mode, which performs no primer clipping |
+| `outDir` | launchDir/output/ | ViralFlow output directory where results and run metadata will be stored |
+| `samplesheet` | null | CSV file with `sample_id`, `fastq_1` and `fastq_2` columns. Repeat a sample ID to provide ordered chunks or lanes. Cannot be combined with `inDir` |
+| `inDir` | null | Deprecated, and removed in v3; use `samplesheet`. Absolute path to the directory with the input data (directory with the FASTQ files). When unset, ViralFlow falls back to `launchDir/input/` |
 | `runSnpEff` | true | Needed to run the snpEff tool (true or false) |
 | `writeMappedReads` | true | Needed to generate the FASTQ files containing the sequencing reads that mapped to the reference genome |
-
 | `minLen` | 75 | Minimum size the reads must have. Reads below this threshold will be eliminated by FastP |
-| `depth` | 5 | Minimum coverage depth to call consensus bases. Positions with lower coverage depth will not be called and a "-" will be added to the respective consensus genomic position |
+| `depth` | 25 | Minimum coverage depth to call consensus bases. Positions with lower coverage depth will not be called and a "-" will be added to the respective consensus genomic position |
 | `mapping_quality` | 30 | Mapping quality threshold used to variant calling |
 | `base_quality` | 30 | Base quality threshold used to variant calling |
 | `minDpIntrahost` | 100 | Minimum coverage depth per genomic site to be considered in the intrahost analysis |
@@ -28,7 +29,7 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 | `refGenomeCode` | null | Code of the genome to be used in the custom analysis |
 | `referenceGFF` | null | GFF genome file to be used in custom analysis |
 | `referenceGenome` | null | Fasta genome file to be used in custom analysis |
-| `nextflowSimCalls` | null | Number of simultaneous calls that nextflow can perform |
+| `nextflowSimCalls` | 6 | Number of simultaneous calls that nextflow can perform |
 | `fastp_threads` | 1 | Number of threads to be used in the fastp read filtering step |
 | `bwa_threads` | 1 | Number of threads to be used in the bwa mapping step |
 | `mafft_threads` | 1 | Number of threads to be used in the mafft alignment step |
