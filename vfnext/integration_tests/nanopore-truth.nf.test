@@ -9,6 +9,10 @@ nextflow_workflow {
         when {
             params {
                 base_container = "${projectDir}/containers/baseContainer.sif"
+                // Pinned by digest so the truth values are tied to one exact
+                // image. Must match the clair3 row in expected_containers.tsv;
+                // the assertions below cross-check the two.
+                clair3_container = "docker://hkubal/clair3@sha256:1430f7b520674bb282b5a1ba165e8555b012df67b9cdb22ff3d48f26cf1474a3"
                 clair3_chunk_size = 10000
                 clair3_qual = 10
                 clair3_model = "r941_prom_sup_g5014"
@@ -60,14 +64,34 @@ nextflow_workflow {
                 assert sha256(path("${fixtureDir}/${fields[1]}")) == fields[0]
             }
 
+            // expected_containers.tsv records the images the truth values were
+            // generated with.
+            //
+            // The base container is built locally from Nanopore_baseContainer.sing,
+            // and that build is not reproducible byte for byte: %post runs an
+            // unpinned apt-get install and clones Porechop_ABI and bamUtil from
+            // their default branches, and SIF images embed build metadata. Two
+            // people building from the same definition get different checksums,
+            // so its sha256 is recorded as NA and only its presence is asserted.
+            // The checksum of the image that actually ran is captured at runtime
+            // in RUN_METADATA/container_manifest.tsv, which is where that
+            // provenance belongs.
             def containerRows = path(
                 "${fixtureDir}/expected_containers.tsv"
             ).readLines().drop(1).collect { it.split("\t") }
+
             def baseContainer = containerRows.find { it[0] == "nanopore_base" }
-            assert sha256(path("${projectDir}/${baseContainer[1]}")) ==
-                baseContainer[2]
+            def baseContainerFile = path("${projectDir}/${baseContainer[1]}")
+            assert baseContainerFile.exists()
+            assert baseContainer[2] == "NA"
+
+            // Clair3 is pulled, so it can be pinned. The digest is declared in two
+            // independent places - this test's params block and the fixture row -
+            // and regenerating the fixture against a new image requires updating
+            // both. Also assert the pin is a digest, not a mutable tag.
             def clair3Container = containerRows.find { it[0] == "clair3" }
-            assert clair3Container[1].endsWith(clair3Container[2])
+            assert clair3Container[1] == "docker://hkubal/clair3@sha256:${clair3Container[2]}"
+            assert clair3Container[1] == params.clair3_container
 
             def parseVariants = { lines ->
                 lines.findAll { !it.startsWith("#") }.collect { line ->
