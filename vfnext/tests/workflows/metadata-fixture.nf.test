@@ -92,6 +92,78 @@ nextflow_workflow {
         }
     }
 
+    test("Should feed containerSpecs tuples into the container metadata process") {
+        workflow "CONTAINER_SPECS_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+                // Stands in for a built SIF: any regular file exercises the
+                // local_sif branch and gives a deterministic checksum.
+                base_container = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def rows = workflow.out.rows.collect { row ->
+                path(row).readLines()[0].split("\t", -1)
+            }
+            // Every row must carry all five columns.
+            assert rows.every { fields -> fields.size() == 5 }
+
+            def byName = rows.collectEntries { fields -> [(fields[0]): fields] }
+            assert byName.keySet() == ["nanopore_base", "clair3"] as Set
+
+            // Column order is the contract: name, kind, identity, size, sha256.
+            def base = byName.nanopore_base
+            assert base[1] == "local_sif"
+            assert base[2].endsWith("/tests/data/bcftools/ref.fa")
+            assert base[3] == "27"
+            assert base[4] ==
+                "fc81e5e00a24b59561d5ae85ccb19d631d4b044581fe02f19348fda9f38a267f"
+
+            def clair3 = byName.clair3
+            assert clair3[1] == "remote_uri"
+            assert clair3[2].startsWith("docker://hkubal/clair3")
+            assert clair3[3] == "NA"
+            assert clair3[4] == "NA"
+        }
+    }
+
+    test("Should build toolSpecs tuples in the order capture_tool_version expects") {
+        workflow "TOOL_SPECS_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+                base_container = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def specs = workflow.out.tool_specs_ch
+            assert specs.every { spec -> spec.size() == 4 }
+
+            // Position 0 is the mode, 1 the tool, 2 the version command, 3 the
+            // container. Each assertion fails if the fields are reordered.
+            assert specs.every { spec -> spec[0] == "NANOPORE" }
+            // nf-test sorts channel emissions, so compare as a set.
+            assert specs.collect { spec -> spec[1] }.toSorted() == [
+                "bcftools", "clair3", "minimap2", "porechop_abi", "samtools"
+            ]
+            assert specs.every { spec -> spec[2].contains(spec[1].replace("_abi", "")) }
+            assert specs.every { spec -> spec[2] =~ /(-v|--version)/ }
+
+            def byTool = specs.collectEntries { spec -> [(spec[1]): spec] }
+            assert byTool.bcftools[3].endsWith("/tests/data/bcftools/ref.fa")
+            assert byTool.clair3[3].startsWith("docker://hkubal/clair3")
+        }
+    }
+
     test("Should ignore an absent optional GFF") {
         workflow "OPTIONAL_GFF_METADATA_FIXTURE"
 

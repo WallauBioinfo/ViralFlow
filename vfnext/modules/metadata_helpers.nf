@@ -179,6 +179,25 @@ def toolSpec(mode, name, command, containerValue) {
     [mode: mode, tool: name, command: command, container: containerValue.toString()]
 }
 
+// The channel builders below own the spec-map -> tuple mapping. capture_tool_version
+// and capture_container_metadata read those tuples positionally, so keeping the
+// mapping in one place is what lets a test pin the field order.
+def containerSpecChannel(params, workflow) {
+    channel.fromList(
+        containerSpecs(params, workflow).collect { spec ->
+            tuple(spec.name, spec.kind, spec.identity)
+        }
+    )
+}
+
+def toolSpecChannel(params, workflow) {
+    channel.fromList(
+        toolSpecs(params, workflow).collect { spec ->
+            tuple(spec.mode, spec.tool, spec.command, spec.container)
+        }
+    )
+}
+
 def containerSpecs(params, workflow) {
     def specs = []
     if (params.mode == 'NANOPORE') {

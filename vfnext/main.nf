@@ -13,8 +13,8 @@ include {
   metadataDir;
   metadataFailureMessage;
   writeRunManifest;
-  containerSpecs;
-  toolSpecs;
+  containerSpecChannel;
+  toolSpecChannel;
   referenceMetadataChannel
 } from './modules/metadata_helpers.nf'
 
@@ -151,17 +151,9 @@ log.info """
     .concat(primer_metadata_ch)
     .concat(samplesheet_metadata_ch)
 
-  tool_specs_ch = channel.fromList(
-    toolSpecs(params, workflow).collect { spec ->
-      tuple(spec.mode, spec.tool, spec.command, spec.container)
-    }
-  )
+  tool_specs_ch = toolSpecChannel(params, workflow)
 
-  container_specs_ch = channel.fromList(
-    containerSpecs(params, workflow).collect { spec ->
-      tuple(spec.name, spec.kind, spec.identity)
-    }
-  )
+  container_specs_ch = containerSpecChannel(params, workflow)
 
   METADATA(
     checksum_inputs_ch,

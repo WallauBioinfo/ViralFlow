@@ -2,12 +2,15 @@ nextflow.enable.dsl = 2
 
 include {
     METADATA
+    capture_container_metadata
     capture_container_metadata as capture_missing_container
 } from '../../modules/metadata.nf'
 include {
     localContainerSpec
     normalizeMetadata
     referenceMetadataChannel
+    containerSpecChannel
+    toolSpecChannel
 } from '../../modules/metadata_helpers.nf'
 include { processInputs } from '../../workflows/step0-input-handling.nf'
 
@@ -112,6 +115,32 @@ workflow NORMALIZE_METADATA_FIXTURE {
 
     emit:
         normalized_ch
+}
+
+// containerSpecs() and toolSpecs() build the tuples that capture_container_metadata
+// and capture_tool_version consume by position. Neither builder was executed by any
+// test: main.nf reaches them only after processInputs(), and the one test that runs
+// main.nf aborts in validation first. A field reorder would therefore corrupt
+// container_manifest.tsv with every test still green.
+//
+// This drives the real builder into the real process, so the two stay in agreement.
+workflow CONTAINER_SPECS_FIXTURE {
+    main:
+        capture_container_metadata(containerSpecChannel(params, workflow))
+
+    emit:
+        rows = capture_container_metadata.out
+}
+
+// toolSpecs feeds capture_tool_version, which can only run inside each tool's own
+// container. Assert the tuple contract here; the execution path is covered by
+// METADATA_FIXTURE.
+workflow TOOL_SPECS_FIXTURE {
+    main:
+        tool_specs_ch = toolSpecChannel(params, workflow)
+
+    emit:
+        tool_specs_ch
 }
 
 // Drives the real processInputs outputs through the same helper main.nf uses,
