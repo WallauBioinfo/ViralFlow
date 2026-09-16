@@ -1,3 +1,33 @@
+// Shared shell helpers for the two metadata processes that run on the host
+// rather than inside a container. GNU coreutils is not guaranteed there:
+// `sha256sum` and `stat -Lc` do not exist on macOS/BSD, where the original
+// commands aborted the whole run before any analysis started.
+//
+// These processes cannot simply be containerised. capture_container_metadata
+// receives the container identity as a value, not a staged path, so the file
+// it must checksum is not visible from inside a container.
+//
+// `wc -c < file` is POSIX and follows symlinks via the shell redirect, giving
+// the same result as `stat -L`. BSD `wc` pads its output, hence the trim.
+def portableFileMetrics() {
+    return '''
+sha256_checksum() {
+    if command -v sha256sum > /dev/null 2>&1; then
+        sha256sum "$1" | cut -d ' ' -f 1
+    elif command -v shasum > /dev/null 2>&1; then
+        shasum -a 256 "$1" | cut -d ' ' -f 1
+    else
+        echo "No SHA-256 utility found; need sha256sum or shasum on PATH" >&2
+        return 1
+    fi
+}
+
+file_size_bytes() {
+    wc -c < "$1" | tr -d '[:space:]'
+}
+'''
+}
+
 process checksum_metadata_input {
     tag "${sample_id}:${role}"
 
@@ -10,9 +40,9 @@ process checksum_metadata_input {
     script:
     """
     set -euo pipefail
-
-    checksum=\$(sha256sum ${input_file} | cut -d ' ' -f 1)
-    size=\$(stat -Lc '%s' ${input_file})
+    ${portableFileMetrics()}
+    checksum=\$(sha256_checksum ${input_file})
+    size=\$(file_size_bytes ${input_file})
     printf '%s\\t%s\\t%s\\t%s\\t%s\\n' \
         '${sample_id}' '${role}' '${original_path}' "\${size}" "\${checksum}" \
         > ${sample_id}.${role}.checksum.tsv
@@ -63,27 +93,27 @@ process capture_container_metadata {
     script:
     """
     set -euo pipefail
-
+    ${portableFileMetrics()}
     case '${container_kind}' in
         local_sif)
-        if [[ -d '${container_identity}' ]]; then
-            echo "Configured SIF path is a directory: ${container_identity}" >&2
-            exit 1
-        fi
-        if [[ ! -f '${container_identity}' ]]; then
-            echo "Configured SIF file does not exist: ${container_identity}" >&2
-            exit 1
-        fi
-        checksum=\$(sha256sum '${container_identity}' | cut -d ' ' -f 1)
-        size=\$(stat -Lc '%s' '${container_identity}')
+            if [[ -d '${container_identity}' ]]; then
+                echo "Configured SIF path is a directory: ${container_identity}" >&2
+                exit 1
+            fi
+            if [[ ! -f '${container_identity}' ]]; then
+                echo "Configured SIF file does not exist: ${container_identity}" >&2
+                exit 1
+            fi
+            checksum=\$(sha256_checksum '${container_identity}')
+            size=\$(file_size_bytes '${container_identity}')
             ;;
         local_sandbox)
             if [[ ! -d '${container_identity}' ]]; then
                 echo "Configured sandbox directory does not exist: ${container_identity}" >&2
                 exit 1
             fi
-        checksum='NA'
-        size='NA'
+            checksum='NA'
+            size='NA'
             ;;
         remote_uri)
             checksum='NA'
