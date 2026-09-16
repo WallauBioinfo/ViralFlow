@@ -75,6 +75,33 @@ nextflow_workflow {
         }
     }
 
+    test("Should fail with custom virus but unreadable reference files") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+                referenceGFF = "${projectDir}/no_such_reference.gff"
+                referenceGenome = "${projectDir}/no_such_reference.fa"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("no_such_reference.gff") && it.contains("is not a file")
+            }
+            assert workflow.stdout.any {
+                it.contains("no_such_reference.fa") && it.contains("is not a file")
+            }
+            // Pins the count so a regression in error accounting is caught.
+            // Note this is 4, not 2: each bad file reports both "is not a file"
+            // and "does not exist", so one missing file counts twice.
+            assert workflow.stdout.any { it.contains("4 validation errors detected") }
+        }
+    }
+
     test("Should fail with NANOPORE mode but missing reference genome") {
 
         when {

@@ -228,8 +228,12 @@ process prepare_sample_reads {
 }
 
 // set supported virus flag
-def check_IL_custom_virus_params(errors) {
-  def local_errors = errors
+// Returns only the errors found here, like every other validate_* helper. It
+// used to take the caller's running count, seed itself with it and return the
+// total, which the caller then added on top - double counting anything already
+// found. That was masked because the single call site always passes 0.
+def check_IL_custom_virus_params() {
+  def local_errors = 0
 
   // if a genome code was not provided, check if a gff and a ref fasta was
   if (params.refGenomeCode==null){
@@ -329,7 +333,7 @@ def validate_virus_params() {
 
     // if a custom virus, check if mandatory params were set
     if (params.virus=="custom"){
-        errors += check_IL_custom_virus_params(errors)
+        errors += check_IL_custom_virus_params()
     }
 
     return errors
