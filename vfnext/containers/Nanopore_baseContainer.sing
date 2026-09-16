@@ -18,6 +18,18 @@ From: ubuntu:24.04
 
     HTSLIB_VERSION=1.21
     MINIMAP2_TAG=v2.28
+    NETWORKX_VERSION=3.6.1
+    # Porechop_ABI and bamUtil are pinned to commits rather than tags, on
+    # purpose:
+    #   - Porechop_ABI master is 35 commits ahead of its latest tag (v0.5.0).
+    #     This commit is what unpinned builds have been producing, so pinning it
+    #     keeps the nanopore truth fixture valid. Moving to v0.5.0 would be a
+    #     downgrade and would need the truth values regenerated.
+    #   - bamUtil v1.0.15 clones libStatGen over the git:// protocol, which
+    #     GitHub disabled in 2022, so `make cloneLib` fails at that tag. The fix
+    #     landed on master after the release and was never tagged.
+    PORECHOP_ABI_COMMIT=0bc9f17f31d4ec1dcbab4796871cc09324cc143b
+    BAMUTIL_COMMIT=017721cc07948558395e4934ec10d0f91407c5eb
     # Update the package list and install essential packages
     apt-get update && apt-get install -y \
         build-essential \
@@ -83,15 +95,20 @@ From: ubuntu:24.04
 
     # install porechop
     cd /app/
-    pip install --break-system-packages networkx
+    pip install --break-system-packages "networkx==${NETWORKX_VERSION}"
     git clone https://github.com/bonsai-team/Porechop_ABI.git
     cd Porechop_ABI
+    git checkout ${PORECHOP_ABI_COMMIT}
     python3 setup.py install
 
     # install bam utils
     cd /app/
     git clone https://github.com/statgen/bamUtil.git
     cd bamUtil
+    git checkout ${BAMUTIL_COMMIT}
+    # NOTE: `make cloneLib` clones libStatGen from its own default branch, so
+    # that dependency is still unpinned. Pinning it means cloning libStatGen
+    # explicitly into the path bamUtil expects instead of using this target.
     make cloneLib
     make
     make install
