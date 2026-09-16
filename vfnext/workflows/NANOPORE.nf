@@ -2,8 +2,6 @@
 nextflow.enable.dsl = 2
 include {run_porechop} from '../modules/runPorechop.nf'
 include {run_minimap2} from '../modules/runMinimap2.nf'
-include {run_amplicon_clip} from '../modules/runAmpliconClip.nf'
-include {run_bam_utils} from '../modules/runBamUtils.nf'
 include {run_clair3} from '../modules/runClair3.nf'
 include {run_bcftools; run_bcftools_consensus} from '../modules/runBcftools.nf'
 include {run_nanopore_qc} from '../modules/runNanoporeQc.nf'

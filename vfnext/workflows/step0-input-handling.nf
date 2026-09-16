@@ -350,6 +350,15 @@ def validate_illumina_params() {
 def validate_nanopore_params() {
     def errors = 0
 
+    // The NANOPORE workflow has no primer-clipping step. Failing here is
+    // deliberate: accepting the BED and ignoring it would leave primer-derived
+    // bases in the consensus while the run looked as though they had been
+    // trimmed. Reject it until primer clipping is actually implemented.
+    if (params.primersBED) {
+        log.error("NANOPORE mode does not support primer clipping, but a primersBED was provided (${params.primersBED}). Remove --primersBED; primer-derived bases will not be trimmed from the consensus.")
+        errors += 1
+    }
+
     if (!params.referenceGenome) {
         log.error("A reference genome fasta file must be provided for NANOPORE mode")
         errors += 1

@@ -40,6 +40,17 @@ nextflow run /../ViralFlow/vfnext/main.nf \
 
 to run it using apptainer, just add `-profile apptainer` to your nextflow command.
 
+## Primer clipping is not supported
+
+The NANOPORE workflow has no primer-clipping step, so `--primersBED` is
+**rejected** in this mode rather than accepted and ignored. Passing it fails
+validation before the run starts.
+
+This is deliberate. Silently ignoring the BED would leave primer-derived bases
+in the consensus while the run — including the checksummed inputs recorded under
+`RUN_METADATA` — looked as though they had been trimmed. If you are working with
+amplicon data, be aware that primer positions are not removed.
+
 ## Current threshold behavior
 
 The current threshold logic is as follows:

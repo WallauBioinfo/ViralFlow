@@ -94,6 +94,31 @@ nextflow_workflow {
         }
     }
 
+    test("Should reject primersBED in NANOPORE mode") {
+
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-single.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                primersBED = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+
+        then {
+            // NANOPORE has no primer-clipping step. Accepting the BED and
+            // ignoring it would leave primer-derived bases in the consensus
+            // while the run looked as though they had been trimmed, so the
+            // run must fail rather than warn.
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("NANOPORE mode does not support primer clipping")
+            }
+            // The BED is the only thing wrong with this run.
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
+        }
+    }
+
     test("Should reject an invalid primers BED file") {
 
         when {
