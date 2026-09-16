@@ -13,7 +13,9 @@ nextflow_pipeline {
         then {
             assert workflow.success
             assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
-            assert workflow.stdout.contains('PREPARED sample_a paired=false files=sample_a.SE.fastq.gz batch=batch_1')
+            assert workflow.stdout.any {
+                it.contains('PREPARED sample_a paired=false files=sample_a.SE.fastq.gz batch=batch_1')
+            }
         }
     }
 
@@ -116,7 +118,9 @@ nextflow_pipeline {
         }
         then {
             assert workflow.failed
-            assert workflow.stdout.contains("Legacy input sample 'orphan' has an orphan Illumina mate")
+            assert workflow.stdout.any {
+                it.contains("Legacy input sample 'orphan' has an orphan Illumina mate")
+            }
         }
     }
 }

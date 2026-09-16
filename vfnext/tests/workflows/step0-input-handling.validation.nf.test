@@ -4,18 +4,32 @@ nextflow_workflow {
     script "workflows/step0-input-handling.nf"
     workflow "processInputs"
 
+    // These tests assert with `workflow.stdout.any { it.contains(...) }`.
+    // `workflow.stdout.contains(...)` compares whole list elements, and Nextflow
+    // prefixes each line with "[ERROR] ", so an exact-match assertion can never
+    // succeed here.
+    //
+    // Each case supplies a valid samplesheet so the only validation errors are
+    // the ones under test. They previously pointed at test_data/illumina_reads
+    // and test_data/nanopore_reads, which are not in the repository, so every
+    // run raised an extra "is not a directory" error.
+
     test("Should fail with invalid mode") {
 
         when {
             params {
                 mode = "INVALID_MODE"
-                inDir = "${projectDir}/test_data/illumina_reads"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
             }
         }
 
         then {
             assert workflow.failed
-            assert workflow.stdout.contains('ERROR ~ The mode provided (INVALID_MODE) is not valid. Accepted modes are: ILLUMINA, NANOPORE')
+            assert workflow.stdout.any {
+                it.contains("The mode provided (INVALID_MODE) is not valid. Accepted modes are: ILLUMINA, NANOPORE")
+            }
+            // Exactly one error: nothing else about the run is invalid.
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
         }
     }
 
@@ -31,8 +45,9 @@ nextflow_workflow {
 
         then {
             assert workflow.failed
-            assert workflow.stdout[0].contains("is not a directory")
-
+            assert workflow.stdout.any {
+                it.contains("non_existent_directory") && it.contains("is not a directory")
+            }
         }
     }
 
@@ -42,14 +57,21 @@ nextflow_workflow {
             params {
                 mode = "ILLUMINA"
                 virus = "custom"
-                inDir = "${projectDir}/test_data/illumina_reads"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
                 // Missing referenceGenome and referenceGFF
             }
         }
 
         then {
             assert workflow.failed
-            assert workflow.stdout.contains("ERROR ~ A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
+            assert workflow.stdout.any {
+                it.contains("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
+            }
+            assert workflow.stdout.any {
+                it.contains("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
+            }
+            // The missing GFF and the missing genome, and nothing else.
+            assert workflow.stdout.any { it.contains("2 validation errors detected") }
         }
     }
 
@@ -58,32 +80,39 @@ nextflow_workflow {
         when {
             params {
                 mode = "NANOPORE"
-                inDir = "${projectDir}/test_data/nanopore_reads"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-single.csv"
                 // Missing referenceGenome
             }
         }
 
         then {
             assert workflow.failed
-            assert workflow.stdout.contains("ERROR ~ A reference genome fasta file must be provided for NANOPORE mode")
+            assert workflow.stdout.any {
+                it.contains("A reference genome fasta file must be provided for NANOPORE mode")
+            }
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
         }
     }
 
-    test("Should warn about invalid primers BED file") {
+    test("Should reject an invalid primers BED file") {
 
         when {
             params {
                 mode = "ILLUMINA"
                 virus = "sars-cov2"
-                inDir = "${projectDir}/test_data/illumina_reads"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
                 primersBED = "${projectDir}/non_existent_primers.bed"
             }
         }
 
         then {
             assert workflow.failed
-            assert workflow.stdout[0].contains("does not exist") ||
-                   workflow.stdout[0].contains("is not a file")
+            // Name the file, so this cannot pass on an unrelated "does not
+            // exist" raised by some other parameter.
+            assert workflow.stdout.any {
+                it.contains("non_existent_primers.bed") &&
+                    (it.contains("does not exist") || it.contains("is not a file"))
+            }
         }
     }
 }
