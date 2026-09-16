@@ -489,8 +489,12 @@ workflow processInputs {
         if (!(params.refGenomeCode==null)){
           ref_gcode = params.refGenomeCode
         } else {
-          reference_gff = params.referenceGFF
-          reference_fa = params.referenceGenome
+          // file() rather than the raw parameter strings: downstream consumers
+          // resolve these as paths, and the NANOPORE branch below already does
+          // the same. Emitting strings here made main.nf fail with
+          // "Unknown method invocation `toAbsolutePath` on String type".
+          reference_gff = file(params.referenceGFF)
+          reference_fa = file(params.referenceGenome)
         }
       }
 

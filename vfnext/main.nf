@@ -14,7 +14,8 @@ include {
   metadataFailureMessage;
   writeRunManifest;
   containerSpecs;
-  toolSpecs
+  toolSpecs;
+  referenceMetadataChannel
 } from './modules/metadata_helpers.nf'
 
 // The code for the inital log info is based on the one found at FASTQC PIPELINE
@@ -116,26 +117,10 @@ log.info """
 
   reads_metadata_ch = processInputs.out.source_inputs_ch
 
-  reference_metadata_ch = ref_fa.map { reference ->
-    tuple(
-      "reference",
-      "reference_fasta",
-      reference.toAbsolutePath().normalize().toString(),
-      reference
-    )
-  }
+  reference_metadata_ch = referenceMetadataChannel("reference_fasta", ref_fa)
 
   gff_metadata_ch = params.mode == "ILLUMINA"
-    ? ref_gff
-        .filter { referenceGff -> referenceGff != null }
-        .map { referenceGff ->
-          tuple(
-            "reference",
-            "reference_gff",
-            referenceGff.toAbsolutePath().normalize().toString(),
-            referenceGff
-          )
-        }
+    ? referenceMetadataChannel("reference_gff", ref_gff)
     : channel.empty()
 
   primer_metadata_ch = params.primersBED

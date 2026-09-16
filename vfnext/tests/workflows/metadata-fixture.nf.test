@@ -98,12 +98,47 @@ nextflow_workflow {
         when {
             params {
                 mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-single.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
             }
         }
 
         then {
             assert workflow.success
             assert workflow.out.gff_metadata_ch.size() == 0
+            assert workflow.out.fasta_metadata_ch.size() == 1
+            assert workflow.out.fasta_metadata_ch.get(0)[1] == "reference_fasta"
+        }
+    }
+
+    test("Should record reference metadata for a custom virus given explicit paths") {
+        workflow "OPTIONAL_GFF_METADATA_FIXTURE"
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                runSnpEff = false
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                referenceGFF = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            assert workflow.out.gff_metadata_ch.size() == 1
+            def gff = workflow.out.gff_metadata_ch.get(0)
+            assert gff[0] == "reference"
+            assert gff[1] == "reference_gff"
+            assert gff[2].startsWith("/")
+            assert gff[2].endsWith("/tests/data/bcftools/ref.fa")
+
+            assert workflow.out.fasta_metadata_ch.size() == 1
+            def fasta = workflow.out.fasta_metadata_ch.get(0)
+            assert fasta[1] == "reference_fasta"
+            assert fasta[2].endsWith("/tests/data/bcftools/ref.fa")
         }
     }
 }

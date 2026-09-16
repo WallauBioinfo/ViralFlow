@@ -7,7 +7,9 @@ include {
 include {
     localContainerSpec
     normalizeMetadata
+    referenceMetadataChannel
 } from '../../modules/metadata_helpers.nf'
+include { processInputs } from '../../workflows/step0-input-handling.nf'
 
 workflow METADATA_FIXTURE {
     main:
@@ -112,24 +114,25 @@ workflow NORMALIZE_METADATA_FIXTURE {
         normalized_ch
 }
 
+// Drives the real processInputs outputs through the same helper main.nf uses,
+// so a regression in reference metadata handling fails here instead of hiding
+// behind a synthetic channel.
 workflow OPTIONAL_GFF_METADATA_FIXTURE {
     main:
-        ref_gff = channel.value(
-            file("${projectDir}/tests/data/bcftools/ref.fa")
+        processInputs()
+
+        fasta_metadata_ch = referenceMetadataChannel(
+            "reference_fasta",
+            processInputs.out.ref_fa
         )
         gff_metadata_ch = params.mode == "ILLUMINA"
-            ? ref_gff
-                .filter { referenceGff -> referenceGff != null }
-                .map { referenceGff ->
-                    tuple(
-                        "reference",
-                        "reference_gff",
-                        referenceGff.toAbsolutePath().normalize().toString(),
-                        referenceGff
-                    )
-                }
+            ? referenceMetadataChannel(
+                "reference_gff",
+                processInputs.out.ref_gff
+            )
             : channel.empty()
 
     emit:
         gff_metadata_ch
+        fasta_metadata_ch
 }

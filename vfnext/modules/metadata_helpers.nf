@@ -147,6 +147,24 @@ def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessa
     )
 }
 
+// Build checksum records for a reference input channel. Shared by main.nf and
+// the metadata tests so the tests exercise the production path rather than a
+// copy of it. file() normalises the value: callers may hand over a Path or a
+// raw parameter string, and null entries are dropped for optional inputs.
+def referenceMetadataChannel(role, source) {
+    source
+        .filter { value -> value != null }
+        .map { value ->
+            def resolved = file(value)
+            tuple(
+                "reference",
+                role,
+                resolved.toAbsolutePath().normalize().toString(),
+                resolved
+            )
+        }
+}
+
 def localContainerSpec(name, pathValue) {
     def identity = absoluteMetadataPath(pathValue)
     def kind = java.nio.file.Files.isDirectory(java.nio.file.Path.of(identity)) ? 'local_sandbox' : 'local_sif'
