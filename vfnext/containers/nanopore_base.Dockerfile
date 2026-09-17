@@ -21,6 +21,10 @@ ARG NETWORKX_VERSION=3.6.1
 # tag clones libStatGen over the retired git:// protocol).
 ARG PORECHOP_ABI_COMMIT=0bc9f17f31d4ec1dcbab4796871cc09324cc143b
 ARG BAMUTIL_COMMIT=017721cc07948558395e4934ec10d0f91407c5eb
+# libStatGen is bamUtil's dependency, normally fetched unpinned by its
+# `make cloneLib` target. See Nanopore_baseContainer.sing for why this is master
+# HEAD and not the v1.0.15 tag.
+ARG LIBSTATGEN_COMMIT=fae4fca874b3b78bf9b61c0eae080c15edd976a4
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/app/minimap2/:$PATH
@@ -95,12 +99,18 @@ RUN pip install --break-system-packages "networkx==${NETWORKX_VERSION}" \
     && git checkout ${PORECHOP_ABI_COMMIT} \
     && python3 setup.py install
 
-# bamUtil. `make cloneLib` fetches libStatGen from its own default branch, so
-# that dependency remains unpinned here exactly as in the .sing.
+# bamUtil, with libStatGen cloned explicitly at a pinned commit. bamUtil's
+# Makefile.inc defaults LIB_PATH_GENERAL to ../libStatGen, so /app/libStatGen is
+# where the build looks. `make cloneLib` is deliberately not called: if this
+# clone ever lands elsewhere the build must fail loudly rather than quietly
+# falling back to an unpinned checkout.
+RUN git clone https://github.com/statgen/libStatGen.git \
+    && cd libStatGen \
+    && git checkout ${LIBSTATGEN_COMMIT}
+
 RUN git clone https://github.com/statgen/bamUtil.git \
     && cd bamUtil \
     && git checkout ${BAMUTIL_COMMIT} \
-    && make cloneLib \
     && make \
     && make install
 

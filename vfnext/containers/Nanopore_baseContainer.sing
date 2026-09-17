@@ -30,6 +30,13 @@ From: ubuntu:24.04
     #     landed on master after the release and was never tagged.
     PORECHOP_ABI_COMMIT=0bc9f17f31d4ec1dcbab4796871cc09324cc143b
     BAMUTIL_COMMIT=017721cc07948558395e4934ec10d0f91407c5eb
+    # libStatGen is bamUtil's dependency. bamUtil's own `make cloneLib` target
+    # fetches it from the default branch with no pin, so this is master HEAD -
+    # exactly what that target has been producing. Note the v1.0.15 tag is NOT
+    # an ancestor of master: it sits one commit ahead and differs only by a
+    # version-string bump in the Makefile, so moving to it is a deliberate
+    # upgrade rather than a tidy-up.
+    LIBSTATGEN_COMMIT=fae4fca874b3b78bf9b61c0eae080c15edd976a4
     # Update the package list and install essential packages
     apt-get update && apt-get install -y \
         build-essential \
@@ -102,14 +109,21 @@ From: ubuntu:24.04
     python3 setup.py install
 
     # install bam utils
+    # bamUtil's Makefile.inc defaults LIB_PATH_GENERAL to ../libStatGen, so
+    # cloning it here puts it exactly where the build looks. Doing it ourselves
+    # replaces `make cloneLib`, which clones the default branch unpinned. That
+    # target is deliberately not called afterwards: if this clone ever lands in
+    # the wrong place, the build must fail loudly rather than quietly falling
+    # back to an unpinned checkout.
+    cd /app/
+    git clone https://github.com/statgen/libStatGen.git
+    cd libStatGen
+    git checkout ${LIBSTATGEN_COMMIT}
+
     cd /app/
     git clone https://github.com/statgen/bamUtil.git
     cd bamUtil
     git checkout ${BAMUTIL_COMMIT}
-    # NOTE: `make cloneLib` clones libStatGen from its own default branch, so
-    # that dependency is still unpinned. Pinning it means cloning libStatGen
-    # explicitly into the path bamUtil expects instead of using this target.
-    make cloneLib
     make
     make install
 
