@@ -23,7 +23,7 @@ O ViralFlow requer um arquivo de parâmetros que contém todas as opções de co
 | `mapping_quality` | 30 | Limiar de qualidade de mapeamento usado para variant calling |
 | `base_quality` | 30 | Limiar de qualidade de base usado para variant calling |
 | `minDpIntrahost` | 100 | Profundidade mínima de cobertura por sítio genômico para ser considerado na análise intrahospedeiro |
-| `trimLen` | 0 | Número de bases que devem ser cortadas em ambas as extremidades das reads |
+| `trimLen` | 0 | Número de bases cortadas em ambas as extremidades das reads; 0 desativa. O ILLUMINA aplica no fastp antes do alinhamento; o NANOPORE mascara as bases no BAM alinhado com o bamUtil |
 | `refGenomeCode` | null | Código do genoma a ser usado na análise custom |
 | `referenceGFF` | null | Arquivo GFF do genoma a ser usado na análise custom |
 | `referenceGenome` | null | Arquivo Fasta do genoma a ser usado na análise custom |

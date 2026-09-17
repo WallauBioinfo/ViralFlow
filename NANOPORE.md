@@ -97,6 +97,32 @@ untouched, so primer-derived bases remain in the consensus. That is the default
 because it is the right behaviour for non-amplicon data; if you are working with
 amplicon protocols, supply the BED.
 
+## Read-end trimming (optional, off by default)
+
+`--trimLen` trims a fixed number of bases from both ends of every read. It is 0
+by default, which disables the step. ILLUMINA applies the same parameter inside
+fastp, before alignment; NANOPORE has no equivalent FASTQ step, so it trims the
+aligned BAM with `bam trimBam` instead. When both are enabled, trimming runs
+after primer clipping.
+
+```bash
+nextflow run /../ViralFlow/vfnext/main.nf \
+        --mode NANOPORE \
+        --inDir /path/to/np_input_dir/ \
+        --referenceGenome /path/to/reference.fna \
+        --trimLen 5 \
+        -resume
+```
+
+**Be aware of how bamUtil trims.** It *masks* the bases — sets them to `N` with
+quality `!` — rather than soft-clipping them. The alignment keeps its original
+start position and CIGAR, so a trimmed base still occupies its reference
+position and still counts toward the depth that `np_min_depth` masking is
+computed from, while no longer supporting any allele. A position covered only by
+trimmed bases will therefore look covered to the consensus masking step even
+though no read provides evidence for a base there. Worth keeping in mind when
+experimenting with this on real data.
+
 ## Current threshold behavior
 
 The current threshold logic is as follows:

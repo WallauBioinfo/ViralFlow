@@ -23,7 +23,7 @@ ViralFlow requiere un archivo de parámetros que contiene todas las opciones de 
 | `mapping_quality` | 30 | Umbral de calidad de mapeo usado para variant calling |
 | `base_quality` | 30 | Umbral de calidad de base usado para variant calling |
 | `minDpIntrahost` | 100 | Profundidad de cobertura mínima por sitio genómico para ser considerado en el análisis intra-huésped |
-| `trimLen` | 0 | Número de bases que deben ser recortadas en ambos extremos de las reads |
+| `trimLen` | 0 | Número de bases recortadas en ambos extremos de las reads; 0 lo desactiva. ILLUMINA lo aplica en fastp antes del alineamiento; NANOPORE enmascara las bases en el BAM alineado con bamUtil |
 | `refGenomeCode` | null | Código del genoma a ser usado en el análisis custom |
 | `referenceGFF` | null | Archivo GFF del genoma a ser usado en el análisis custom |
 | `referenceGenome` | null | Archivo Fasta del genoma a ser usado en el análisis custom |

@@ -25,7 +25,7 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 | `mapping_quality` | 30 | Mapping quality threshold used to variant calling |
 | `base_quality` | 30 | Base quality threshold used to variant calling |
 | `minDpIntrahost` | 100 | Minimum coverage depth per genomic site to be considered in the intrahost analysis |
-| `trimLen` | 0 | Number of bases that should be trimmed at both ends of the reads |
+| `trimLen` | 0 | Number of bases trimmed from both ends of the reads; 0 disables it. ILLUMINA applies it in fastp before alignment; NANOPORE masks the bases in the aligned BAM with bamUtil |
 | `refGenomeCode` | null | Code of the genome to be used in the custom analysis |
 | `referenceGFF` | null | GFF genome file to be used in custom analysis |
 | `referenceGenome` | null | Fasta genome file to be used in custom analysis |

@@ -3,6 +3,7 @@ nextflow.enable.dsl = 2
 include {run_porechop} from '../modules/runPorechop.nf'
 include {run_minimap2} from '../modules/runMinimap2.nf'
 include {run_amplicon_clip} from '../modules/runAmpliconClip.nf'
+include {run_bam_utils} from '../modules/runBamUtils.nf'
 include {run_clair3} from '../modules/runClair3.nf'
 include {run_bcftools; run_bcftools_consensus} from '../modules/runBcftools.nf'
 include {run_nanopore_qc} from '../modules/runNanoporeQc.nf'
@@ -32,6 +33,18 @@ workflow NANOPORE {
     if (params.primersBED) {
         run_amplicon_clip(bams_ch, file(params.primersBED))
         bams_ch = run_amplicon_clip.out.bams
+    }
+
+    // optional read-end trimming (bamUtil trimBam)
+    //
+    // Off while trimLen is 0, its default. ILLUMINA applies the same parameter
+    // in fastp, before alignment; there is no equivalent FASTQ step here, so
+    // NANOPORE trims the aligned BAM instead. Runs after primer clipping so the
+    // trim removes bases beyond the primers rather than eating into the region
+    // ampliconclip is about to look for.
+    if (params.trimLen > 0) {
+        run_bam_utils(bams_ch, params.trimLen)
+        bams_ch = run_bam_utils.out.bams
     }
 
     // do variant calling (clair3)
