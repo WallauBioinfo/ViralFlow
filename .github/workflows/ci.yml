@@ -135,3 +135,12 @@ jobs:
       - name: Run the full suite under the docker profile
         working-directory: vfnext
         run: nf-test test tests/ --profile docker --ci
+
+      # The end-to-end FASTQ-to-consensus determinism check. Kept as a separate
+      # step because it is slow and pulls Clair3, and because a failure here
+      # means the pipeline changed its output - a different class of problem
+      # from a unit test failing. GitHub runners are amd64, so Clair3 runs
+      # natively; on Apple Silicon it would need emulation.
+      - name: Run the nanopore truth integration test
+        working-directory: vfnext
+        run: nf-test test integration_tests/nanopore-truth.nf.test --profile docker --ci

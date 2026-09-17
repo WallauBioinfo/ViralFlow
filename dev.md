@@ -84,9 +84,9 @@ images. Run it manually with:
 pre-commit run --all-files --hook-stage pre-push
 ```
 
-The BCFtools, container metadata, and Nanopore truth tests remain manual because
-they require Singularity and a locally built `vfnext/containers/baseContainer.sif`
-(and the truth test also uses the Clair3 container):
+The BCFtools, container metadata, and Nanopore truth tests need a container
+image, so they are not part of the pre-commit stages. With Singularity and a
+locally built `vfnext/containers/baseContainer.sif`:
 
 ```bash
 cd vfnext
@@ -96,6 +96,21 @@ NXF_VER=26.04.6 nf-test test \
   --ci
 NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test --ci
 ```
+
+Without Singularity — CI runners, and developer machines such as Apple Silicon
+Macs — build the Docker image once and use `-profile docker` instead:
+
+```bash
+cd vfnext/containers
+docker build -f nanopore_base.Dockerfile -t viralflow/nanopore-base:2.0.0a1 .
+cd ..
+NXF_VER=26.04.6 nf-test test tests/ --profile docker --ci
+NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test --profile docker --ci
+```
+
+GitHub Actions runs both of these on every pull request. The truth test pulls
+Clair3, whose published image is amd64-only: it runs natively on CI runners, but
+needs emulation on Apple Silicon and will be slow there.
 
 For an emergency-only bypass, use `git commit --no-verify` or
 `git push --no-verify`, then run the skipped hook stage manually before opening
