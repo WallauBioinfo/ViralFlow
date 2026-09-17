@@ -8,7 +8,11 @@ nextflow_workflow {
 
         when {
             params {
-                base_container = "${projectDir}/containers/baseContainer.sif"
+                // base_container is deliberately not set here. It already
+                // defaults to containers/baseContainer.sif, and pinning it in
+                // this block would override whatever profile is active,
+                // preventing the test from running under -profile docker.
+                //
                 // Pinned by digest so the truth values are tied to one exact
                 // image. Must match the clair3 row in expected_containers.tsv;
                 // the assertions below cross-check the two.
@@ -81,9 +85,13 @@ nextflow_workflow {
             ).readLines().drop(1).collect { it.split("\t") }
 
             def baseContainer = containerRows.find { it[0] == "nanopore_base" }
-            def baseContainerFile = path("${projectDir}/${baseContainer[1]}")
-            assert baseContainerFile.exists()
             assert baseContainer[2] == "NA"
+            // No filesystem check on the base container: it is a local SIF
+            // under Singularity but an image reference under -profile docker,
+            // and params inside a then block reflects only this test's own
+            // params block, so there is nothing reliable to resolve a path
+            // from. The workflow reaching this point already proves whichever
+            // base container the active profile selected was usable.
 
             // Clair3 is pulled, so it can be pinned. The digest is declared in two
             // independent places - this test's params block and the fixture row -
