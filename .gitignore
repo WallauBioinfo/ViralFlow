@@ -156,3 +156,4 @@ vfnext/databases/*
 !vfnext/databases/*.csv
 .nextflow.log*
 .nf-test/
+output/
