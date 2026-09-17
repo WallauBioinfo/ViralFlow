@@ -14,6 +14,35 @@ singularity build baseContainer.sif Nanopore_baseContainer.sing
 # or
 apptainer build baseContainer.sif Nanopore_baseContainer.sing
 ```
+### Docker
+
+Where Singularity and Apptainer are not available — CI runners, and developer
+machines such as Apple Silicon Macs — build the equivalent Docker image and use
+the `docker` profile:
+
+```bash
+cd /.../ViralFlow/vfnext/containers/
+docker build -f nanopore_base.Dockerfile -t viralflow/nanopore-base:2.0.0a1 .
+```
+
+```bash
+nextflow run /../ViralFlow/vfnext/main.nf \
+        -profile docker \
+        --mode NANOPORE \
+        --inDir /path/to/np_input_dir/ \
+        --referenceGenome /path/to/reference.fna \
+        -resume
+```
+
+`nanopore_base.Dockerfile` mirrors `Nanopore_baseContainer.sing` and pins the
+same tool versions; `tests/test_container_recipes.py` fails if the two drift
+apart. The profile sets `params.base_container` to the image above, so the
+image tag must track the pipeline version.
+
+Note that Clair3's published image is amd64-only. On Apple Silicon it runs only
+under emulation, so the NANOPORE workflow is not usable end to end there; the
+profile is still useful for the modules that run in the base container.
+
 ### Apptainer setup
 
 Unfortunately, apptainer does not support `library://` protocol. To make it work on this protocol run the following commands:

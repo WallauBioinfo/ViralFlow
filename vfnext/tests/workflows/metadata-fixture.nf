@@ -17,7 +17,10 @@ include { processInputs } from '../../workflows/step0-input-handling.nf'
 workflow METADATA_FIXTURE {
     main:
         def inputFile = file("${projectDir}/tests/data/bcftools/ref.fa")
-        def containerPath = file("${projectDir}/containers/baseContainer.sif")
+        // Take the container from the parameter rather than hardcoding the SIF
+        // path, so this runs under whichever profile is active - the .sif under
+        // singularity, the image under -profile docker.
+        def containerPath = params.base_container
 
         checksum_inputs = channel.of(
             tuple(
