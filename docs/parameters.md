@@ -35,3 +35,33 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 | `mafft_threads` | 1 | Number of threads to be used in the mafft alignment step |
 | `dedup` | false | This argument enable dedup mode of fastp. To activate it change value to true on params test file |
 | `ndedup` | 3 | When dedup mode is active you can use accuracy levels (1 - 6). You can change this value, but we recommend the standard. How much higher, more RAM and time are consumed. To activate it change value from 1 to 6 on params test file |
+
+## NANOPORE Parameters
+
+These apply only when `mode` is `NANOPORE` and are ignored otherwise. `virus`,
+`refGenomeCode`, `referenceGFF`, `runSnpEff` and the fastp/bwa/mafft settings
+above belong to ILLUMINA mode; `base_quality` is likewise ILLUMINA only, while
+`mapping_quality` is used by both.
+
+| Argument | Default Value | Description |
+|----------|---------------|-------------|
+| `base_container` | projectDir/containers/baseContainer.sif | Container providing Porechop_ABI, Minimap2, Samtools, BCFtools and bamUtil. A local `.sif` path under Singularity/Apptainer; the `docker` profile overrides it with an image reference |
+| `clair3_container` | docker://hkubal/clair3@sha256:1430f7b5… | Clair3 image, pinned by digest so a rebuild cannot change the variant caller. Corresponds to release v1.2.0 |
+| `clair3_model` | r941_prom_sup_g5014 | Basecalling model Clair3 uses, passed as `--model_path`. Must name a directory present under `/opt/models` inside the Clair3 image, and should match the basecaller and chemistry that produced the reads |
+| `clair3_qual` | 10 | Minimum variant quality for Clair3 to report a call, passed as `--qual` |
+| `clair3_chunk_size` | 10000 | Size in bases of the chunks Clair3 splits the reference into for parallel calling, passed as `--chunk_size`. Affects runtime and memory, not results |
+| `mapping_quality` | 30 | Minimum mapping quality for a read to be used in variant calling, passed to Clair3 as `--min_mq` |
+| `af_threshold` | 0.51 | Allele-frequency cutoff applied to Clair3's output: BCFtools keeps a variant when `FORMAT/AF >= af_threshold`. No variant-depth or `FILTER=PASS` condition is applied alongside it. The default above 0.5 keeps the majority allele at each site |
+| `np_min_depth` | 20 | Consensus masking threshold. Coverage comes from `samtools depth -J -a`, and every position whose depth is **less than or equal to** this value is written as `N`. At the default, a position needs at least 21 reads to be called |
+| `porechop_cpus` | 4 | CPUs for the Porechop_ABI adapter-removal step |
+| `porechop_memory` | 4.GB | Memory for the Porechop_ABI step |
+| `minimap_cpus` | 4 | CPUs for the Minimap2 alignment step |
+| `minimap_memory` | 4.GB | Memory for the Minimap2 step |
+| `clair3_cpus` | 4 | CPUs for Clair3, passed as `--threads` |
+| `clair3_memory` | 4.GB | Memory for Clair3 |
+
+`af_threshold` and `np_min_depth` are applied independently, so a low-depth
+variant can survive the allele-frequency filter while the same position is
+masked in the consensus. Each sample directory contains a
+`<sample>.nanopore_qc.tsv` reporting the configured thresholds, variant counts
+and masked-base totals so this can be inspected per run.

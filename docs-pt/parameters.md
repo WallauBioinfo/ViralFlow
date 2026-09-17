@@ -33,3 +33,34 @@ O ViralFlow requer um arquivo de parâmetros que contém todas as opções de co
 | `mafft_threads` | 1 | Número de threads a serem usadas na etapa de alinhamento do mafft |
 | `dedup` | false | Este argumento habilita o modo dedup do fastp. Para ativá-lo, mude o valor para true no arquivo de parâmetros de teste |
 | `ndedup` | 3 | Quando o modo dedup está ativo, você pode usar níveis de precisão (1 - 6). Você pode alterar este valor, mas recomendamos o padrão. Quanto maior, mais RAM e tempo são consumidos. Para ativar, mude o valor de 1 a 6 no arquivo de parâmetros de teste |
+
+## Parâmetros do NANOPORE
+
+Aplicam-se apenas quando `mode` é `NANOPORE` e são ignorados caso contrário.
+`virus`, `refGenomeCode`, `referenceGFF`, `runSnpEff` e as opções de
+fastp/bwa/mafft acima pertencem ao modo ILLUMINA; `base_quality` também é
+exclusivo do ILLUMINA, enquanto `mapping_quality` é usado nos dois.
+
+| Argumento | Valor Padrão | Descrição |
+|-----------|--------------|-----------|
+| `base_container` | projectDir/containers/baseContainer.sif | Contêiner que fornece Porechop_ABI, Minimap2, Samtools, BCFtools e bamUtil. Um caminho local `.sif` com Singularity/Apptainer; o perfil `docker` o substitui por uma referência de imagem |
+| `clair3_container` | docker://hkubal/clair3@sha256:1430f7b5… | Imagem do Clair3, fixada por digest para que uma reconstrução não possa trocar o chamador de variantes. Corresponde à versão v1.2.0 |
+| `clair3_model` | r941_prom_sup_g5014 | Modelo de basecalling usado pelo Clair3, passado como `--model_path`. Deve corresponder a um diretório presente em `/opt/models` dentro da imagem do Clair3 e deve ser compatível com o basecaller e a química que geraram as reads |
+| `clair3_qual` | 10 | Qualidade mínima para que o Clair3 reporte uma variante, passada como `--qual` |
+| `clair3_chunk_size` | 10000 | Tamanho em bases dos blocos em que o Clair3 divide a referência para chamada paralela, passado como `--chunk_size`. Afeta o tempo de execução e a memória, não os resultados |
+| `mapping_quality` | 30 | Qualidade de mapeamento mínima para que uma read seja usada na chamada de variantes, passada ao Clair3 como `--min_mq` |
+| `af_threshold` | 0.51 | Limiar de frequência alélica aplicado à saída do Clair3: o BCFtools mantém uma variante quando `FORMAT/AF >= af_threshold`. Nenhuma condição adicional de profundidade ou de `FILTER=PASS` é aplicada. O padrão, acima de 0.5, mantém o alelo majoritário em cada sítio |
+| `np_min_depth` | 20 | Limiar de mascaramento do consenso. A cobertura vem de `samtools depth -J -a`, e toda posição cuja profundidade seja **menor ou igual** a este valor é escrita como `N`. No padrão, uma posição precisa de pelo menos 21 reads para ser chamada |
+| `porechop_cpus` | 4 | CPUs para a etapa de remoção de adaptadores com o Porechop_ABI |
+| `porechop_memory` | 4.GB | Memória para a etapa do Porechop_ABI |
+| `minimap_cpus` | 4 | CPUs para a etapa de alinhamento com o Minimap2 |
+| `minimap_memory` | 4.GB | Memória para a etapa do Minimap2 |
+| `clair3_cpus` | 4 | CPUs para o Clair3, passados como `--threads` |
+| `clair3_memory` | 4.GB | Memória para o Clair3 |
+
+`af_threshold` e `np_min_depth` são aplicados de forma independente, de modo que
+uma variante de baixa profundidade pode passar pelo filtro de frequência alélica
+enquanto essa mesma posição é mascarada no consenso. Cada diretório de amostra
+contém um arquivo `<amostra>.nanopore_qc.tsv` que reporta os limiares
+configurados, as contagens de variantes e o total de bases mascaradas, de modo
+que isso pode ser inspecionado a cada execução.
