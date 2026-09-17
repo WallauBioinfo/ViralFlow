@@ -1,0 +1,51 @@
+nextflow_workflow {
+
+    name "Optional primer clipping for NANOPORE"
+    script "tests/workflows/ampliconclip-fixture.nf"
+    workflow "AMPLICONCLIP_FIXTURE"
+
+    test("Should hard-clip primer bases from the alignment") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        [id: "clip_sample"],
+                        file("${projectDir}/tests/data/bcftools/input.sam")
+                    )
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/ampliconclip/primers.bed")
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            // input.sam holds one forward read, ACGTACGTAC, aligned 10M from
+            // reference position 1. primers.bed covers reference bases 1-4, so
+            // hard clipping must drop those four bases, leaving a 6M alignment
+            // starting at position 5.
+            def fields = path(workflow.out.clipped.get(0))
+                .readLines()
+                .findAll { line -> !line.startsWith("@") }
+                .collect { line -> line.split("\t") }
+
+            assert fields.size() == 1
+            def read = fields[0]
+            assert read[0] == "read1"
+            // Alignment now starts past the primer.
+            assert read[3] == "5"
+            // 4H records the four bases hard-clipped away; 6M is what remains.
+            assert read[5] == "4H6M"
+            // The primer bases are gone from SEQ, not merely soft-masked.
+            assert read[9] == "ACGTAC"
+
+            // The clipping report is published alongside the BAM.
+            assert path(workflow.out.stats.get(0)).exists()
+        }
+    }
+}

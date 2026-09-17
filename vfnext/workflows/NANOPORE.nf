@@ -2,6 +2,7 @@
 nextflow.enable.dsl = 2
 include {run_porechop} from '../modules/runPorechop.nf'
 include {run_minimap2} from '../modules/runMinimap2.nf'
+include {run_amplicon_clip} from '../modules/runAmpliconClip.nf'
 include {run_clair3} from '../modules/runClair3.nf'
 include {run_bcftools; run_bcftools_consensus} from '../modules/runBcftools.nf'
 include {run_nanopore_qc} from '../modules/runNanoporeQc.nf'
@@ -20,6 +21,18 @@ workflow NANOPORE {
     // do alignment (minimap2)
     run_minimap2(reads_ch, ref)
     bams_ch = run_minimap2.out // tuple (meta, sorted_bam, bai)
+
+    // optional primer clipping (samtools ampliconclip)
+    //
+    // Off unless --primersBED is supplied, which matches ILLUMINA. When it is
+    // supplied the clipped BAM replaces the raw alignment for everything
+    // downstream, so variant calling, the depth used for masking and the
+    // consensus all see primer-free reads. Leaving it out of only some of those
+    // would make the consensus disagree with the variants it was built from.
+    if (params.primersBED) {
+        run_amplicon_clip(bams_ch, file(params.primersBED))
+        bams_ch = run_amplicon_clip.out.bams
+    }
 
     // do variant calling (clair3)
     run_clair3(bams_ch, ref, params.clair3_chunk_size, params.clair3_qual, params.mapping_quality, params.clair3_model)

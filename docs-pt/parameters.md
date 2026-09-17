@@ -12,7 +12,7 @@ O ViralFlow requer um arquivo de parâmetros que contém todas as opções de co
 |-----------|--------------|-----------|
 | `mode` | ILLUMINA | Tecnologia de sequenciamento dos dados de entrada (ILLUMINA ou NANOPORE) |
 | `virus` | sars-cov2 | Tipo de análise (sars-cov2 ou custom) |
-| `primersBED` | null | Caminho absoluto para o arquivo bed com informações dos primers usados na amplificação genômica (opcional). Não é suportado no modo NANOPORE, que não realiza o recorte de primers |
+| `primersBED` | null | Caminho absoluto para o arquivo bed com informações dos primers usados na amplificação genômica (opcional). Fornecê-lo habilita o recorte de primers nos modos ILLUMINA e NANOPORE; sem ele, nenhum recorte é realizado |
 | `outDir` | launchDir/output/ | Diretório de saída do ViralFlow onde os resultados e os metadados da execução serão armazenados |
 | `samplesheet` | null | Arquivo CSV com as colunas `sample_id`, `fastq_1` e `fastq_2`. Repita um sample ID para fornecer chunks ou lanes ordenados. Não pode ser combinado com `inDir` |
 | `inDir` | null | Obsoleto, será removido na v3; use `samplesheet`. Caminho absoluto para o diretório com os dados de entrada (diretório com os arquivos FASTQ). Se não for definido, o ViralFlow usa `launchDir/input/` |

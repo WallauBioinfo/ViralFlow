@@ -69,16 +69,33 @@ nextflow run /../ViralFlow/vfnext/main.nf \
 
 to run it using apptainer, just add `-profile apptainer` to your nextflow command.
 
-## Primer clipping is not supported
+## Primer clipping (optional, off by default)
 
-The NANOPORE workflow has no primer-clipping step, so `--primersBED` is
-**rejected** in this mode rather than accepted and ignored. Passing it fails
-validation before the run starts.
+Primer clipping does not run unless you ask for it. Supplying `--primersBED`
+turns it on, exactly as in ILLUMINA mode:
 
-This is deliberate. Silently ignoring the BED would leave primer-derived bases
-in the consensus while the run — including the checksummed inputs recorded under
-`RUN_METADATA` — looked as though they had been trimmed. If you are working with
-amplicon data, be aware that primer positions are not removed.
+```bash
+nextflow run /../ViralFlow/vfnext/main.nf \
+        --mode NANOPORE \
+        --inDir /path/to/np_input_dir/ \
+        --referenceGenome /path/to/reference.fna \
+        --primersBED /path/to/primers.bed \
+        -resume
+```
+
+When enabled, `samtools ampliconclip --strand --hard-clip` runs between the
+Minimap2 alignment and variant calling, and the clipped BAM replaces the raw
+alignment for **everything** downstream — Clair3, the depth used for masking and
+the consensus. Clipping only some of those would let the consensus disagree with
+the variants it was built from.
+
+Each sample directory gains `<sample>.primer_clip.bam` (plus its index) and
+`<sample>.ampliconclip.txt`, samtools' report of what was clipped.
+
+Without `--primersBED` the pipeline logs a warning and leaves the alignment
+untouched, so primer-derived bases remain in the consensus. That is the default
+because it is the right behaviour for non-amplicon data; if you are working with
+amplicon protocols, supply the BED.
 
 ## Current threshold behavior
 

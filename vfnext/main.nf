@@ -123,9 +123,9 @@ log.info """
     ? referenceMetadataChannel("reference_gff", ref_gff)
     : channel.empty()
 
-  // Only ILLUMINA clips primers, so only ILLUMINA records the BED as a run
-  // input. Recording it in NANOPORE mode would imply it took part in the run.
-  primer_metadata_ch = (params.mode == "ILLUMINA" && params.primersBED)
+  // Both modes clip primers when a BED is supplied, so both record it as a run
+  // input.
+  primer_metadata_ch = params.primersBED
     ? channel.of(
         tuple(
           "reference",

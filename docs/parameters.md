@@ -14,7 +14,7 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 |----------|---------------|-------------|
 | `mode` | ILLUMINA | Sequencing technology of the input data (ILLUMINA or NANOPORE) |
 | `virus` | sars-cov2 | Analysis type (sars-cov2 or custom) |
-| `primersBED` | null | Absolute path to bed file with primers information used in genomic amplification (optional). Not supported in NANOPORE mode, which performs no primer clipping |
+| `primersBED` | null | Absolute path to bed file with primers information used in genomic amplification (optional). Supplying it enables primer clipping in both ILLUMINA and NANOPORE modes; without it, no clipping is performed |
 | `outDir` | launchDir/output/ | ViralFlow output directory where results and run metadata will be stored |
 | `samplesheet` | null | CSV file with `sample_id`, `fastq_1` and `fastq_2` columns. Repeat a sample ID to provide ordered chunks or lanes. Cannot be combined with `inDir` |
 | `inDir` | null | Deprecated, and removed in v3; use `samplesheet`. Absolute path to the directory with the input data (directory with the FASTQ files). When unset, ViralFlow falls back to `launchDir/input/` |
