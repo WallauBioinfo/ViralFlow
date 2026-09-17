@@ -245,13 +245,15 @@ def check_IL_custom_virus_params() {
       log.error("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
       local_errors += 1
     } else {
+      // Existence first, then file-ness: a missing path fails both checks, so
+      // testing them independently reported one problem twice, and claimed the
+      // path "is not a file" when the real issue was that it is not there.
       def ref_gff_path = file(params.referenceGFF)
-      if (!ref_gff_path.isFile()){
-        log.error("${ref_gff_path} is not a file.")
-        local_errors += 1
-      }
       if (!ref_gff_path.exists()){
         log.error("${ref_gff_path} does not exist.")
+        local_errors += 1
+      } else if (!ref_gff_path.isFile()){
+        log.error("${ref_gff_path} is not a file.")
         local_errors += 1
       }
     }
@@ -261,12 +263,11 @@ def check_IL_custom_virus_params() {
       local_errors += 1
     } else {
       def ref_fa_path = file(params.referenceGenome)
-      if (!ref_fa_path.isFile()){
-        log.error("${ref_fa_path} is not a file.")
-        local_errors += 1
-      }
       if (!ref_fa_path.exists()){
-        log.error("${ref_fa_path} does not exists.")
+        log.error("${ref_fa_path} does not exist.")
+        local_errors += 1
+      } else if (!ref_fa_path.isFile()){
+        log.error("${ref_fa_path} is not a file.")
         local_errors += 1
       }
     }
@@ -294,14 +295,13 @@ def validate_primers_bed() {
   // if a path is provided, check if is valid
   else if (!(params.primersBED==null)){
     def adapter_fl = file(params.primersBED)
-    if (!adapter_fl.isFile()){
+    if (!adapter_fl.exists()){
+      log.error("${params.primersBED} does not exist.")
+      errors += 1
+    } else if (!adapter_fl.isFile()){
       log.error("${params.primersBED} is not a file.")
       errors += 1
-      }
-    if (!adapter_fl.exists()){
-      log.error("${params.primersBED} does not exists.")
-      errors += 1
-      }
+    }
   }
   return errors
 }

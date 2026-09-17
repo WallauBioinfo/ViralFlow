@@ -75,7 +75,7 @@ nextflow_workflow {
         }
     }
 
-    test("Should fail with custom virus but unreadable reference files") {
+    test("Should fail with custom virus but missing reference paths") {
 
         when {
             params {
@@ -90,15 +90,39 @@ nextflow_workflow {
         then {
             assert workflow.failed
             assert workflow.stdout.any {
-                it.contains("no_such_reference.gff") && it.contains("is not a file")
+                it.contains("no_such_reference.gff") && it.contains("does not exist")
             }
             assert workflow.stdout.any {
-                it.contains("no_such_reference.fa") && it.contains("is not a file")
+                it.contains("no_such_reference.fa") && it.contains("does not exist")
             }
-            // Pins the count so a regression in error accounting is caught.
-            // Note this is 4, not 2: each bad file reports both "is not a file"
-            // and "does not exist", so one missing file counts twice.
-            assert workflow.stdout.any { it.contains("4 validation errors detected") }
+            // One error per bad path, not two. A missing path fails both the
+            // existence and the file-ness check, so these used to be counted
+            // and reported twice.
+            assert workflow.stdout.any { it.contains("2 validation errors detected") }
+            assert !workflow.stdout.any { it.contains("is not a file") }
+        }
+    }
+
+    test("Should fail with custom virus when a reference path is a directory") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+                // A path that exists but is not a regular file: the only case
+                // that should produce "is not a file".
+                referenceGFF = "${projectDir}/tests/data"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("tests/data") && it.contains("is not a file")
+            }
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
         }
     }
 
@@ -162,9 +186,10 @@ nextflow_workflow {
             // Name the file, so this cannot pass on an unrelated "does not
             // exist" raised by some other parameter.
             assert workflow.stdout.any {
-                it.contains("non_existent_primers.bed") &&
-                    (it.contains("does not exist") || it.contains("is not a file"))
+                it.contains("non_existent_primers.bed") && it.contains("does not exist")
             }
+            // One error for one bad path.
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
         }
     }
 }
