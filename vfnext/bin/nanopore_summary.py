@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import gzip
+import fileinput
 import statistics
 
 
@@ -23,7 +23,13 @@ def parse_args():
 
 
 def open_text(path):
-    return gzip.open(path, "rt") if path.endswith(".gz") else open(path)
+    """Open a VCF as text whether or not it is gzipped.
+
+    Mode is "r", not "rt": hook_compressed passes the mode straight to
+    gzip.open, and "rt" there raises
+    "underlying read() should have returned a bytes-like object".
+    """
+    return fileinput.hook_compressed(path, "r")
 
 
 def count_fasta(path):
