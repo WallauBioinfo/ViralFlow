@@ -114,14 +114,22 @@ nextflow run /../ViralFlow/vfnext/main.nf \
         -resume
 ```
 
-**Be aware of how bamUtil trims.** It *masks* the bases — sets them to `N` with
-quality `!` — rather than soft-clipping them. The alignment keeps its original
-start position and CIGAR, so a trimmed base still occupies its reference
-position and still counts toward the depth that `np_min_depth` masking is
-computed from, while no longer supporting any allele. A position covered only by
-trimmed bases will therefore look covered to the consensus masking step even
-though no read provides evidence for a base there. Worth keeping in mind when
-experimenting with this on real data.
+**How bamUtil trims here.** The step runs `bam trimBam --clip`, which *soft
+clips* the trimmed bases: the alignment start moves past them and the CIGAR
+gains leading and trailing `S` operations, so the bases stay in the record but
+no longer occupy reference positions. They therefore drop out of the depth that
+`np_min_depth` masking is computed from, which is what you want - a position
+covered only by trimmed bases is correctly seen as uncovered.
+
+`--clip` is not bamUtil's default. Left to itself, `trimBam` *masks* the bases
+instead, setting them to `N` with quality `!` while the alignment keeps spanning
+the same reference positions. That inflated the consensus depth with bases
+supporting no allele, and Clair3's pileup aborted on such reads outright
+(`munmap_chunk(): invalid pointer`), so trimming could not be used at all.
+
+A trim wider than a read leaves that read unclipped and marked unmapped, rather
+than producing a degenerate alignment. Each sample directory gains
+`<sample>.trim.sorted.bam` and its index.
 
 ## Current threshold behavior
 

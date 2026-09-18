@@ -4,7 +4,7 @@ nextflow_workflow {
     script "tests/workflows/bamutils-fixture.nf"
     workflow "BAMUTILS_FIXTURE"
 
-    test("Should mask trimmed bases at both read ends") {
+    test("Should soft-clip trimmed bases at both read ends") {
 
         when {
             workflow {
@@ -30,16 +30,18 @@ nextflow_workflow {
             def read = fields[0]
 
             // input.sam holds one forward read, ACGTACGTAC, aligned 10M from
-            // reference position 1, all qualities I. Trimming 2 from each end
-            // masks those four bases rather than soft-clipping them.
-            assert read[9] == "NNGTACGTNN"
-            assert read[10] == "!!IIIIII!!"
+            // reference position 1, all qualities I. Soft clipping leaves the
+            // bases and qualities in the record untouched; the CIGAR is what
+            // marks them as not aligned.
+            assert read[9] == "ACGTACGTAC"
+            assert read[10] == "IIIIIIIIII"
 
-            // Masking, not clipping: the alignment still starts at 1 and still
-            // spans 10 reference bases, so the trimmed positions keep counting
-            // toward depth while no longer supporting any allele.
-            assert read[3] == "1"
-            assert read[5] == "10M"
+            // Clipping, not masking: the alignment now starts at 3 and spans
+            // only the 6 untrimmed bases, so the trimmed positions stop
+            // counting toward the depth consensus masking is computed from.
+            // Masked bases kept that depth and crashed Clair3's pileup.
+            assert read[3] == "3"
+            assert read[5] == "2S6M2S"
         }
     }
 
@@ -67,8 +69,12 @@ nextflow_workflow {
 
             // The workflow skips this process entirely at the default trimLen
             // of 0; this pins that a zero trim is a no-op even when it does run.
+            // Under --clip the sequence is preserved whatever the trim, so the
+            // position and CIGAR are what make this assertion mean anything.
             assert read[9] == "ACGTACGTAC"
             assert read[10] == "IIIIIIIIII"
+            assert read[3] == "1"
+            assert read[5] == "10M"
         }
     }
 }

@@ -17,13 +17,26 @@ process run_bam_utils {
     """
     set -euo pipefail
 
-    # bamUtil's default trimBam masks the trimmed bases (sets them to N with
-    # quality !) rather than soft-clipping them, so the alignment length is
-    # unchanged and the masked bases simply stop supporting any allele.
-    bam trimBam ${bam} ${meta.id}.trim.bam -L ${trim_len} -R ${trim_len}
+    # --clip soft-clips the trimmed bases. bamUtil's default instead masks them
+    # (bases to N, qualities to !) while the alignment keeps spanning the same
+    # reference positions, which had two consequences: the masked bases still
+    # counted toward the depth consensus masking is computed from while
+    # supporting no allele, and Clair3's pileup aborted on them outright:
+    #
+    #   munmap_chunk(): invalid pointer     (SIGABRT, deterministic)
+    #
+    # Soft clipping moves the alignment start past the trimmed bases, so they
+    # no longer occupy reference positions at all. A trim that would consume a
+    # whole read leaves it unclipped and marked unmapped rather than producing
+    # a degenerate alignment.
+    #
+    # Reads are single-end here, so the mate fields bamUtil leaves untouched
+    # when clipping need no samtools fixmate pass.
+    bam trimBam ${bam} ${meta.id}.trim.bam -L ${trim_len} -R ${trim_len} --clip
 
-    # Re-sort defensively: trimBam preserves input order, but downstream depth
-    # and variant calling both require a coordinate-sorted, indexed BAM.
+    # Required rather than defensive: soft clipping shifts start positions, so
+    # trimBam's output is no longer coordinate-sorted, and downstream depth and
+    # variant calling both need a sorted, indexed BAM.
     samtools sort ${meta.id}.trim.bam -o ${meta.id}.trim.sorted.bam
     samtools index ${meta.id}.trim.sorted.bam
     """
