@@ -63,4 +63,7 @@ variante de baja profundidad puede superar el filtro de frecuencia alélica
 mientras esa misma posición queda enmascarada en el consenso. Cada directorio de
 muestra contiene un archivo `<muestra>.nanopore_summary.tsv` que reporta los umbrales
 configurados, los conteos de variantes y el total de bases enmascaradas, de modo
-que esto puede inspeccionarse en cada ejecución.
+que esto puede inspeccionarse en cada ejecución. Tenga en cuenta que
+`masked_bases` y `consensus_n_bases` cuentan cosas distintas; consulte
+`NANOPORE.md` para saber por qué difieren con una referencia que contiene códigos
+de ambigüedad.

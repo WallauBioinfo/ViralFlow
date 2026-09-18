@@ -151,6 +151,29 @@ position is masked in the consensus. Each sample directory contains a
 variant counts, depth summary, masked bases, and callable consensus percentage.
 This file is descriptive and does not affect pipeline success or filtering.
 
+### Reading `masked_bases` against `consensus_n_bases`
+
+These two look interchangeable and are equal on an N-free reference, but they
+count different things:
+
+| Metric | Counts | Coordinate space |
+|---|---|---|
+| `masked_bases` | positions ViralFlow masked because `depth <= np_min_depth` | reference |
+| `consensus_n_bases` | every `N` in the consensus, whatever its origin | consensus |
+
+`consensus_n_bases - masked_bases` is therefore the N that did **not** come from
+your coverage threshold — in practice, ambiguity codes the reference already
+carried. With SARS-CoV-2 (`NC_045512.2`) the difference is zero, because that
+reference contains no N; with a reference that does, they diverge by exactly
+that count.
+
+`callable_bases` and `callable_percent` are derived from `consensus_n_bases`,
+since a reference N is no more callable than a low-coverage one.
+
+One related behaviour worth knowing when interpreting these numbers: `bcftools
+consensus` does not apply a variant that falls inside a masked region, so a
+deletion there leaves the consensus length unchanged.
+
 ## Reproducibility metadata
 
 Every run writes reproducibility records under `RUN_METADATA` inside the output

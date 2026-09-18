@@ -151,6 +151,62 @@ nextflow_workflow {
         }
     }
 
+    // masked_bases and consensus_n_bases look interchangeable and are equal on
+    // an N-free reference, which is the only kind the other fixtures use. They
+    // measure different things: masked_bases counts positions this pipeline
+    // masked for low coverage, consensus_n_bases counts every N in the output
+    // whatever its origin. This pins the difference so the two are not
+    // "simplified" into one.
+    test("Should count reference N separately from coverage masking") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref_with_n.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def summary = workflow.out.summary.get(0)
+            def metrics = path(summary[1]).readLines().drop(1).collectEntries { line ->
+                def fields = line.split("\t", 2)
+                [(fields[0]): fields[1]]
+            }
+
+            // The reference is 20 bp with N at positions 7 and 8 - clear of the
+            // variant at position 5, which bcftools norm would otherwise reject
+            // as a reference-allele mismatch. input.sam covers 1-10, so 11-20
+            // are masked for zero coverage.
+            assert metrics.masked_bases == "10"
+
+            // Ten coverage-masked plus the two the reference already carried.
+            assert metrics.consensus_n_bases == "12"
+
+            // The whole point: these are not the same number.
+            assert metrics.masked_bases != metrics.consensus_n_bases
+
+            // callable_bases is derived from the total N, not from the masked
+            // count, so reference N correctly counts as not callable.
+            assert metrics.consensus_length == "20"
+            assert metrics.callable_bases == "8"
+        }
+    }
+
     test("Should fail on a malformed VCF") {
 
         when {
