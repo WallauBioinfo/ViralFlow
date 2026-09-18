@@ -11,7 +11,7 @@ process runIntraHostScript{
 
   script:
      """
-     python $projectDir/bin/intrahost_scriptv2.py \
+     python $projectDir/bin/intrahost.py \
             -in ${meta.id}.depth${params.depth}.fa.bc \
             -al ${meta.id}.depth${params.depth}.fa.algn \
             -dp ${params.minDpIntrahost} \
