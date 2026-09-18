@@ -147,9 +147,9 @@ The current threshold logic is as follows:
 
 Consequently, a low-depth variant can remain in the filtered VCF while the same
 position is masked in the consensus. Each sample directory contains a
-`<sample>.nanopore_qc.tsv` file that reports the configured thresholds, variant
-counts, depth summary, masked bases, and callable consensus percentage. This
-file is descriptive and does not affect pipeline success or filtering.
+`<sample>.nanopore_summary.tsv` file that reports the configured thresholds,
+variant counts, depth summary, masked bases, and callable consensus percentage.
+This file is descriptive and does not affect pipeline success or filtering.
 
 ## Reproducibility metadata
 
@@ -171,7 +171,7 @@ incomplete provenance.
 
 The deterministic FASTQ-to-consensus truth test is intentionally separate from
 the regular unit-test suite because it runs Porechop, Minimap2, Clair3,
-BCFtools, consensus generation, and Nanopore QC:
+BCFtools, consensus generation, and the Nanopore summary:
 
 ```bash
 cd vfnext

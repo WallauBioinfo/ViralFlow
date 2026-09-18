@@ -13,5 +13,5 @@ workflow NANOPORE_TRUTH {
     emit:
         filtered = NANOPORE.out.filtered_vcfs_ch
         consensus = NANOPORE.out.consensus_ch
-        qc = NANOPORE.out.qc_ch
+        summary = NANOPORE.out.summary_ch
 }

@@ -61,6 +61,6 @@ también exclusivo de ILLUMINA, mientras que `mapping_quality` se usa en ambos.
 `af_threshold` y `np_min_depth` se aplican de forma independiente, por lo que una
 variante de baja profundidad puede superar el filtro de frecuencia alélica
 mientras esa misma posición queda enmascarada en el consenso. Cada directorio de
-muestra contiene un archivo `<muestra>.nanopore_qc.tsv` que reporta los umbrales
+muestra contiene un archivo `<muestra>.nanopore_summary.tsv` que reporta los umbrales
 configurados, los conteos de variantes y el total de bases enmascaradas, de modo
 que esto puede inspeccionarse en cada ejecución.

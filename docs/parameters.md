@@ -63,5 +63,5 @@ above belong to ILLUMINA mode; `base_quality` is likewise ILLUMINA only, while
 `af_threshold` and `np_min_depth` are applied independently, so a low-depth
 variant can survive the allele-frequency filter while the same position is
 masked in the consensus. Each sample directory contains a
-`<sample>.nanopore_qc.tsv` reporting the configured thresholds, variant counts
+`<sample>.nanopore_summary.tsv` reporting the configured thresholds, variant counts
 and masked-base totals so this can be inspected per run.

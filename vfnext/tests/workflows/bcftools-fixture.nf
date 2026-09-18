@@ -4,7 +4,7 @@ include {
     run_bcftools
     run_bcftools_consensus
 } from '../../modules/runBcftools.nf'
-include { run_nanopore_qc } from '../../modules/runNanoporeQc.nf'
+include { run_nanopore_summary } from '../../modules/runNanoporeSummary.nf'
 
 process prepare_fixture_bam {
     label "NP_basecontainer"
@@ -74,7 +74,7 @@ workflow BCFTOOLS_FIXTURE {
             }
             .set { qc_input_ch }
 
-        run_nanopore_qc(
+        run_nanopore_summary(
             qc_input_ch,
             ref,
             10,
@@ -86,5 +86,5 @@ workflow BCFTOOLS_FIXTURE {
     emit:
         filtered = run_bcftools.out
         consensus = run_bcftools_consensus.out
-        qc = run_nanopore_qc.out
+        summary = run_nanopore_summary.out
 }

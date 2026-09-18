@@ -149,9 +149,9 @@ nextflow_workflow {
                 def fields = line.split("\t", 2)
                 [(fields[0]): fields[1]]
             }
-            def qc = workflow.out.qc.get(0)
-            assert qc[0].id == "nanopore_truth"
-            def observedMetrics = path(qc[1]).readLines()
+            def summary = workflow.out.summary.get(0)
+            assert summary[0].id == "nanopore_truth"
+            def observedMetrics = path(summary[1]).readLines()
                 .drop(1)
                 .collectEntries { line ->
                     def fields = line.split("\t", 2)

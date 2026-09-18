@@ -84,21 +84,21 @@ nextflow_workflow {
                 "chr1\t20\t0"
             ]
 
-            def qc = workflow.out.qc.get(0)
-            assert qc[0].id == "sample"
-            def qcMetrics = path(qc[1]).readLines()
+            def summary = workflow.out.summary.get(0)
+            assert summary[0].id == "sample"
+            def summaryMetrics = path(summary[1]).readLines()
                 .drop(1)
                 .collectEntries { line ->
                     def fields = line.split("\t", 2)
                     [(fields[0]): fields[1]]
                 }
-            assert qcMetrics.raw_variant_count == "1"
-            assert qcMetrics.af_filtered_variant_count == "1"
-            assert qcMetrics.filtered_variants_depth_missing == "1"
-            assert qcMetrics.masked_bases == "10"
-            assert qcMetrics.consensus_n_bases == "10"
-            assert qcMetrics.callable_bases == "10"
-            assert qcMetrics.callable_percent == "50.000000"
+            assert summaryMetrics.raw_variant_count == "1"
+            assert summaryMetrics.af_filtered_variant_count == "1"
+            assert summaryMetrics.filtered_variants_depth_missing == "1"
+            assert summaryMetrics.masked_bases == "10"
+            assert summaryMetrics.consensus_n_bases == "10"
+            assert summaryMetrics.callable_bases == "10"
+            assert summaryMetrics.callable_percent == "50.000000"
         }
     }
 
@@ -136,18 +136,18 @@ nextflow_workflow {
             def consensus = workflow.out.consensus.get(0)
             assert path(consensus[1]).text.trim() == ">sample\nNNNNNNNNNNNNNNNNNNNN"
 
-            def qc = workflow.out.qc.get(0)
-            def qcMetrics = path(qc[1]).readLines()
+            def summary = workflow.out.summary.get(0)
+            def summaryMetrics = path(summary[1]).readLines()
                 .drop(1)
                 .collectEntries { line ->
                     def fields = line.split("\t", 2)
                     [(fields[0]): fields[1]]
                 }
-            assert qcMetrics.filtered_variants_depth_below_min == "1"
-            assert qcMetrics.filtered_variants_depth_equal_min == "1"
-            assert qcMetrics.filtered_variants_depth_above_min == "1"
-            assert qcMetrics.masked_bases == "20"
-            assert qcMetrics.consensus_mask_rule == "depth <= consensus_min_depth"
+            assert summaryMetrics.filtered_variants_depth_below_min == "1"
+            assert summaryMetrics.filtered_variants_depth_equal_min == "1"
+            assert summaryMetrics.filtered_variants_depth_above_min == "1"
+            assert summaryMetrics.masked_bases == "20"
+            assert summaryMetrics.consensus_mask_rule == "depth <= consensus_min_depth"
         }
     }
 

@@ -6,7 +6,7 @@ include {run_amplicon_clip} from '../modules/runAmpliconClip.nf'
 include {run_bam_utils} from '../modules/runBamUtils.nf'
 include {run_clair3} from '../modules/runClair3.nf'
 include {run_bcftools; run_bcftools_consensus} from '../modules/runBcftools.nf'
-include {run_nanopore_qc} from '../modules/runNanoporeQc.nf'
+include {run_nanopore_summary} from '../modules/runNanoporeSummary.nf'
 
 // nextflow.config declares trimLen as an Integer, but a value given on the
 // command line arrives as a String, and the wrapper forwards params-file
@@ -103,10 +103,10 @@ workflow NANOPORE {
         .map { _id, raw_vcf, filtered_vcf, filtered_tbi, meta, consensus, low_cov, coverage ->
             tuple(meta, raw_vcf, filtered_vcf, filtered_tbi, consensus, low_cov, coverage)
         }
-        .set { nanopore_qc_input_ch }
+        .set { nanopore_summary_input_ch }
 
-    run_nanopore_qc(
-        nanopore_qc_input_ch,
+    run_nanopore_summary(
+        nanopore_summary_input_ch,
         ref,
         params.clair3_qual,
         params.mapping_quality,
@@ -123,5 +123,5 @@ workflow NANOPORE {
         raw_vcfs_ch = run_clair3.out
         filtered_vcfs_ch = run_bcftools.out
         consensus_ch = run_bcftools_consensus.out
-        qc_ch = run_nanopore_qc.out
+        summary_ch = run_nanopore_summary.out
 }

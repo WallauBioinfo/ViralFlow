@@ -61,6 +61,6 @@ exclusivo do ILLUMINA, enquanto `mapping_quality` é usado nos dois.
 `af_threshold` e `np_min_depth` são aplicados de forma independente, de modo que
 uma variante de baixa profundidade pode passar pelo filtro de frequência alélica
 enquanto essa mesma posição é mascarada no consenso. Cada diretório de amostra
-contém um arquivo `<amostra>.nanopore_qc.tsv` que reporta os limiares
+contém um arquivo `<amostra>.nanopore_summary.tsv` que reporta os limiares
 configurados, as contagens de variantes e o total de bases mascaradas, de modo
 que isso pode ser inspecionado a cada execução.
