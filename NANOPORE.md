@@ -39,9 +39,10 @@ same tool versions; `tests/test_container_recipes.py` fails if the two drift
 apart. The profile sets `params.base_container` to the image above, so the
 image tag must track the pipeline version.
 
-Note that Clair3's published image is amd64-only. On Apple Silicon it runs only
-under emulation, so the NANOPORE workflow is not usable end to end there; the
-profile is still useful for the modules that run in the base container.
+Clair3's published image is amd64 only, so on Apple Silicon it runs under
+emulation. The workflow still completes end to end, the truth test included,
+but expect Clair3 to take a couple of minutes where it would take seconds
+natively.
 
 ### Apptainer setup
 
