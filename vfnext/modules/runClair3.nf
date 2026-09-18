@@ -7,6 +7,9 @@ process run_clair3{
     input:
         tuple val(meta), path(bam), path(bai)
         path(ref)
+        // Staged beside the reference so htslib finds it as <ref>.fai. Built
+        // once by run_faidx rather than in every task here.
+        path(ref_fai)
         val(chunk_size) // 10000
         val(qual) // 10
         val(map_qual) // 30
@@ -18,8 +21,6 @@ process run_clair3{
     script:
     """
     set -euo pipefail
-
-    samtools faidx ${ref}
 
     run_clair3.sh \
         --enable_long_indel \

@@ -46,7 +46,10 @@ nextflow_workflow {
 
         then {
             assert workflow.success
-            assert workflow.trace.succeeded().size() == 6
+            // run_faidx, run_porechop, run_minimap2, run_clair3, run_bcftools,
+            // run_bcftools_consensus, run_nanopore_summary. Neither optional
+            // step runs here: primersBED is unset and trimLen is 0.
+            assert workflow.trace.succeeded().size() == 7
 
             def fixtureDir = path(
                 "${projectDir}/tests/integration/data/nanopore_truth"

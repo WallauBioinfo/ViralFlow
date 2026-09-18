@@ -2,6 +2,7 @@
 nextflow.enable.dsl = 2
 include {run_porechop} from '../modules/runPorechop.nf'
 include {run_minimap2} from '../modules/runMinimap2.nf'
+include {run_faidx} from '../modules/runFaidx.nf'
 include {run_amplicon_clip} from '../modules/runAmpliconClip.nf'
 include {run_bam_utils} from '../modules/runBamUtils.nf'
 include {run_clair3} from '../modules/runClair3.nf'
@@ -63,8 +64,17 @@ workflow NANOPORE {
         bams_ch = run_bam_utils.out.bams
     }
 
+    // index the reference once, not inside every Clair3 task
+    //
+    // There is a single reference per run, so run_faidx emits one .fai and
+    // Nextflow broadcasts it across the per-sample BAM channel. No .first() or
+    // .collect() is needed, and adding one would be actively wrong if the
+    // reference ever became per-sample: it would silently pin every sample to
+    // the first index instead of failing.
+    run_faidx(ref)
+
     // do variant calling (clair3)
-    run_clair3(bams_ch, ref, params.clair3_chunk_size, params.clair3_qual, params.mapping_quality, params.clair3_model)
+    run_clair3(bams_ch, ref, run_faidx.out.fai, params.clair3_chunk_size, params.clair3_qual, params.mapping_quality, params.clair3_model)
 
     // normlalize indes and filter variants (bcftools)
     run_bcftools(run_clair3.out, ref, params.af_threshold)
