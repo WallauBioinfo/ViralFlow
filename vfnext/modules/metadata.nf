@@ -74,7 +74,14 @@ process capture_tool_version {
         exit 1
     fi
 
-    version=\$(printf '%s' "\${cleaned}" | sed -E 's/.*([vV]?[0-9]+([.][0-9A-Za-z_-]+)+).*/\\1/' | awk '{print \$1}')
+    # Leftmost match, via bash's own =~, rather than a greedy sed expression.
+    if [[ "\${cleaned}" =~ ([vV]?[0-9]+([.][0-9A-Za-z_-]+)+) ]]; then
+        version="\${BASH_REMATCH[1]}"
+    else
+        # Nothing version-shaped in the output: keep the cleaned text
+        version="\${cleaned}"
+    fi
+
     printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n' \
         '${mode}' '${tool_name}' "\${version}" '${container_identity}' "\${status}" "\${cleaned}" \
         > ${tool_name}.version.tsv
