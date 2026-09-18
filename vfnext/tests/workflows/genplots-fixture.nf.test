@@ -1,0 +1,47 @@
+nextflow_workflow {
+
+    name "GENPLOTS read extraction on a renamed BAM"
+    script "tests/workflows/genplots-fixture.nf"
+    workflow "GENPLOTS_FIXTURE"
+    config "./genplots-fixture.config"
+
+    // The fixture stages the alignment as "<id>.trim.sorted.bam". Both processes
+    // used to rebuild "<id>.sorted.bam" from meta.id rather than reading the
+    // staged path, which broke every NANOPORE run that rebound the BAM
+    // (--trimLen or --primersBED) because writeMappedReads defaults to true.
+
+    test("Should read the staged BAM whatever it is named") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "sample"],
+                          file("${projectDir}/tests/data/genplots/reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 3
+
+            def mapped = workflow.out.mapped.get(0)
+            assert mapped[0].id == "sample"
+
+            def mappedReads = path(mapped[1]).linesGzip.findAll {
+                it.startsWith("@")
+            }
+            assert mappedReads == ["@aligned_read"]
+
+            def unmapped = workflow.out.unmapped.get(0)
+            assert unmapped[0].id == "sample"
+
+            def unmappedReads = path(unmapped[1]).linesGzip.findAll {
+                it.startsWith("@")
+            }
+            assert unmappedReads == ["@orphan_read"]
+        }
+    }
+}
