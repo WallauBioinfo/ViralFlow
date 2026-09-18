@@ -379,13 +379,6 @@ def compile_output_fls(data_dir, out_dir, depth, virus_tag):
         errors_df = pd.DataFrame(err_dct_lst)
         errors_df.to_csv(out_dir + "/errors_detected.csv", index=False)
         LOGGER.info("wrote errors_detected.csv")
-        # write csvs
-        # all_chrms_df = pd.concat(chrms_df_lst, ignore_index=True)
-        # all_dpth_df = pd.concat(dpth_lst, ignore_index=True)
-        # all_chrms_df.to_csv(out_dir + "/chromossomes.csv", index=False)
-        # print("  > chromossomes.csv")
-        # all_dpth_df.to_csv(out_dir + "/depth.csv", index=False)
-        # print("  > depth.csv")
 
     LOGGER.info("DONE")
 
