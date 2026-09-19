@@ -1,5 +1,13 @@
 target-version = "py312"
 line-length = 88
 
+# intrahost.py runs inside intrahost_analysis:1.1.0.sif, which pins Python 3.8,
+# so the formatter must not emit syntax that container cannot parse. It already
+# did once: left at py312 it rewrote a multi-context `with` into the
+# parenthesized form, which is 3.10+, and the script stopped being loadable
+# there at all. Keep this in step with the container.
+[per-file-target-version]
+"vfnext/bin/intrahost.py" = "py38"
+
 [lint]
 select = ["E4", "E7", "E9", "F"]

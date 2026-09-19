@@ -132,6 +132,38 @@ nextflow_workflow {
         }
     }
 
+    test("Should declare every ILLUMINA container as a local image") {
+        workflow "CONTAINER_SPECS_TUPLES_FIXTURE"
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "sars-cov2"
+                runSnpEff = true
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def specs = workflow.out.container_specs_ch
+            def byName = specs.collectEntries { spec -> [(spec[0]): spec] }
+
+            // runIntraHostScript briefly ran from a registry image because it
+            // had no container at all before this branch. It shares
+            // runReadCounts' container instead, so there is nothing extra to
+            // declare here - but that only holds while no ILLUMINA process
+            // reaches for a registry again, which is what this asserts.
+            assert specs.every { spec -> spec[1] == "local_sif" }
+            assert specs.every { spec -> !spec[2].contains("://") }
+
+            assert byName.containsKey("intrahost_analysis")
+            // Column order is the contract: name, kind, identity.
+            assert byName.intrahost_analysis[2]
+                .endsWith("/containers/intrahost_analysis:1.1.0.sif")
+        }
+    }
+
     test("Should build toolSpecs tuples in the order capture_tool_version expects") {
         workflow "TOOL_SPECS_FIXTURE"
 

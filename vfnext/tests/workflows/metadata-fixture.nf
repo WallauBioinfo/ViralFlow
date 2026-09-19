@@ -135,6 +135,20 @@ workflow CONTAINER_SPECS_FIXTURE {
         rows = capture_container_metadata.out
 }
 
+// The ILLUMINA branch of containerSpecs() cannot go through
+// capture_container_metadata the way CONTAINER_SPECS_FIXTURE does: that process
+// checksums each local .sif, and the ILLUMINA images are pulled by
+// `viralflow build-containers` rather than living in the repository, so they are
+// absent wherever the suite runs. Emit the tuples instead - enough to pin which
+// containers the branch declares and how each is classified.
+workflow CONTAINER_SPECS_TUPLES_FIXTURE {
+    main:
+        container_specs_ch = containerSpecChannel(params, workflow)
+
+    emit:
+        container_specs_ch
+}
+
 // toolSpecs feeds capture_tool_version, which can only run inside each tool's own
 // container. Assert the tuple contract here; the execution path is covered by
 // METADATA_FIXTURE.

@@ -35,6 +35,19 @@ repos:
         language: system
         files: ^vfnext/.*\.(nf|config)$
 
+      # intrahost.py runs inside a container pinning Python 3.8, and the
+      # formatter has already broken that once by rewriting a `with` into the
+      # 3.10+ parenthesized form. ruff.toml pins the target version for the
+      # file; this is the check that the pin is actually holding.
+      - id: intrahost-py38
+        name: intrahost.py parses under its container's Python
+        entry: >-
+          uv run --no-project --python 3.8
+          python -m py_compile vfnext/bin/intrahost.py
+        language: system
+        pass_filenames: false
+        files: ^(vfnext/bin/intrahost\.py|ruff\.toml)$
+
       - id: python-unit-tests
         name: Python unit tests
         entry: >-

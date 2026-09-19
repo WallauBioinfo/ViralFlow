@@ -16,6 +16,10 @@ CONTAINERS = PROJECT_ROOT / "vfnext" / "containers"
 SINGULARITY_RECIPE = CONTAINERS / "Nanopore_baseContainer.sing"
 DOCKER_RECIPE = CONTAINERS / "nanopore_base.Dockerfile"
 PROFILES = PROJECT_ROOT / "vfnext" / "configs" / "profiles.config"
+CONTAINERS_CONFIG = PROJECT_ROOT / "vfnext" / "configs" / "containers.config"
+METADATA_TEST = (
+    PROJECT_ROOT / "vfnext" / "tests" / "workflows" / "metadata-fixture.nf.test"
+)
 NEXTFLOW_CONFIG = PROJECT_ROOT / "vfnext" / "nextflow.config"
 TEST_CONFIG = PROJECT_ROOT / "vfnext" / "tests" / "nextflow.config"
 TRUTH_TEST = PROJECT_ROOT / "vfnext" / "integration_tests" / "nanopore-truth.nf.test"
@@ -137,6 +141,77 @@ class Clair3PinTests(unittest.TestCase):
     def test_the_pin_is_a_digest_not_a_mutable_tag(self):
         for where, pin in clair3_pins().items():
             self.assertIn("@sha256:", pin, f"{where} pins a mutable tag: {pin}")
+
+
+INTRAHOST_SCRIPT = PROJECT_ROOT / "vfnext" / "bin" / "intrahost.py"
+RUFF_CONFIG = PROJECT_ROOT / "ruff.toml"
+
+# The Python that intrahost_analysis:1.1.0.sif ships, from the def file that
+# built it (vfnext/containers/def_files/intrahost_analysis.def at 5780713,
+# deleted in c2be157 when the images moved to the Sylabs library).
+INTRAHOST_CONTAINER_PYTHON = "py38"
+
+
+class IntrahostContainerTests(unittest.TestCase):
+    """intrahost.py has no container of its own; it borrows runReadCounts'.
+
+    That container pins Python 3.8, which is older than everything else in the
+    fleet, so the formatter can silently put syntax in the file that the
+    container cannot parse. It already did: left at the repo-wide py312 target,
+    ruff rewrote a multi-context `with` into the 3.10+ parenthesized form.
+    """
+
+    def test_ruff_targets_the_container_python(self):
+        match = re.search(
+            r"\[per-file-target-version\][^\[]*?"
+            r'"vfnext/bin/intrahost\.py"\s*=\s*"([^"]+)"',
+            RUFF_CONFIG.read_text(),
+            flags=re.DOTALL,
+        )
+        self.assertIsNotNone(
+            match, "ruff.toml no longer pins a target version for intrahost.py"
+        )
+        self.assertEqual(match.group(1), INTRAHOST_CONTAINER_PYTHON)
+
+    def test_no_parenthesized_context_managers(self):
+        """The one construct the formatter reaches for that 3.8 rejects.
+
+        The pre-commit hook compiles the file under a real 3.8 and is the
+        authority; this runs everywhere and names the likely cause.
+        """
+        offenders = [
+            number
+            for number, line in enumerate(
+                INTRAHOST_SCRIPT.read_text().splitlines(), start=1
+            )
+            if re.match(r"\s*with\s*\($", line)
+        ]
+        self.assertEqual(
+            offenders,
+            [],
+            f"parenthesized `with` is Python 3.10+, at line(s) {offenders}",
+        )
+
+
+class ContainerConfigTests(unittest.TestCase):
+    def test_illumina_processes_use_local_images(self):
+        """Every ILLUMINA container is a local .sif under containers/.
+
+        runIntraHostScript was briefly an exception, pointing at a Wave image
+        pulled at run time. That image is published for linux/amd64 only, while
+        the project ships arm64 SIFs too, and it is absent from
+        containers/repositories/, so `viralflow build-containers` never fetched
+        it. Clair3 is the one deliberate registry dependency and lives in
+        nextflow.config, not here.
+        """
+        for line in CONTAINERS_CONFIG.read_text().splitlines():
+            match = re.search(r"^\s*container\s*=\s*[\"'](.+?)[\"']", line)
+            if match:
+                self.assertRegex(
+                    match.group(1),
+                    r"^\$projectDir/containers/",
+                    f"non-local container in containers.config: {match.group(1)}",
+                )
 
 
 class ContainerRecipeTests(unittest.TestCase):
