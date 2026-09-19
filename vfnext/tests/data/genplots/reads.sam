@@ -1,0 +1,4 @@
+@HD	VN:1.6	SO:coordinate
+@SQ	SN:chr1	LN:20
+aligned_read	0	chr1	1	60	10M	*	0	0	ACGTACGTAC	IIIIIIIIII
+orphan_read	4	*	0	0	*	*	0	0	TTTTTTTTTT	IIIIIIIIII

@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch supersedes the previous run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Kept in step with envs/amd64.yml and the pre-commit hooks.
+  NXF_VER: "26.04.6"
+  NF_TEST_VERSION: "0.9.4"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # Runs the commit-time gate itself rather than a copy of it, so CI and the
+  # hooks cannot drift: ruff, repo hygiene, nextflow lint, Python unit tests.
+  lint:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # The nextflow-lint hook needs nextflow on PATH.
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          nextflow -version
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run commit-time hooks
+        run: |
+          pip install "pre-commit==4.6.0"
+          pre-commit run --all-files --show-diff-on-failure
+
+  # The pre-push gate: the Nextflow tests that need no container image.
+  nextflow-tests:
+    name: Nextflow tests (no containers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Nextflow and nf-test
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          curl -fsSL https://code.askimed.com/install/nf-test \
+            | bash -s "${NF_TEST_VERSION}"
+          sudo mv nf-test /usr/local/bin/
+          nextflow -version
+          nf-test version
+
+      - name: Run tests
+        working-directory: vfnext
+        run: |
+          nf-test test \
+            tests/workflows/input-fixture.nf.test \
+            tests/workflows/step0-input-handling.validation.nf.test \
+            tests/main.metadata.nf.test \
+            --ci
+
+  # The container suite. Runs under -profile docker, which is the only way CI
+  # can execute these at all: the default profile expects Singularity, which is
+  # not available on GitHub runners.
+  container-tests:
+    name: Nextflow tests (containers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Nextflow and nf-test
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          curl -fsSL https://code.askimed.com/install/nf-test \
+            | bash -s "${NF_TEST_VERSION}"
+          sudo mv nf-test /usr/local/bin/
+
+      # Read the tag from the profile rather than repeating it here, so the
+      # image CI builds is always the one the profile will ask for.
+      - name: Resolve base container image tag
+        id: image
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          text = open("vfnext/configs/profiles.config").read()
+          match = re.search(r"base_container\s*=\s*'([^']+)'", text)
+          assert match, "docker profile does not set params.base_container"
+          print(f"tag={match.group(1)}")
+          PY
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the nanopore base image
+        uses: docker/build-push-action@v6
+        with:
+          context: vfnext/containers
+          file: vfnext/containers/nanopore_base.Dockerfile
+          tags: ${{ steps.image.outputs.tag }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run the full suite under the docker profile
+        working-directory: vfnext
+        run: nf-test test tests/ --profile docker --ci
+
+      # The end-to-end checks: FASTQ-to-consensus determinism, and multi-sample
+      # fan-out. Kept as a separate step because they are slow and pull Clair3,
+      # and because a failure here means the pipeline changed its output - a
+      # different class of problem from a unit test failing. GitHub runners are
+      # amd64, so Clair3 runs natively; on Apple Silicon it needs emulation.
+      - name: Run the nanopore integration tests
+        working-directory: vfnext
+        run: nf-test test integration_tests/ --profile docker --ci

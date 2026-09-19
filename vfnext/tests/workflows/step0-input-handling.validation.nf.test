@@ -1,0 +1,209 @@
+nextflow_workflow {
+
+    name "Test Parameter Validation in step0-input-handling"
+    script "workflows/step0-input-handling.nf"
+    workflow "processInputs"
+
+    // These tests assert with `workflow.stdout.any { it.contains(...) }`.
+    // `workflow.stdout.contains(...)` compares whole list elements, and Nextflow
+    // prefixes each line with "[ERROR] ", so an exact-match assertion can never
+    // succeed here.
+    //
+    // Each case supplies a valid samplesheet so the only validation errors are
+    // the ones under test. They previously pointed at test_data/illumina_reads
+    // and test_data/nanopore_reads, which are not in the repository, so every
+    // run raised an extra "is not a directory" error.
+
+    test("Should fail with invalid mode") {
+
+        when {
+            params {
+                mode = "INVALID_MODE"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("The mode provided (INVALID_MODE) is not valid. Accepted modes are: ILLUMINA, NANOPORE")
+            }
+            // Exactly one error: nothing else about the run is invalid.
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
+        }
+    }
+
+    test("Should fail when inDir does not exist") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "sars-cov2"
+                inDir = "${projectDir}/non_existent_directory"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("non_existent_directory") && it.contains("is not a directory")
+            }
+        }
+    }
+
+    test("Should fail with custom virus but missing reference files") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+                // Missing referenceGenome and referenceGFF
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGFF must be provided.")
+            }
+            assert workflow.stdout.any {
+                it.contains("A 'custom' virus tag was set and no refGenomeCode was provided, therefore a referenceGenome must be provided.")
+            }
+            // The missing GFF and the missing genome, and nothing else.
+            assert workflow.stdout.any { it.contains("2 validation errors detected") }
+        }
+    }
+
+    test("Should fail with custom virus but missing reference paths") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+                referenceGFF = "${projectDir}/no_such_reference.gff"
+                referenceGenome = "${projectDir}/no_such_reference.fa"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("no_such_reference.gff") && it.contains("does not exist")
+            }
+            assert workflow.stdout.any {
+                it.contains("no_such_reference.fa") && it.contains("does not exist")
+            }
+            // One error per bad path, not two. A missing path fails both the
+            // existence and the file-ness check, so these used to be counted
+            // and reported twice.
+            assert workflow.stdout.any { it.contains("2 validation errors detected") }
+            assert !workflow.stdout.any { it.contains("is not a file") }
+        }
+    }
+
+    test("Should fail with custom virus when a reference path is a directory") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "custom"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+                // A path that exists but is not a regular file: the only case
+                // that should produce "is not a file".
+                referenceGFF = "${projectDir}/tests/data"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("tests/data") && it.contains("is not a file")
+            }
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
+        }
+    }
+
+    test("Should fail with NANOPORE mode but missing reference genome") {
+
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-single.csv"
+                // Missing referenceGenome
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("A reference genome fasta file must be provided for NANOPORE mode")
+            }
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
+        }
+    }
+
+    test("Should accept primersBED in NANOPORE mode") {
+
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-single.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                primersBED = "${projectDir}/tests/data/ampliconclip/primers.bed"
+            }
+        }
+
+        then {
+            // Primer clipping is optional in NANOPORE. Supplying a readable BED
+            // turns it on and must validate cleanly.
+            assert workflow.success
+        }
+    }
+
+    test("Should reject an unreadable primersBED in NANOPORE mode") {
+
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-single.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+                primersBED = "${projectDir}/no_such_primers.bed"
+            }
+        }
+
+        then {
+            // The same file validation ILLUMINA applies.
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains("no_such_primers.bed") && it.contains("does not exist")
+            }
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
+        }
+    }
+
+    test("Should reject an invalid primers BED file") {
+
+        when {
+            params {
+                mode = "ILLUMINA"
+                virus = "sars-cov2"
+                samplesheet = "${projectDir}/tests/data/input/illumina-multilane.csv"
+                primersBED = "${projectDir}/non_existent_primers.bed"
+            }
+        }
+
+        then {
+            assert workflow.failed
+            // Name the file, so this cannot pass on an unrelated "does not
+            // exist" raised by some other parameter.
+            assert workflow.stdout.any {
+                it.contains("non_existent_primers.bed") && it.contains("does not exist")
+            }
+            // One error for one bad path.
+            assert workflow.stdout.any { it.contains("1 validation errors detected") }
+        }
+    }
+}

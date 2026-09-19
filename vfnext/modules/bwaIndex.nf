@@ -6,7 +6,7 @@ process indexReferenceBWA {
     */
     //publishDir "${params.outDir}/"
     label "singlethread"
-    
+
     input:
         path(ref_fa)
 
