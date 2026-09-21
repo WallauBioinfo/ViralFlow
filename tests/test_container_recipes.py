@@ -21,6 +21,7 @@ METADATA_TEST = (
     PROJECT_ROOT / "vfnext" / "tests" / "workflows" / "metadata-fixture.nf.test"
 )
 NEXTFLOW_CONFIG = PROJECT_ROOT / "vfnext" / "nextflow.config"
+METADATA_HELPERS = PROJECT_ROOT / "vfnext" / "modules" / "metadata_helpers.nf"
 TEST_CONFIG = PROJECT_ROOT / "vfnext" / "tests" / "nextflow.config"
 TRUTH_TEST = PROJECT_ROOT / "vfnext" / "integration_tests" / "nanopore-truth.nf.test"
 TRUTH_FIXTURE = (
@@ -193,9 +194,25 @@ class IntrahostContainerTests(unittest.TestCase):
         )
 
 
+def illumina_container_images():
+    """The name -> path entries of params.illumina_containers."""
+    text = CONTAINERS_CONFIG.read_text()
+    block = re.search(r"illumina_containers\s*=\s*\[(.*?)\]", text, re.DOTALL)
+    assert block, "params.illumina_containers not found in containers.config"
+    return dict(re.findall(r"(\w+)\s*:\s*[\"'](.+?)[\"']", block.group(1)))
+
+
+def illumina_container_references():
+    """The image names the process directives resolve, in file order."""
+    return re.findall(
+        r"container\s*=\s*\{\s*params\.illumina_containers\.(\w+)\s*\}",
+        CONTAINERS_CONFIG.read_text(),
+    )
+
+
 class ContainerConfigTests(unittest.TestCase):
     def test_illumina_processes_use_local_images(self):
-        """Every ILLUMINA container is a local .sif under containers/.
+        """Every ILLUMINA image is a local .sif under containers/.
 
         runIntraHostScript was briefly an exception, pointing at a Wave image
         pulled at run time. That image is published for linux/amd64 only, while
@@ -204,14 +221,68 @@ class ContainerConfigTests(unittest.TestCase):
         it. Clair3 is the one deliberate registry dependency and lives in
         nextflow.config, not here.
         """
-        for line in CONTAINERS_CONFIG.read_text().splitlines():
-            match = re.search(r"^\s*container\s*=\s*[\"'](.+?)[\"']", line)
-            if match:
-                self.assertRegex(
-                    match.group(1),
-                    r"^\$projectDir/containers/",
-                    f"non-local container in containers.config: {match.group(1)}",
-                )
+        images = illumina_container_images()
+        self.assertTrue(images, "no images declared in params.illumina_containers")
+        for name, image in images.items():
+            self.assertRegex(
+                image,
+                r"^\$projectDir/containers/",
+                f"non-local container declared for {name}: {image}",
+            )
+
+    def test_no_process_hardcodes_a_container_path(self):
+        """Directives resolve through the map rather than naming an image.
+
+        A literal path here would be a second place to bump a version, which is
+        what let containers.config and metadata_helpers.containerSpecs() drift
+        apart: the run used one image while container_manifest.tsv named
+        another. It would also slip past the local-image check above, which now
+        reads the map.
+        """
+        literals = [
+            line.strip()
+            for line in CONTAINERS_CONFIG.read_text().splitlines()
+            if re.search(r"^\s*container\s*=\s*[\"']", line)
+        ]
+        self.assertEqual(
+            literals,
+            [],
+            "container directives must read params.illumina_containers",
+        )
+
+    def test_every_referenced_image_is_declared(self):
+        """No directive resolves a name the map does not declare.
+
+        Nextflow would hand the task a null container and run it on the host,
+        silently, rather than failing.
+        """
+        images = illumina_container_images()
+        references = illumina_container_references()
+        self.assertTrue(references, "no process reads params.illumina_containers")
+        for name in sorted(set(references)):
+            self.assertIn(
+                name,
+                images,
+                f"containers.config resolves undeclared image '{name}'",
+            )
+
+    def test_every_declared_image_is_used(self):
+        """Nothing is declared that no process runs and no manifest reports.
+
+        An unused entry is either a process that lost its container or an image
+        the project stopped shipping; both are worth noticing rather than
+        carrying.
+        """
+        images = illumina_container_images()
+        used = set(illumina_container_references()) | set(
+            re.findall(r"'(\w+)'", METADATA_HELPERS.read_text())
+        )
+        for name in sorted(images):
+            self.assertIn(
+                name,
+                used,
+                f"'{name}' is declared but no process or manifest entry uses it",
+            )
 
 
 class ContainerRecipeTests(unittest.TestCase):

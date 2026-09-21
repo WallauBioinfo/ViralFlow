@@ -198,33 +198,50 @@ def toolSpecChannel(params, workflow) {
     )
 }
 
-def containerSpecs(params, workflow) {
+// Resolves an image by the name configs/containers.config declares it under.
+// Failing loudly on an unknown name is the point: the alternative is a manifest
+// that omits an image, or names one the run never used.
+def illuminaContainerSpec(params, name) {
+    def image = (params.illumina_containers ?: [:])[name]
+    if (!image) {
+        error "No image declared for '${name}' in params.illumina_containers (configs/containers.config)"
+    }
+    return localContainerSpec(name, image)
+}
+
+// Takes workflow to match toolSpecs() and containerSpecChannel(), though it no
+// longer needs it: the ILLUMINA paths used to be built from workflow.projectDir
+// and now come from params.illumina_containers.
+def containerSpecs(params, _workflow) {
     def specs = []
     if (params.mode == 'NANOPORE') {
         specs << localContainerSpec('nanopore_base', params.base_container)
         specs << remoteContainerSpec('clair3', params.clair3_container)
     }
     else if (params.mode == 'ILLUMINA') {
-        def containerDir = java.nio.file.Path.of(workflow.projectDir.toString()).resolve('containers')
-        specs.addAll([
-            localContainerSpec('edirect', containerDir.resolve('edirect:1.1.0.sif')),
-            localContainerSpec('generate_consensus', containerDir.resolve('generate_consensus:2.0.0.sif')),
-            localContainerSpec('fastp', containerDir.resolve('fastp:1.0.1.sif')),
-            localContainerSpec('samtools', containerDir.resolve('samtools:1.11.0.sif')),
-            localContainerSpec('mafft', containerDir.resolve('mafft:7.505_2.sif')),
-            localContainerSpec('picard', containerDir.resolve('picard:2.27.2_2.sif')),
-            localContainerSpec('intrahost_analysis', containerDir.resolve('intrahost_analysis:1.1.0.sif')),
-            localContainerSpec('generate_plots', containerDir.resolve('generate_plots:2.0.0.sif')),
-            localContainerSpec('compiled_outputs', containerDir.resolve('compiled_outputs:1.1.0.sif'))
-        ])
+        // Names, not paths: the paths live in params.illumina_containers, which
+        // the process directives read too, so the manifest cannot drift from
+        // the images the run actually used. What stays here is which of those
+        // images a given run reaches for, since that depends on the parameters
+        // below rather than on the configuration.
+        def names = [
+            'edirect',
+            'generate_consensus',
+            'fastp',
+            'samtools',
+            'mafft',
+            'picard',
+            'intrahost_analysis',
+            'generate_plots',
+            'compiled_outputs'
+        ]
         if (params.runSnpEff) {
-            specs << localContainerSpec('snpeff', containerDir.resolve('snpeff:5.0.sif'))
-            specs << localContainerSpec('generate_report', containerDir.resolve('generate_report:1.1.0.sif'))
+            names += ['snpeff', 'generate_report']
         }
         if (params.virus == 'sars-cov2') {
-            specs << localContainerSpec('pangolin', containerDir.resolve('pangolin:4.4.sif'))
-            specs << localContainerSpec('nextclade', containerDir.resolve('nextclade:3.18.sif'))
+            names += ['pangolin', 'nextclade']
         }
+        specs.addAll(names.collect { name -> illuminaContainerSpec(params, name) })
     }
     specs.unique { spec -> spec.identity }
 }
