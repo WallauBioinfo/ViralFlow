@@ -192,7 +192,9 @@ nextflow_workflow {
             // Position 0 is the mode, 1 the tool, 2 the version command, 3 the
             // container. Each assertion fails if the fields are reordered.
             assert specs.every { spec -> spec[0] == "NANOPORE" }
-            // nf-test sorts channel emissions, so compare as a set.
+            // nf-test sorts channel emissions, so compare as a set. bamutil is
+            // absent because trimLen defaults to 0 and run_bam_utils therefore
+            // never runs; the test below covers the enabled case.
             assert specs.collect { spec -> spec[1] }.toSorted() == [
                 "bcftools", "clair3", "minimap2", "porechop_abi", "samtools"
             ]
@@ -202,6 +204,43 @@ nextflow_workflow {
             def byTool = specs.collectEntries { spec -> [(spec[1]): spec] }
             assert byTool.bcftools[3].endsWith("/tests/data/bcftools/ref.fa")
             assert byTool.clair3[3].startsWith("docker://hkubal/clair3")
+        }
+    }
+
+    test("Should declare bamUtil only when read-end trimming is enabled") {
+        workflow "TOOL_SPECS_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+                base_container = "${projectDir}/tests/data/bcftools/ref.fa"
+                // A String, as the command line delivers it: the gate reads the
+                // same normalizeTrimLen the workflow uses to decide whether
+                // run_bam_utils runs, so both agree on what "enabled" means.
+                trimLen = "30"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def specs = workflow.out.tool_specs_ch
+            def byTool = specs.collectEntries { spec -> [(spec[1]): spec] }
+
+            assert byTool.containsKey("bamutil")
+            assert byTool.bamutil[0] == "NANOPORE"
+            // bamUtil has no --version flag, so the other tools' pattern does
+            // not apply: `bam` alone exits 255 without printing one, and
+            // `bam help` puts it on the second line. sed, not head, because
+            // `bam help` keeps writing and an early close exits 141 under
+            // pipefail - which capture_tool_version would record as a failure.
+            assert byTool.bamutil[2] == "bam help 2>&1 | sed -n 2p"
+            assert byTool.bamutil[3].endsWith("/tests/data/bcftools/ref.fa")
+
+            // The trimming tool is the only addition; nothing else changes.
+            assert specs.collect { spec -> spec[1] }.toSorted() == [
+                "bamutil", "bcftools", "clair3", "minimap2", "porechop_abi", "samtools"
+            ]
         }
     }
 

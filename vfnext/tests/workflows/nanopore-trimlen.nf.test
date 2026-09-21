@@ -1,7 +1,7 @@
 nextflow_function {
 
     name "NANOPORE trimLen normalization"
-    script "workflows/NANOPORE.nf"
+    script "modules/param_helpers.nf"
     function "normalizeTrimLen"
 
     // A value passed as --trimLen on the command line reaches the workflow as a

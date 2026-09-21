@@ -1,3 +1,5 @@
+include {normalizeTrimLen} from './param_helpers.nf'
+
 def metadataDir(outputDir) {
     java.nio.file.Path.of(outputDir.toString()).toAbsolutePath().normalize()
         .resolve('RUN_METADATA')
@@ -248,13 +250,29 @@ def containerSpecs(params, _workflow) {
 
 def toolSpecs(params, workflow) {
     if (params.mode == 'NANOPORE') {
-        return [
+        def specs = [
             toolSpec('NANOPORE', 'porechop_abi', 'porechop_abi --version', params.base_container),
             toolSpec('NANOPORE', 'minimap2', 'minimap2 --version', params.base_container),
             toolSpec('NANOPORE', 'samtools', 'samtools --version | head -n 1', params.base_container),
             toolSpec('NANOPORE', 'bcftools', 'bcftools --version | head -n 1', params.base_container),
             toolSpec('NANOPORE', 'clair3', 'run_clair3.sh -v ', params.clair3_container)
         ]
+        // Only when --trimLen asks for it, from the same rule NANOPORE.nf uses
+        // to decide whether run_bam_utils runs at all. Listing it unconditionally
+        // would report a tool that never touched the reads; omitting it when
+        // trimming is on leaves the step that rewrote every alignment out of the
+        // provenance record.
+        //
+        // bamUtil has no --version flag: `bam` alone exits 255 without printing
+        // one, and `bam help` puts it on the second line. sed rather than head
+        // because `bam help` keeps writing afterwards, and head closing the pipe
+        // early makes the command exit 141 under pipefail.
+        if (normalizeTrimLen(params.trimLen) > 0) {
+            specs << toolSpec('NANOPORE', 'bamutil', 'bam help 2>&1 | sed -n 2p', params.base_container)
+        }
+        // samtools already covers --primersBED: ampliconclip is a samtools
+        // subcommand, so that option adds no tool of its own.
+        return specs
     }
 
     def containerDir = java.nio.file.Path.of(workflow.projectDir.toString()).resolve('containers')

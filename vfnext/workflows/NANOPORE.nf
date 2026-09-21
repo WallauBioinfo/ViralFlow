@@ -8,21 +8,7 @@ include {run_bam_utils} from '../modules/runBamUtils.nf'
 include {run_clair3} from '../modules/runClair3.nf'
 include {run_bcftools; run_bcftools_consensus} from '../modules/runBcftools.nf'
 include {run_nanopore_summary} from '../modules/runNanoporeSummary.nf'
-
-// nextflow.config declares trimLen as an Integer, but a value given on the
-// command line arrives as a String, and the wrapper forwards params-file
-// entries as command line arguments too. Comparing the two aborts the run
-// before any task is submitted ("Cannot compare java.lang.String with value
-// '30' and java.lang.Integer with value '0'"), so normalize once, here rather
-// than in step0 validation: the integration tests call NANOPORE directly,
-// without processInputs.
-def normalizeTrimLen(value) {
-    def raw = value == null ? '0' : value.toString().trim()
-    if (!(raw ==~ /\d+/)) {
-        error "--trimLen must be a non-negative integer, got '${value}'"
-    }
-    return raw as Integer
-}
+include {normalizeTrimLen} from '../modules/param_helpers.nf'
 
 workflow NANOPORE {
     take:
