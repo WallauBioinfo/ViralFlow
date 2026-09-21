@@ -154,7 +154,16 @@ nextflow_workflow {
             // runReadCounts' container instead, so there is nothing extra to
             // declare here - but that only holds while no ILLUMINA process
             // reaches for a registry again, which is what this asserts.
-            assert specs.every { spec -> spec[1] == "local_sif" }
+            //
+            // Local, but not necessarily a .sif: localContainerSpec() picks the
+            // kind by asking whether the path is a directory *at runtime*, and
+            // build_containers.py builds pangolin and snpeff with --sandbox, so
+            // those two are local_sandbox on any machine that has actually run
+            // it. Asserting local_sif for all of them held only where the
+            // ILLUMINA images are absent - a fresh checkout, and CI, which
+            // builds nothing but the nanopore image - and failed on a
+            // provisioned ILLUMINA machine, which is the wrong way round.
+            assert specs.every { spec -> spec[1] in ["local_sif", "local_sandbox"] }
             assert specs.every { spec -> !spec[2].contains("://") }
 
             assert byName.containsKey("intrahost_analysis")
