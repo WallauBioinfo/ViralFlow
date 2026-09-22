@@ -91,30 +91,51 @@ Cannot be settled on macOS/Docker.
 
 ## 2. Open review feedback on PR #47
 
-All 29 inline comments from @dezordi are still anchored. These are the ones not
-yet addressed; the rest were resolved while working through the branch.
+Checked against the live PR via the GraphQL `reviewThreads` API, which reports
+resolution state rather than inferring it from reply counts: **28 threads, 20
+answered, 0 resolved.**
 
-### Answered by later work — tell the reviewer, no code needed
+Nothing nanopore-scoped is left to write. Six threads still need a reply, two
+are compliments that need none, and no thread has been marked resolved — worth
+doing as each is agreed, so the next reviewer sees what is actually left.
 
-- [ ] `outDir` should not carry the `--` prefix (3 comments, one per language) —
-      done.
-- [ ] "why do we have two, `Nanopore_baseContainer.sing` and
-      `NP_baseContainer.sing`?" — the second was deleted.
-- [ ] `MetadataHelper.groovy` — deleted; the pipeline uses
-      `modules/metadata_helpers.nf`.
-- [ ] `runAmpliconClip.nf` formatting suggestion — the module was rewritten and
-      is now multi-line, though not in exactly the suggested order.
-- [ ] "are all the `intrahost_scriptv2.py` mods auto-formatting?" — **almost**.
-      All 724 string literals are identical, but ruff also applied two fixes:
-      `import argparse, csv, re, os` split into four statements (E401), and a
-      bare `except:` became `except Exception:` (E722) at what is now line 887.
-      The second is a real behaviour change — it no longer swallows
-      `KeyboardInterrupt`/`SystemExit`. A third turned up later, and it is the
-      significant one: `ruff format` rewrote the multi-context `with` into the
-      parenthesized 3.10+ form, raising the script's minimum Python from
-      "anything" to 3.10 with no test or comment recording it. So the honest
-      answer to the reviewer is that auto-formatting changed behaviour twice,
-      not zero times. Both are fixed on this branch.
+### Still needs a reply on GitHub
+
+Done in code; the thread is just waiting for a note.
+
+- [ ] `docs/parameters.md` and `docs-pt/parameters.md` — the `outDir` `--`
+      prefix. The `docs-es/` thread was answered with "sorted"; these two are
+      the same fix in the other two languages and were left unanswered.
+- [ ] `nanopore_summary.py:56` — the `fileinput.hook_compressed` tip. Taken;
+      commit `69213ea`.
+- [ ] `getUnmappedReads.nf` — the `> output.gz` question. Answered in full on
+      the `getMappedReads.nf` thread; this one needs a pointer to it, since both
+      modules were fixed together.
+- [ ] `runAmpliconClip.nf` — the formatting suggestion. The module was rewritten
+      and is now multi-line, though not in exactly the suggested order.
+- [ ] `vfnext/README.md` — the command-formatting suggestion. Applied.
+
+### No reply needed
+
+- Two "nice!" comments, on `.pre-commit-config.yaml` and on reading the version
+  from one place in `main.nf`.
+
+### Answered, but the answer has since gone stale
+
+- [ ] **`ILLUMINA.nf` channel naming** was answered with "gonna tidy up that on
+      the ILLUMINA work branch" — but it was then done *in this PR*, as part of
+      the standardisation agreed on the `NANOPORE.nf` thread. `ILLUMINA.nf` no
+      longer mixes `bam_Out_ch`, `bam_output_ch` and `alignCon_Out_ch`. Worth a
+      follow-up so the reviewer does not go looking for it on a later branch.
+- [ ] **`intrahost.py` auto-formatting** was answered with the `except:` ->
+      `except Exception:` change, which is one of *two* behaviour changes ruff
+      made. The other is arguably the bigger one: it rewrote the multi-context
+      `with` into the parenthesized 3.10+ form, silently raising the script's
+      minimum Python and making it unloadable in the very container another
+      thread asked us to move to. Both are fixed; the second is worth mentioning
+      because the `intrahost_analysis` switch depended on it. That thread also
+      asked to drop the `v2` from the filename — already done, the file is
+      `vfnext/bin/intrahost.py`, and the reply did not say so.
 
 ### Still open — nanopore scope
 
@@ -176,23 +197,56 @@ yet addressed; the rest were resolved while working through the branch.
       construct; verified with `uv run --python 3.8 python -m py_compile`, now
       a pre-commit hook. Note this was a latent hazard either way — nothing
       else declares what Python that script needs.
-- [ ] `vfnext/README.md`: apply the command-formatting suggestion.
+- [x] `vfnext/README.md`: apply the command-formatting suggestion. Applied —
+      three stray blank lines inside the NANOPORE code fence, plus the blank
+      line before the following `---` that the rest of the file uses.
 
 ### Still open — decisions, not code
 
 These need an answer from the team before anything is written.
 
-- [ ] **Release strategy** (`NANOPORE.md`): ship the alpha with the monolithic
-      container and keep it on `develop`, then move to modular containers as
-      ILLUMINA has? The answer decides when nanopore docs move into `docs-*`
-      and when the containers are restructured.
-- [ ] **Move `dev.md` into the readthedocs folders.**
-- [ ] **Drop the `vfnext/` directory** and put `main.nf`, `workflows/`,
-      `modules/` at the repository root.
-- [ ] **An `annotations` subworkflow** grouping snpEff, pangolin, nextclade and
-      compileOutput — the reviewer notes all three could serve nanopore output
-      too.
-- [ ] Should the `coveragePlot` import live in `GENPLOTS.nf`?
+- [x] **Release strategy** (`NANOPORE.md`) — **decided on the PR.** Modular
+      containers are the right direction, but this PR keeps the single base
+      container so real-world testing can start. The modular work is the
+      section 1 item gated on confirming `docker://` pulls under Singularity.
+- [x] **Move `dev.md` into the readthedocs folders.** Moved to
+      `docs/development.md` and added to the `toctree` in `docs/index.md`, which
+      is what actually puts a page in the sidebar — a Markdown file that no
+      toctree lists is built but unreachable, and Sphinx warns about it. The
+      docs build is Sphinx with MyST, configured by `.readthedocs.yaml` at the
+      repository root. Verified locally with the same Python and requirements
+      Read the Docs uses:
+      ```bash
+      uv run --no-project --python 3.13 --with-requirements docs/requirements.in \
+        sphinx-build -b html -W docs /tmp/rtdbuild
+      ```
+      Two stale claims in the page were corrected on the way: it said the
+      pre-push stage runs 14 tests, when it runs 18, and it named three specific
+      test files as the container-requiring ones, which has not been true for a
+      while. Both are now phrased so they cannot go stale again.
+      **Two follow-ups below.**
+- [ ] **Decide whether the development page should be translated.** It is in
+      `docs/` only; `docs-es/` and `docs-pt/` have their own `index.md`
+      toctrees, which still list five pages each. Nothing is broken — their
+      builds pass — but a Spanish or Portuguese reader will not find the
+      developer docs. Either translate it, or link to the English page from the
+      other two indexes.
+- [ ] **Work out how `docs-es/` and `docs-pt/` are actually built.**
+      `.readthedocs.yaml` names `docs/conf.py` and nothing else, and Read the
+      Docs reads one config from the repository root, so nothing in this
+      repository explains how the other two trees reach
+      `viralflow.readthedocs.io/es/` and `/pt-br/`. Most likely they are
+      separate Read the Docs projects configured through its web dashboard,
+      which is invisible from here. Worth confirming in the dashboard before
+      anyone assumes a change to `docs-es/` will appear online.
+- [x] **Drop the `vfnext/` directory** — **agreed on the PR**, deferred to the
+      next round of work. It exists only because the Nextflow code was kept
+      apart from the wrapper early on. Moved to section 3.
+- [x] **An `annotations` subworkflow** — **agreed on the PR**, deferred until
+      NANOPORE merges, on the grounds that this PR already carries a lot of
+      non-nanopore change. Moved to section 3.
+- [x] Should the `coveragePlot` import live in `GENPLOTS.nf`? — **agreed on the
+      PR**, deferred to the ILLUMINA branch. Moved to section 3.
 - [ ] **The recipes for the pulled containers are no longer in the repo.**
       `def_files/` held one `.def` per image until `c2be157` deleted them in
       favour of pulling prebuilt images from the Sylabs library; only the
@@ -203,9 +257,21 @@ These need an answer from the team before anything is written.
       or recording the build inputs somewhere the pull step can check.
       Relevant beyond bookkeeping: the images pin Python 3.8, 3.9.13, 3.10 and
       one unpinned, and that spread is invisible from the repository.
-- [ ] **Naming convention**: `ILLUMINA.nf` is largely PascalCase, `NANOPORE.nf`
-      snake_case. Pick one. Note the newer `run_amplicon_clip` /
-      `run_bam_utils` wiring follows snake_case.
+- [x] **Naming convention**, two comments making related but distinct points —
+      both done, standardising on the ILLUMINA style. Worth noting the review
+      calls that style PascalCase, but the existing names (`runFastp`,
+      `getMappedReads`, `alignConsensus2Ref`) are camelCase; camelCase is what
+      the branch now follows throughout.
+      - 16 processes renamed from snake_case: the nine nanopore ones, the three
+        metadata ones and four test-fixture helpers. No snake_case process name
+        is left in the repository.
+      - 62 channel and emit names renamed across `ILLUMINA.nf`, `NANOPORE.nf`,
+        `GENPLOTS.nf`, `step0-input-handling.nf`, `main.nf` and the test
+        fixtures, which also settles the second comment: `ILLUMINA.nf` had been
+        mixing `bam_Out_ch`, `bam_output_ch`, `bwaidx_Output_ch` and
+        `alignCon_Out_ch` in one file.
+      - Process input declarations went with them where they shared the names
+        (`ref_fa` -> `refFa`, `ref_gff` -> `refGff`).
 
 ---
 
@@ -213,6 +279,15 @@ These need an answer from the team before anything is written.
 
 Deliberately kept out of the nanopore PR.
 
+- [ ] **Move `main.nf`, `workflows/` and `modules/` to the repository root**,
+      dropping `vfnext/`. Agreed on PR #47. Touches every `includeConfig` and
+      `$projectDir` path, the wrapper's `root_path`, `.readthedocs.yaml` and the
+      CI workflow, so it wants its own PR with nothing else in it.
+- [ ] **Add an `annotations` subworkflow** grouping snpEff, pangolin, nextclade
+      and compileOutput. Agreed on PR #47. The reviewer's point is that all
+      three could serve nanopore output too, so this is what would let NANOPORE
+      reuse the ILLUMINA annotation stack rather than reimplement it.
+- [ ] **Move the `coveragePlot` import into `GENPLOTS.nf`.** Agreed on PR #47.
 - [ ] **`getMappedReads.nf` / `getUnmappedReads.nf`: the paired branch
       desynchronizes R1 and R2.** Neither branch passes `-s`, so a read whose
       mate was removed by the `-F 4` / `-f 4` filter is written to the R1 file
@@ -295,6 +370,25 @@ Deliberately kept out of the nanopore PR.
       commits that were already empty, such as
       `Fix exec command in Singularity_snpEff`.
 
+- [ ] **Revisit the pinned runner image.** CI runs on `ubuntu-24.04` rather
+      than `ubuntu-latest`, pinned on 2026-09-22 because `ubuntu-latest`
+      migrates to Ubuntu 26 on 2026-10-19 and an unannounced base-image change
+      during review is not worth the surprise. Someone should move it
+      deliberately once Ubuntu 26 has settled. `.readthedocs.yaml` pins the same
+      way, so the two are consistent.
+- [ ] **`astral-sh/setup-uv` is pinned to an exact version** (`v10.2.0`) while
+      every other action uses a moving major tag, because astral-sh stopped
+      publishing bare major tags after `v7` — `@v10` does not resolve and the
+      run fails. This one needs a manual bump; the others do not.
+- [x] **Build the docs in CI.** Added as a `docs` job with a matrix over
+      `docs`, `docs-es` and `docs-pt`, `fail-fast: false` so one tree failing
+      does not mask the others. It runs `sphinx-build -W --keep-going`, and
+      reads the Python version out of `.readthedocs.yaml` rather than repeating
+      it, the same way the container job reads its image tag from
+      `profiles.config`. Mutation-tested: dropping `development` from the
+      toctree and restoring the deprecated `display_version` option each fail
+      the build. The command is documented in `docs/development.md` so the
+      local and CI invocations are the same one.
 - [ ] **Add a CI status badge to `README.md`** once the workflow has run on
       `develop`.
 
@@ -307,6 +401,7 @@ Deliberately kept out of the nanopore PR.
   other files need the same change.
 - The container tests need an image. With Singularity, build
   `containers/baseContainer.sif` from `Nanopore_baseContainer.sing`. Without it,
-  build `nanopore_base.Dockerfile` and pass `--profile docker`; see `dev.md`.
+  build `nanopore_base.Dockerfile` and pass `--profile docker`; see
+  `docs/development.md`.
 - Clair3's published image is amd64 only, so it runs under emulation on Apple
   Silicon. The workflow still completes, the truth test included — just slowly.
