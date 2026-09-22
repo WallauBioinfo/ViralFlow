@@ -1,4 +1,4 @@
-process run_nanopore_summary {
+process runNanoporeSummary {
     label "NP_basecontainer"
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
     tag "${meta.id}"

@@ -1,8 +1,8 @@
 nextflow.enable.dsl = 2
 
-include { run_amplicon_clip } from '../../modules/runAmpliconClip.nf'
+include { runAmpliconClip } from '../../modules/runAmpliconClip.nf'
 
-process prepare_fixture_bam {
+process prepareFixtureBam {
     label "NP_basecontainer"
     tag "${meta.id}"
 
@@ -27,7 +27,7 @@ process prepare_fixture_bam {
 
 // nf-test cannot read BAM, so render the clipped alignment as text for the
 // assertions.
-process dump_sam {
+process dumpSam {
     label "NP_basecontainer"
     tag "${meta.id}"
 
@@ -47,15 +47,15 @@ process dump_sam {
 
 workflow AMPLICONCLIP_FIXTURE {
     take:
-        sam_ch
+        samCh
         primer_bed
 
     main:
-        prepare_fixture_bam(sam_ch)
-        run_amplicon_clip(prepare_fixture_bam.out, primer_bed)
-        dump_sam(run_amplicon_clip.out.bams)
+        prepareFixtureBam(samCh)
+        runAmpliconClip(prepareFixtureBam.out, primer_bed)
+        dumpSam(runAmpliconClip.out.bams)
 
     emit:
-        clipped = dump_sam.out
-        stats = run_amplicon_clip.out.stats
+        clipped = dumpSam.out
+        stats = runAmpliconClip.out.stats
 }

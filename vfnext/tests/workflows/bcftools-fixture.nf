@@ -1,12 +1,12 @@
 nextflow.enable.dsl = 2
 
 include {
-    run_bcftools
-    run_bcftools_consensus
+    runBcftools
+    runBcftoolsConsensus
 } from '../../modules/runBcftools.nf'
-include { run_nanopore_summary } from '../../modules/runNanoporeSummary.nf'
+include { runNanoporeSummary } from '../../modules/runNanoporeSummary.nf'
 
-process prepare_fixture_bam {
+process prepareFixtureBam {
     label "NP_basecontainer"
     tag "${meta.id}"
 
@@ -31,51 +31,51 @@ process prepare_fixture_bam {
 
 workflow BCFTOOLS_FIXTURE {
     take:
-        vcf_ch
+        vcfCh
         ref
-        sam_ch
+        samCh
 
     main:
-        prepare_fixture_bam(sam_ch)
-        run_bcftools(vcf_ch, ref, 0.51)
+        prepareFixtureBam(samCh)
+        runBcftools(vcfCh, ref, 0.51)
 
-        prepare_fixture_bam.out
+        prepareFixtureBam.out
             .map { meta, bam, bai -> tuple(meta.id, meta, bam, bai) }
-            .set { keyed_bams_ch }
+            .set { keyedBamsCh }
 
-        run_bcftools.out
+        runBcftools.out
             .map { meta, vcf, tbi -> tuple(meta.id, vcf, tbi) }
-            .set { keyed_vcfs_ch }
+            .set { keyedVcfsCh }
 
-        keyed_bams_ch
-            .join(keyed_vcfs_ch)
+        keyedBamsCh
+            .join(keyedVcfsCh)
             .map { _id, meta, bam, bai, vcf, tbi ->
                 tuple(meta, vcf, tbi, bam, bai)
             }
-            .set { consensus_input_ch }
+            .set { consensusInputCh }
 
-        run_bcftools_consensus(consensus_input_ch, ref, params.fixture_min_depth)
+        runBcftoolsConsensus(consensusInputCh, ref, params.fixture_min_depth)
 
-        vcf_ch
+        vcfCh
             .map { meta, vcf -> tuple(meta.id, vcf) }
-            .set { keyed_raw_vcfs_ch }
+            .set { keyedRawVcfsCh }
 
-        run_bcftools_consensus.out
+        runBcftoolsConsensus.out
             .map { meta, consensus, low_cov, coverage ->
                 tuple(meta.id, meta, consensus, low_cov, coverage)
             }
-            .set { keyed_consensus_ch }
+            .set { keyedConsensusCh }
 
-        keyed_raw_vcfs_ch
-            .join(keyed_vcfs_ch)
-            .join(keyed_consensus_ch)
+        keyedRawVcfsCh
+            .join(keyedVcfsCh)
+            .join(keyedConsensusCh)
             .map { _id, raw_vcf, filtered_vcf, filtered_tbi, meta, consensus, low_cov, coverage ->
                 tuple(meta, raw_vcf, filtered_vcf, filtered_tbi, consensus, low_cov, coverage)
             }
-            .set { qc_input_ch }
+            .set { qcInputCh }
 
-        run_nanopore_summary(
-            qc_input_ch,
+        runNanoporeSummary(
+            qcInputCh,
             ref,
             10,
             30,
@@ -84,7 +84,7 @@ workflow BCFTOOLS_FIXTURE {
         )
 
     emit:
-        filtered = run_bcftools.out
-        consensus = run_bcftools_consensus.out
-        summary = run_nanopore_summary.out
+        filtered = runBcftools.out
+        consensus = runBcftoolsConsensus.out
+        summary = runNanoporeSummary.out
 }

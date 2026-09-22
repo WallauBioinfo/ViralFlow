@@ -4,14 +4,14 @@ include { NANOPORE } from '../../workflows/NANOPORE.nf'
 
 workflow NANOPORE_TRUTH {
     take:
-        reads_ch
+        readsCh
         ref
 
     main:
-        NANOPORE(reads_ch, ref)
+        NANOPORE(readsCh, ref)
 
     emit:
-        filtered = NANOPORE.out.filtered_vcfs_ch
-        consensus = NANOPORE.out.consensus_ch
-        summary = NANOPORE.out.summary_ch
+        filtered = NANOPORE.out.filteredVcfsCh
+        consensus = NANOPORE.out.consensusCh
+        summary = NANOPORE.out.summaryCh
 }

@@ -3,7 +3,7 @@ process runNextClade {
   publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy", pattern: "{*nextclade.csv,*.errors.csv,*.translation.fasta}"
   input:
   tuple val(meta), path(intrahost_tsvs), path(algn_fasta), path(consensus_fa), path(ivar_txt), path(mut_tsv)
-  path(ref_fa)
+  path(refFa)
 
   // temporary solution, no need for ivar_txt and mut_tsv
   output:
@@ -21,7 +21,7 @@ process runNextClade {
   if [ \$NUMLINES -gt 1 ]; then
       cat ${meta.id}.depth${params.depth}.fa ${meta.id}.depth${params.depth}.fa.algn.minor.fa  > ${meta.id}.depth${params.depth}.all.fa
       nextclade run --jobs ${params.nxtclade_jobs} \
-                --input-ref=${ref_fa} \
+                --input-ref=${refFa} \
                 --input-dataset=${nxt_dataset} \
                 --output-csv=${meta.id}.depth${params.depth}.all.fa.nextclade.csv \
                 --output-all=./ \
@@ -30,7 +30,7 @@ process runNextClade {
 
   if [ \$NUMLINES -eq 1 ]; then
       nextclade run --jobs ${params.nxtclade_jobs} \
-             --input-ref=${ref_fa} \
+             --input-ref=${refFa} \
              --input-dataset=${nxt_dataset} \
              --output-csv=${meta.id}.depth${params.depth}.fa.nextclade.csv \
              --output-all=./ \

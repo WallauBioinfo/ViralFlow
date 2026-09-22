@@ -1,8 +1,8 @@
 nextflow.enable.dsl = 2
 
-include { capture_tool_version } from '../../modules/metadata.nf'
+include { captureToolVersion } from '../../modules/metadata.nf'
 
-// Drives capture_tool_version with `echo` standing in for each tool, so the
+// Drives captureToolVersion with `echo` standing in for each tool, so the
 // version parsing can be pinned against the formats the pipeline's tools really
 // print without needing those tools present. The strings below were captured
 // from live runs (clair3, porechop_abi, minimap2, samtools, bcftools) or are the
@@ -27,10 +27,10 @@ workflow TOOLVERSION_FIXTURE {
             tuple("ILLUMINA", "nextclade", 'echo "nextclade 3.18.0"', container),
             tuple("ILLUMINA", "unversioned", 'echo "no version here"', container)
         )
-        .set { specs_ch }
+        .set { specsCh }
 
-        capture_tool_version(specs_ch)
+        captureToolVersion(specsCh)
 
     emit:
-        capture_tool_version.out
+        captureToolVersion.out
 }

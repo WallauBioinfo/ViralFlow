@@ -3,7 +3,7 @@
 // `sha256sum` and `stat -Lc` do not exist on macOS/BSD, where the original
 // commands aborted the whole run before any analysis started.
 //
-// These processes cannot simply be containerised. capture_container_metadata
+// These processes cannot simply be containerised. captureContainerMetadata
 // receives the container identity as a value, not a staged path, so the file
 // it must checksum is not visible from inside a container.
 //
@@ -28,7 +28,7 @@ file_size_bytes() {
 '''
 }
 
-process checksum_metadata_input {
+process checksumMetadataInput {
     tag "${sample_id}:${role}"
 
     input:
@@ -49,7 +49,7 @@ process checksum_metadata_input {
     """
 }
 
-process capture_tool_version {
+process captureToolVersion {
     tag "${tool_name}"
     container "${container_identity}"
 
@@ -88,7 +88,7 @@ process capture_tool_version {
     """
 }
 
-process capture_container_metadata {
+process captureContainerMetadata {
     tag "${container_name}"
 
     input:
@@ -143,15 +143,15 @@ workflow METADATA {
         checksum_inputs
         tool_specs
         container_specs
-        resolved_inputs
+        resolvedInputs
         metadata_dir
 
     main:
-        checksum_metadata_input(checksum_inputs)
-        capture_tool_version(tool_specs)
-        capture_container_metadata(container_specs)
+        checksumMetadataInput(checksum_inputs)
+        captureToolVersion(tool_specs)
+        captureContainerMetadata(container_specs)
 
-        resolved_inputs
+        resolvedInputs
             .flatMap { rows -> rows }
             .map { row -> row.collect { value -> value.toString().replace('\t', ' ').replace('\n', ' ') }.join('\t') + '\n' }
             .collectFile(
@@ -163,7 +163,7 @@ workflow METADATA {
             )
             .set { resolved_sample_inputs }
 
-        checksum_metadata_input.out
+        checksumMetadataInput.out
             .collectFile(
                 name: "input_checksums.tsv",
                 seed: "sample_id\trole\tabsolute_path\tsize_bytes\tsha256\n",
@@ -173,7 +173,7 @@ workflow METADATA {
             )
             .set { input_checksums }
 
-        capture_tool_version.out
+        captureToolVersion.out
             .collectFile(
                 name: "software_versions.tsv",
                 seed: "mode\ttool\tversion\tcontainer\texit_status\traw_output\n",
@@ -183,7 +183,7 @@ workflow METADATA {
             )
             .set { software_versions }
 
-        capture_container_metadata.out
+        captureContainerMetadata.out
             .collectFile(
                 name: "container_manifest.tsv",
                 seed: "name\tkind\tidentity\tsize_bytes\tsha256\n",

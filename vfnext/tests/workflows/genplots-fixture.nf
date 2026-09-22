@@ -8,7 +8,7 @@ include { getUnmappedReads } from '../../modules/getUnmappedReads.nf'
 // so any BAM the NANOPORE workflow rebound - "<id>.trim.sorted.bam" from
 // bamUtil, "<id>.primer_clip.bam" from ampliconclip - made them fail with
 // "No such file or directory".
-process prepare_renamed_bam {
+process prepareRenamedBam {
     label "NP_basecontainer"
     tag "${meta.id}"
 
@@ -29,17 +29,17 @@ process prepare_renamed_bam {
 
 workflow GENPLOTS_FIXTURE {
     take:
-        sam_ch
+        samCh
 
     main:
-        prepare_renamed_bam(sam_ch)
+        prepareRenamedBam(samCh)
 
-        prepare_renamed_bam.out
+        prepareRenamedBam.out
             .map { meta, bam -> tuple(meta, bam, false) }
-            .set { reads_ch }
+            .set { readsCh }
 
-        getMappedReads(reads_ch)
-        getUnmappedReads(reads_ch)
+        getMappedReads(readsCh)
+        getUnmappedReads(readsCh)
 
     emit:
         mapped = getMappedReads.out

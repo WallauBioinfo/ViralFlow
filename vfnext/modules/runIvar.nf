@@ -2,7 +2,7 @@ process runIvar{
   publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy", pattern: "*.{fa,tsv,gz,tbi}"
   input:
     tuple val(meta), path(bams), val(is_paired_end)
-    path(ref_fa)
+    path(refFa)
   output:
     tuple val(meta), path("*.depth*.fa"), path("*.txt"), path("${meta.id}.tsv"), path("${meta.id}.ivar.vcf.gz"), path("${meta.id}.ivar.vcf.gz.tbi")
 
@@ -12,18 +12,18 @@ process runIvar{
     d = "${params.depth}"
     """
     # IVAR STEP 1 ----------------------------------------------------------------
-    samtools mpileup -aa -d 50000 --reference ${ref_fa} -a -B ${sorted_bam} | \
+    samtools mpileup -aa -d 50000 --reference ${refFa} -a -B ${sorted_bam} | \
        ivar variants -G -p ${sample_id} -q ${params.mapping_quality} -t 0.05
     python $projectDir/bin/tsv_to_vcf.py ${sample_id}.tsv ${sample_id}.ivar.vcf ${sample_id}
     bgzip ${sample_id}.ivar.vcf
     tabix ${sample_id}.ivar.vcf.gz
 
     # IVAR STEP 2 ----------------------------------------------------------------
-    samtools mpileup -aa -d 50000 --reference ${ref_fa} -a -B ${sorted_bam} | \
+    samtools mpileup -aa -d 50000 --reference ${refFa} -a -B ${sorted_bam} | \
        ivar consensus -p ${meta.id} -q ${params.mapping_quality} -t 0 -m ${d} -n N -c 0.51
 
     # IVAR STEP 3 ----------------------------------------------------------------
-    samtools mpileup -aa -d 50000 --reference ${ref_fa} -a -B ${sorted_bam} | \
+    samtools mpileup -aa -d 50000 --reference ${refFa} -a -B ${sorted_bam} | \
        ivar consensus -p ${meta.id}.ivar060 -q ${params.mapping_quality} -t 0.60 -n N -m ${params.depth} -c 0.51
     # EDIT FILE NAMES
     mv ${meta.id}.fa ${meta.id}.depth${d}.fa

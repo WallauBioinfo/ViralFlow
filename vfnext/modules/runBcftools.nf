@@ -1,5 +1,5 @@
 
-process run_bcftools {
+process runBcftools {
     label "NP_basecontainer"
     // Define the process parameters
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
@@ -27,7 +27,7 @@ process run_bcftools {
     """
 }
 
-process run_bcftools_consensus {
+process runBcftoolsConsensus {
     label "NP_basecontainer"
     // Define the process parameters
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true

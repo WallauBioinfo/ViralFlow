@@ -1,5 +1,5 @@
 
-process run_bam_utils {
+process runBamUtils {
     label "NP_basecontainer"
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
     tag "${meta.id}"

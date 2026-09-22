@@ -1,8 +1,8 @@
 nextflow.enable.dsl = 2
 
-include { run_bam_utils } from '../../modules/runBamUtils.nf'
+include { runBamUtils } from '../../modules/runBamUtils.nf'
 
-process prepare_fixture_bam {
+process prepareFixtureBam {
     label "NP_basecontainer"
     tag "${meta.id}"
 
@@ -26,7 +26,7 @@ process prepare_fixture_bam {
 }
 
 // nf-test cannot read BAM, so render the trimmed alignment as text.
-process dump_sam {
+process dumpSam {
     label "NP_basecontainer"
     tag "${meta.id}"
 
@@ -46,14 +46,14 @@ process dump_sam {
 
 workflow BAMUTILS_FIXTURE {
     take:
-        sam_ch
+        samCh
         trim_len
 
     main:
-        prepare_fixture_bam(sam_ch)
-        run_bam_utils(prepare_fixture_bam.out, trim_len)
-        dump_sam(run_bam_utils.out.bams)
+        prepareFixtureBam(samCh)
+        runBamUtils(prepareFixtureBam.out, trim_len)
+        dumpSam(runBamUtils.out.bams)
 
     emit:
-        trimmed = dump_sam.out
+        trimmed = dumpSam.out
 }

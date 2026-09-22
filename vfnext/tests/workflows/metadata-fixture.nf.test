@@ -58,7 +58,7 @@ nextflow_workflow {
 
         then {
             assert workflow.success
-            def specs = workflow.out.specs_ch.get(0)
+            def specs = workflow.out.specsCh.get(0)
             assert specs*.name == ["sandbox", "sif"]
             assert specs*.kind == ["local_sandbox", "local_sif"]
         }
@@ -80,7 +80,7 @@ nextflow_workflow {
 
         then {
             assert workflow.success
-            def normalized = workflow.out.normalized_ch.get(0)
+            def normalized = workflow.out.normalizedCh.get(0)
             assert normalized.null_value == null
             assert normalized.enabled == true
             assert normalized.count == 3
@@ -146,7 +146,7 @@ nextflow_workflow {
         then {
             assert workflow.success
 
-            def specs = workflow.out.container_specs_ch
+            def specs = workflow.out.containerSpecsCh
             def byName = specs.collectEntries { spec -> [(spec[0]): spec] }
 
             // runIntraHostScript briefly ran from a registry image because it
@@ -173,7 +173,7 @@ nextflow_workflow {
         }
     }
 
-    test("Should build toolSpecs tuples in the order capture_tool_version expects") {
+    test("Should build toolSpecs tuples in the order captureToolVersion expects") {
         workflow "TOOL_SPECS_FIXTURE"
 
         when {
@@ -186,14 +186,14 @@ nextflow_workflow {
         then {
             assert workflow.success
 
-            def specs = workflow.out.tool_specs_ch
+            def specs = workflow.out.toolSpecsCh
             assert specs.every { spec -> spec.size() == 4 }
 
             // Position 0 is the mode, 1 the tool, 2 the version command, 3 the
             // container. Each assertion fails if the fields are reordered.
             assert specs.every { spec -> spec[0] == "NANOPORE" }
             // nf-test sorts channel emissions, so compare as a set. bamutil is
-            // absent because trimLen defaults to 0 and run_bam_utils therefore
+            // absent because trimLen defaults to 0 and runBamUtils therefore
             // never runs; the test below covers the enabled case.
             assert specs.collect { spec -> spec[1] }.toSorted() == [
                 "bcftools", "clair3", "minimap2", "porechop_abi", "samtools"
@@ -216,7 +216,7 @@ nextflow_workflow {
                 base_container = "${projectDir}/tests/data/bcftools/ref.fa"
                 // A String, as the command line delivers it: the gate reads the
                 // same normalizeTrimLen the workflow uses to decide whether
-                // run_bam_utils runs, so both agree on what "enabled" means.
+                // runBamUtils runs, so both agree on what "enabled" means.
                 trimLen = "30"
             }
         }
@@ -224,7 +224,7 @@ nextflow_workflow {
         then {
             assert workflow.success
 
-            def specs = workflow.out.tool_specs_ch
+            def specs = workflow.out.toolSpecsCh
             def byTool = specs.collectEntries { spec -> [(spec[1]): spec] }
 
             assert byTool.containsKey("bamutil")
@@ -233,7 +233,7 @@ nextflow_workflow {
             // not apply: `bam` alone exits 255 without printing one, and
             // `bam help` puts it on the second line. sed, not head, because
             // `bam help` keeps writing and an early close exits 141 under
-            // pipefail - which capture_tool_version would record as a failure.
+            // pipefail - which captureToolVersion would record as a failure.
             assert byTool.bamutil[2] == "bam help 2>&1 | sed -n 2p"
             assert byTool.bamutil[3].endsWith("/tests/data/bcftools/ref.fa")
 
@@ -257,9 +257,9 @@ nextflow_workflow {
 
         then {
             assert workflow.success
-            assert workflow.out.gff_metadata_ch.size() == 0
-            assert workflow.out.fasta_metadata_ch.size() == 1
-            assert workflow.out.fasta_metadata_ch.get(0)[1] == "reference_fasta"
+            assert workflow.out.gffMetadataCh.size() == 0
+            assert workflow.out.fastaMetadataCh.size() == 1
+            assert workflow.out.fastaMetadataCh.get(0)[1] == "reference_fasta"
         }
     }
 
@@ -280,15 +280,15 @@ nextflow_workflow {
         then {
             assert workflow.success
 
-            assert workflow.out.gff_metadata_ch.size() == 1
-            def gff = workflow.out.gff_metadata_ch.get(0)
+            assert workflow.out.gffMetadataCh.size() == 1
+            def gff = workflow.out.gffMetadataCh.get(0)
             assert gff[0] == "reference"
-            assert gff[1] == "reference_gff"
+            assert gff[1] == "referenceGff"
             assert gff[2].startsWith("/")
             assert gff[2].endsWith("/tests/data/bcftools/ref.fa")
 
-            assert workflow.out.fasta_metadata_ch.size() == 1
-            def fasta = workflow.out.fasta_metadata_ch.get(0)
+            assert workflow.out.fastaMetadataCh.size() == 1
+            def fasta = workflow.out.fastaMetadataCh.get(0)
             assert fasta[1] == "reference_fasta"
             assert fasta[2].endsWith("/tests/data/bcftools/ref.fa")
         }

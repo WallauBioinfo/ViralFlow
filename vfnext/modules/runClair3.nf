@@ -1,4 +1,4 @@
-process run_clair3{
+process runClair3{
     // Define the process parameters
     publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
     tag "${meta.id}"
@@ -8,7 +8,7 @@ process run_clair3{
         tuple val(meta), path(bam), path(bai)
         path(ref)
         // Staged beside the reference so htslib finds it as <ref>.fai. Built
-        // once by run_faidx rather than in every task here.
+        // once by runFaidx rather than in every task here.
         path(ref_fai)
         val(chunk_size) // 10000
         val(qual) // 10

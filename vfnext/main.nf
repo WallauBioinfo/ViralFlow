@@ -110,22 +110,22 @@ log.info """
 
   // open input channels
   processInputs()
-  reads_ch = processInputs.out.reads_ch
-  ref_gff = processInputs.out.ref_gff
-  ref_fa = processInputs.out.ref_fa
-  ref_gcode = processInputs.out.ref_gcode
+  readsCh = processInputs.out.readsCh
+  refGff = processInputs.out.refGff
+  refFa = processInputs.out.refFa
+  refGcode = processInputs.out.refGcode
 
-  reads_metadata_ch = processInputs.out.source_inputs_ch
+  readsMetadataCh = processInputs.out.sourceInputsCh
 
-  reference_metadata_ch = referenceMetadataChannel("reference_fasta", ref_fa)
+  referenceMetadataCh = referenceMetadataChannel("reference_fasta", refFa)
 
-  gff_metadata_ch = params.mode == "ILLUMINA"
-    ? referenceMetadataChannel("reference_gff", ref_gff)
+  gffMetadataCh = params.mode == "ILLUMINA"
+    ? referenceMetadataChannel("referenceGff", refGff)
     : channel.empty()
 
   // Both modes clip primers when a BED is supplied, so both record it as a run
   // input.
-  primer_metadata_ch = params.primersBED
+  primerMetadataCh = params.primersBED
     ? channel.of(
         tuple(
           "reference",
@@ -136,7 +136,7 @@ log.info """
       )
     : channel.empty()
 
-  samplesheet_metadata_ch = params.samplesheet
+  samplesheetMetadataCh = params.samplesheet
     ? channel.of(
         tuple(
           "__run__",
@@ -147,32 +147,32 @@ log.info """
       )
     : channel.empty()
 
-  checksum_inputs_ch = reads_metadata_ch
-    .concat(reference_metadata_ch)
-    .concat(gff_metadata_ch)
-    .concat(primer_metadata_ch)
-    .concat(samplesheet_metadata_ch)
+  checksumInputsCh = readsMetadataCh
+    .concat(referenceMetadataCh)
+    .concat(gffMetadataCh)
+    .concat(primerMetadataCh)
+    .concat(samplesheetMetadataCh)
 
-  tool_specs_ch = toolSpecChannel(params, workflow)
+  toolSpecsCh = toolSpecChannel(params, workflow)
 
-  container_specs_ch = containerSpecChannel(params, workflow)
+  containerSpecsCh = containerSpecChannel(params, workflow)
 
   METADATA(
-    checksum_inputs_ch,
-    tool_specs_ch,
-    container_specs_ch,
-    processInputs.out.resolved_inputs_ch,
+    checksumInputsCh,
+    toolSpecsCh,
+    containerSpecsCh,
+    processInputs.out.resolvedInputsCh,
     metadataDir(params.outDir).toString()
   )
 
   if (params.mode == "ILLUMINA"){
-    ILLUMINA(reads_ch, ref_fa,ref_gff,ref_gcode)
-    GENPLOTS(ILLUMINA.out.bams_ch)
+    ILLUMINA(readsCh, refFa,refGff,refGcode)
+    GENPLOTS(ILLUMINA.out.bamsCh)
   }
 
   if (params.mode == "NANOPORE"){
-    NANOPORE(reads_ch, ref_fa)
-    GENPLOTS(NANOPORE.out.bams_ch)
+    NANOPORE(readsCh, refFa)
+    GENPLOTS(NANOPORE.out.bamsCh)
   }
 
 }

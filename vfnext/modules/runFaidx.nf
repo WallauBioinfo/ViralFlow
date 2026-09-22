@@ -1,5 +1,5 @@
 
-process run_faidx {
+process runFaidx {
     label "NP_basecontainer"
     tag "${ref}"
 

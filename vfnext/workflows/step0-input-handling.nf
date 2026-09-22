@@ -193,7 +193,7 @@ def groupCanonicalRows(List rows) {
   }
 }
 
-process prepare_sample_reads {
+process prepareSampleReads {
   tag "${meta.id}"
 
   input:
@@ -475,19 +475,19 @@ workflow processInputs {
   main:
     // --- Sanity Check -------------------------------------------------------
     // check if fasta exists and follow symlinks if needed
-    //ref_fa = file(reference_fasta, checkIfExists=true, followLinks=true)
+    //refFa = file(reference_fasta, checkIfExists=true, followLinks=true)
     //-------------------------------------------------------------------------
     validate_parameters()
     if (params.mode == "ILLUMINA"){
       // ---- get reference GFF and fasta ---------------------------------------
       // Setup ref code values for supported virus
-      ref_gcode = null
-      reference_fa = null
-      reference_gff = null
+      refGcode = null
+      referenceFa = null
+      referenceGff = null
 
       if (!(params.virus=="custom")){
         if (params.virus=="sars-cov2"){
-          ref_gcode = "NC_045512.2"
+          refGcode = "NC_045512.2"
         }
       }
 
@@ -495,63 +495,63 @@ workflow processInputs {
       // emit the ref gff and fasta provided
       if (params.virus=="custom"){
         if (!(params.refGenomeCode==null)){
-          ref_gcode = params.refGenomeCode
+          refGcode = params.refGenomeCode
         } else {
           // file() rather than the raw parameter strings: downstream consumers
           // resolve these as paths, and the NANOPORE branch below already does
           // the same. Emitting strings here made main.nf fail with
           // "Unknown method invocation `toAbsolutePath` on String type".
-          reference_gff = file(params.referenceGFF)
-          reference_fa = file(params.referenceGenome)
+          referenceGff = file(params.referenceGFF)
+          referenceFa = file(params.referenceGenome)
         }
       }
 
       // if a genome code was provided, get the reference fasta and gff
-      if (!(ref_gcode==null)){
-        prepareDatabase(ref_gcode)
-        reference_fa = prepareDatabase.out.ref_fa
-        reference_gff = prepareDatabase.out.ref_gff
+      if (!(refGcode==null)){
+        prepareDatabase(refGcode)
+        referenceFa = prepareDatabase.out.refFa
+        referenceGff = prepareDatabase.out.refGff
       }
 
       // be sure a reference fasta and a reference gff was obtained
-      assert !(reference_fa == null) && !(reference_gff == null)
+      assert !(referenceFa == null) && !(referenceGff == null)
     }
 
     if (params.mode == "NANOPORE"){
       // if a reference fasta was provided, use it
       if (params.referenceGenome){
-        reference_fa = file(params.referenceGenome)
+        referenceFa = file(params.referenceGenome)
       } else {
         error "A reference genome fasta file must be provided for NANOPORE mode"
       }
 
-      reference_gff = null
-      ref_gcode = null
+      referenceGff = null
+      refGcode = null
     }
     def effectiveInDir = params.inDir ?: workflow.launchDir.resolve('input').toString()
     def canonicalRows = params.samplesheet
       ? parseSamplesheet(params.samplesheet.toString(), params.mode.toString())
       : parseLegacyDirectory(effectiveInDir, params.mode.toString())
     def groupedInputs = groupCanonicalRows(canonicalRows)
-    prepare_sample_reads(channel.fromList(groupedInputs))
-    prepared_reads = prepare_sample_reads.out.map { meta, reads ->
+    prepareSampleReads(channel.fromList(groupedInputs))
+    preparedReads = prepareSampleReads.out.map { meta, reads ->
       tuple(meta, reads instanceof List ? reads : [reads])
     }
 
-    source_inputs = channel.fromList(canonicalRows.collectMany { row ->
+    sourceInputs = channel.fromList(canonicalRows.collectMany { row ->
       def records = [tuple(row.sample_id, "fastq_1_chunk_${row.chunk_index}", row.fastq_1.toString(), file(row.fastq_1.toString()))]
       if (row.fastq_2) records << tuple(row.sample_id, "fastq_2_chunk_${row.chunk_index}", row.fastq_2.toString(), file(row.fastq_2.toString()))
       records
     })
 
-    resolved_inputs = channel.of(canonicalRows.collect { row ->
+    resolvedInputs = channel.of(canonicalRows.collect { row ->
       [row.sample_id, row.chunk_index, row.fastq_2 ? 'paired' : 'single', row.fastq_1.toString(), row.fastq_2?.toString() ?: '']
     })
   emit:
-    reads_ch = prepared_reads
-    source_inputs_ch = source_inputs
-    resolved_inputs_ch = resolved_inputs
-    ref_gff = reference_gff
-    ref_fa = reference_fa
-    ref_gcode = ref_gcode
+    readsCh = preparedReads
+    sourceInputsCh = sourceInputs
+    resolvedInputsCh = resolvedInputs
+    refGff = referenceGff
+    refFa = referenceFa
+    refGcode = refGcode
 }

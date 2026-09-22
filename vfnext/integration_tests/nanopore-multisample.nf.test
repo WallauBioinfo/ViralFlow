@@ -5,7 +5,7 @@ nextflow_workflow {
 
     // Every other nanopore test runs a single sample, so nothing else would
     // catch a per-sample channel being wired as if it were per-run. The
-    // reference index is the case in point: run_faidx builds it once and
+    // reference index is the case in point: runFaidx builds it once and
     // Nextflow broadcasts it, but a stray .collect() or a mispaired join would
     // either pin every sample to one input or deadlock waiting for a second.
     test("Should run every sample against a reference indexed once") {
@@ -40,12 +40,12 @@ nextflow_workflow {
             }
 
             // One index for the run, and every per-sample step for each sample.
-            assert ran("run_faidx") == 1 : "run_faidx ran ${ran('run_faidx')} times, expected 1"
-            assert ran("run_clair3") == 2 : "run_clair3 ran ${ran('run_clair3')} times, expected 2"
-            assert ran("run_porechop") == 2
-            assert ran("run_minimap2") == 2
-            assert ran("run_bcftools_consensus") == 2
-            assert ran("run_nanopore_summary") == 2
+            assert ran("runFaidx") == 1 : "runFaidx ran ${ran('runFaidx')} times, expected 1"
+            assert ran("runClair3") == 2 : "runClair3 ran ${ran('runClair3')} times, expected 2"
+            assert ran("runPorechop") == 2
+            assert ran("runMinimap2") == 2
+            assert ran("runBcftoolsConsensus") == 2
+            assert ran("runNanoporeSummary") == 2
 
             // Both samples produced their own consensus and summary.
             assert workflow.out.consensus.size() == 2

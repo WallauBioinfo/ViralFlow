@@ -231,7 +231,7 @@ nextflow_workflow {
 
         then {
             assert workflow.failed
-            assert workflow.errorReport.contains("run_bcftools")
+            assert workflow.errorReport.contains("runBcftools")
         }
     }
 }

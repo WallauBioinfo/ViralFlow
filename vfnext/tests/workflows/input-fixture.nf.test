@@ -12,7 +12,7 @@ nextflow_pipeline {
         }
         then {
             assert workflow.success
-            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.trace.tasks().findAll { it.name.contains('prepareSampleReads') }.size() == 1
             assert workflow.stdout.any {
                 it.contains('PREPARED sample_a paired=false files=sample_a.SE.fastq.gz batch=batch_1')
             }
@@ -82,7 +82,7 @@ nextflow_pipeline {
         }
         then {
             assert workflow.success
-            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.trace.tasks().findAll { it.name.contains('prepareSampleReads') }.size() == 1
             assert workflow.stdout.any { it.contains('PREPARED sample_fastq paired=true files=sample_fastq.R1.fastq.gz,sample_fastq.R2.fastq.gz') }
         }
     }
@@ -100,7 +100,7 @@ nextflow_pipeline {
         }
         then {
             assert workflow.success
-            assert workflow.trace.tasks().findAll { it.name.contains('prepare_sample_reads') }.size() == 1
+            assert workflow.trace.tasks().findAll { it.name.contains('prepareSampleReads') }.size() == 1
             assert workflow.stdout.any { it.contains('PREPARED sample_fq paired=true files=sample_fq.R1.fastq.gz,sample_fq.R2.fastq.gz') }
         }
     }

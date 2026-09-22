@@ -4,7 +4,7 @@ process align2ref{
 
   input:
     tuple val(meta), path(reads), val(is_paired_end), path(fasta_amb), path(fasta_ann), path(fasta_bwt), path(fasta_pac), path(fasta_sa)
-    path(ref_fa)
+    path(refFa)
 
   output:
     tuple val(meta), path("*.sorted.bam"), path("*.bai"), val(is_paired_end), emit: regular_output
@@ -14,14 +14,14 @@ process align2ref{
     """
     # Link reference files
     if [[ ! -f ./${fasta_amb.getSimpleName()}.fasta ]]; then
-        ln -s ${ref_fa} ./${fasta_amb.getSimpleName()}.fasta
+        ln -s ${refFa} ./${fasta_amb.getSimpleName()}.fasta
     fi
 
     if [[ ${is_paired_end} == true ]]; then
-        bwa mem ./${ref_fa} ${reads[0]} ${reads[1]} \
+        bwa mem ./${refFa} ${reads[0]} ${reads[1]} \
                 -o ${sample_id}.bam -t ${params.bwa_threads}
     else
-        bwa mem ./${ref_fa} ${reads[0]} \
+        bwa mem ./${refFa} ${reads[0]} \
                 -o ${sample_id}.bam -t ${params.bwa_threads}
     fi
 

@@ -4,7 +4,7 @@ process runIntraHostScript{
 
   input:
      tuple val(meta), path(fa_bc), path(fa_algn)
-     path(ref_gff)
+     path(refGff)
 
   output:
      tuple val(meta), path("*.tsv"), path("*.fa")
@@ -15,6 +15,6 @@ process runIntraHostScript{
             -in ${meta.id}.depth${params.depth}.fa.bc \
             -al ${meta.id}.depth${params.depth}.fa.algn \
             -dp ${params.minDpIntrahost} \
-            -gf ${ref_gff}
+            -gf ${refGff}
      """
 }

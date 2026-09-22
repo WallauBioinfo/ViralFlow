@@ -181,8 +181,8 @@ def toolSpec(mode, name, command, containerValue) {
     [mode: mode, tool: name, command: command, container: containerValue.toString()]
 }
 
-// The channel builders below own the spec-map -> tuple mapping. capture_tool_version
-// and capture_container_metadata read those tuples positionally, so keeping the
+// The channel builders below own the spec-map -> tuple mapping. captureToolVersion
+// and captureContainerMetadata read those tuples positionally, so keeping the
 // mapping in one place is what lets a test pin the field order.
 def containerSpecChannel(params, workflow) {
     channel.fromList(
@@ -258,7 +258,7 @@ def toolSpecs(params, workflow) {
             toolSpec('NANOPORE', 'clair3', 'run_clair3.sh -v ', params.clair3_container)
         ]
         // Only when --trimLen asks for it, from the same rule NANOPORE.nf uses
-        // to decide whether run_bam_utils runs at all. Listing it unconditionally
+        // to decide whether runBamUtils runs at all. Listing it unconditionally
         // would report a tool that never touched the reads; omitting it when
         // trimming is on leaves the step that rewrote every alignment out of the
         // provenance record.

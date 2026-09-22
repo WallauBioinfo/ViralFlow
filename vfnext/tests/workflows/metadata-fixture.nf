@@ -2,8 +2,8 @@ nextflow.enable.dsl = 2
 
 include {
     METADATA
-    capture_container_metadata
-    capture_container_metadata as capture_missing_container
+    captureContainerMetadata
+    captureContainerMetadata as capture_missing_container
 } from '../../modules/metadata.nf'
 include {
     localContainerSpec
@@ -75,7 +75,7 @@ workflow MISSING_CONTAINER_FIXTURE {
             "missing",
             file("${projectDir}/tests/data/metadata/missing.sif")
         )
-        missing_container_ch = channel.of(
+        missingContainerCh = channel.of(
             tuple(
                 missing_spec.name,
                 missing_spec.kind,
@@ -83,7 +83,7 @@ workflow MISSING_CONTAINER_FIXTURE {
             )
         )
 
-        capture_missing_container(missing_container_ch)
+        capture_missing_container(missingContainerCh)
 }
 
 workflow CLASSIFY_LOCAL_CONTAINERS_FIXTURE {
@@ -98,10 +98,10 @@ workflow CLASSIFY_LOCAL_CONTAINERS_FIXTURE {
                 file("${projectDir}/tests/data/bcftools/ref.fa")
             )
         ]
-        specs_ch = channel.value(specs)
+        specsCh = channel.value(specs)
 
     emit:
-        specs_ch
+        specsCh
 }
 
 workflow NORMALIZE_METADATA_FIXTURE {
@@ -114,14 +114,14 @@ workflow NORMALIZE_METADATA_FIXTURE {
             values: ["a", 2],
             path: file("${projectDir}/tests/data/bcftools/ref.fa")
         ])
-        normalized_ch = channel.value(normalized)
+        normalizedCh = channel.value(normalized)
 
     emit:
-        normalized_ch
+        normalizedCh
 }
 
-// containerSpecs() and toolSpecs() build the tuples that capture_container_metadata
-// and capture_tool_version consume by position. Neither builder was executed by any
+// containerSpecs() and toolSpecs() build the tuples that captureContainerMetadata
+// and captureToolVersion consume by position. Neither builder was executed by any
 // test: main.nf reaches them only after processInputs(), and the one test that runs
 // main.nf aborts in validation first. A field reorder would therefore corrupt
 // container_manifest.tsv with every test still green.
@@ -129,35 +129,35 @@ workflow NORMALIZE_METADATA_FIXTURE {
 // This drives the real builder into the real process, so the two stay in agreement.
 workflow CONTAINER_SPECS_FIXTURE {
     main:
-        capture_container_metadata(containerSpecChannel(params, workflow))
+        captureContainerMetadata(containerSpecChannel(params, workflow))
 
     emit:
-        rows = capture_container_metadata.out
+        rows = captureContainerMetadata.out
 }
 
 // The ILLUMINA branch of containerSpecs() cannot go through
-// capture_container_metadata the way CONTAINER_SPECS_FIXTURE does: that process
+// captureContainerMetadata the way CONTAINER_SPECS_FIXTURE does: that process
 // checksums each local .sif, and the ILLUMINA images are pulled by
 // `viralflow build-containers` rather than living in the repository, so they are
 // absent wherever the suite runs. Emit the tuples instead - enough to pin which
 // containers the branch declares and how each is classified.
 workflow CONTAINER_SPECS_TUPLES_FIXTURE {
     main:
-        container_specs_ch = containerSpecChannel(params, workflow)
+        containerSpecsCh = containerSpecChannel(params, workflow)
 
     emit:
-        container_specs_ch
+        containerSpecsCh
 }
 
-// toolSpecs feeds capture_tool_version, which can only run inside each tool's own
+// toolSpecs feeds captureToolVersion, which can only run inside each tool's own
 // container. Assert the tuple contract here; the execution path is covered by
 // METADATA_FIXTURE.
 workflow TOOL_SPECS_FIXTURE {
     main:
-        tool_specs_ch = toolSpecChannel(params, workflow)
+        toolSpecsCh = toolSpecChannel(params, workflow)
 
     emit:
-        tool_specs_ch
+        toolSpecsCh
 }
 
 // Drives the real processInputs outputs through the same helper main.nf uses,
@@ -167,18 +167,18 @@ workflow OPTIONAL_GFF_METADATA_FIXTURE {
     main:
         processInputs()
 
-        fasta_metadata_ch = referenceMetadataChannel(
+        fastaMetadataCh = referenceMetadataChannel(
             "reference_fasta",
-            processInputs.out.ref_fa
+            processInputs.out.refFa
         )
-        gff_metadata_ch = params.mode == "ILLUMINA"
+        gffMetadataCh = params.mode == "ILLUMINA"
             ? referenceMetadataChannel(
-                "reference_gff",
-                processInputs.out.ref_gff
+                "referenceGff",
+                processInputs.out.refGff
             )
             : channel.empty()
 
     emit:
-        gff_metadata_ch
-        fasta_metadata_ch
+        gffMetadataCh
+        fastaMetadataCh
 }
