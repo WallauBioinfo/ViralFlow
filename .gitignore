@@ -78,6 +78,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+# sphinx-build output when running the CI docs command locally
+/_build/
 
 # PyBuilder
 target/

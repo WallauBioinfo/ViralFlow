@@ -116,6 +116,34 @@ For an emergency-only bypass, use `git commit --no-verify` or
 `git push --no-verify`, then run the skipped hook stage manually before opening
 or updating a pull request.
 
+### Building the documentation
+
+The site you are reading is Sphinx with MyST, so pages are Markdown.
+`.readthedocs.yaml` at the repository root pins the Python and points Read the
+Docs at `docs/conf.py`; `docs-es/` and `docs-pt/` are the Spanish and Portuguese
+trees.
+
+Adding a page takes two steps, not one. Dropping a `.md` file into `docs/` is
+not enough — Sphinx only links a page into the sidebar if a `toctree` lists it,
+and warns that the document "isn't included in any toctree" otherwise. Add the
+file, then add its name (without the extension) to the `toctree` in
+`docs/index.md`.
+
+Build a tree locally with the same Python and requirements Read the Docs uses:
+
+```bash
+uv run --no-project --python 3.13 \
+  --with-requirements docs/requirements.in \
+  sphinx-build -b html -W --keep-going docs _build/docs
+```
+
+`-W` turns warnings into errors, which is what catches a page missing from a
+toctree, a broken cross-reference, or a theme option the installed
+`sphinx-rtd-theme` no longer accepts. CI runs exactly this command for `docs`,
+`docs-es` and `docs-pt`. Read the Docs itself does not use `-W`, so a warning
+degrades the published site rather than failing the build — which is the reason
+to catch it here.
+
 ### Customizing snpEff catalog
 
 #### AMD64

@@ -66,6 +66,52 @@ jobs:
           pip install "pre-commit==4.6.0"
           pre-commit run --all-files --show-diff-on-failure
 
+  # Read the Docs builds the documentation on its own infrastructure, so a
+  # broken Sphinx build shows up only after merge, on the published site.
+  # Build it here too. The translated trees are covered because nothing else
+  # checks them at all - .readthedocs.yaml names docs/conf.py and nothing else.
+  docs:
+    name: Docs (${{ matrix.tree }})
+    runs-on: ubuntu-24.04
+    strategy:
+      # One tree failing should not hide the state of the other two.
+      fail-fast: false
+      matrix:
+        tree: [docs, docs-es, docs-pt]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          cache-dependency-glob: docs/requirements.in
+
+      # Taken from .readthedocs.yaml rather than repeated here, so CI cannot
+      # build on a different Python than the published site. Same reason the
+      # container job reads its image tag out of profiles.config.
+      - name: Resolve the Python version Read the Docs uses
+        id: python
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          text = open(".readthedocs.yaml").read()
+          match = re.search(r"python:\s*\"([^\"]+)\"", text)
+          assert match, ".readthedocs.yaml does not pin a Python version"
+          print(f"version={match.group(1)}")
+          PY
+
+      # -W turns warnings into errors: a page missing from a toctree, a broken
+      # cross-reference or a theme option the installed sphinx-rtd-theme no
+      # longer accepts all fail here rather than degrading the built site.
+      # --keep-going reports every warning instead of stopping at the first.
+      # This is the same command dev docs tell contributors to run locally.
+      - name: Build ${{ matrix.tree }}
+        run: |
+          uv run --no-project \
+            --python "${{ steps.python.outputs.version }}" \
+            --with-requirements docs/requirements.in \
+            sphinx-build -b html -W --keep-going \
+            "${{ matrix.tree }}" "_build/${{ matrix.tree }}"
+
   # The pre-push gate: the Nextflow tests that need no container image.
   nextflow-tests:
     name: Nextflow tests (no containers)
