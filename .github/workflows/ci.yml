@@ -11,6 +11,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Runner images and actions are pinned rather than floating. ubuntu-latest
+# migrates to Ubuntu 26 on 2026-10-19, and every action here was emitting a
+# Node 20 deprecation warning until this bump. Pinning turns both into
+# changes someone makes deliberately.
 env:
   # Kept in step with envs/amd64.yml and the pre-commit hooks.
   NXF_VER: "26.04.6"
@@ -22,17 +26,25 @@ jobs:
   # hooks cannot drift: ruff, repo hygiene, nextflow lint, Python unit tests.
   lint:
     name: Lint and unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - uses: astral-sh/setup-uv@v5
+      # Pinned to an exact version, unlike the others: astral-sh stopped
+      # publishing moving major tags after v7, so @v10 does not resolve.
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          # setup-uv caches by default and looks for uv.lock or
+          # requirements*.txt. This repo has neither, so the glob matched
+          # nothing and the cache could never be invalidated. setup.py is
+          # what decides the dependencies the hooks install.
+          cache-dependency-glob: setup.py
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -44,7 +56,7 @@ jobs:
           sudo mv nextflow /usr/local/bin/
           nextflow -version
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -57,11 +69,11 @@ jobs:
   # The pre-push gate: the Nextflow tests that need no container image.
   nextflow-tests:
     name: Nextflow tests (no containers)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -90,11 +102,11 @@ jobs:
   # not available on GitHub runners.
   container-tests:
     name: Nextflow tests (containers)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -120,10 +132,10 @@ jobs:
           print(f"tag={match.group(1)}")
           PY
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build the nanopore base image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: vfnext/containers
           file: vfnext/containers/nanopore_base.Dockerfile
