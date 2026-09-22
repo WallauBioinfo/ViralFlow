@@ -77,16 +77,16 @@ Run the complete commit-time suite manually with:
 pre-commit run --all-files
 ```
 
-The pre-push stage runs the 14 Nextflow tests that do not require local container
-images. Run it manually with:
+The pre-push stage runs the Nextflow tests that need no container image. Run it
+manually with:
 
 ```bash
 pre-commit run --all-files --hook-stage pre-push
 ```
 
-The BCFtools, container metadata, and Nanopore truth tests need a container
-image, so they are not part of the pre-commit stages. With Singularity and a
-locally built `vfnext/containers/baseContainer.sif`:
+The rest of the suite needs a container image, so it is not part of either
+pre-commit stage. With Singularity and a locally built
+`vfnext/containers/baseContainer.sif`:
 
 ```bash
 cd vfnext

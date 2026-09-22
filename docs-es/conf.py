@@ -72,7 +72,6 @@ html_static_path = ["_static"]
 # Theme options
 html_theme_options = {
     "logo_only": False,
-    "display_version": True,
     "prev_next_buttons_location": "bottom",
     "style_external_links": True,
     "style_nav_header_background": "#2980B9",
