@@ -13,30 +13,70 @@ section, items that could affect analysis results come first.
 
 Cannot be settled on macOS/Docker.
 
-- [ ] **Verify `bcftools` works inside the built SIF.**
-      ```bash
-      singularity exec vfnext/containers/baseContainer.sif bcftools --version
-      ```
-      `bcftools` is built from the GitHub *source archive*, which — unlike the
-      release tarball `samtools` uses — does not bundle htslib, so it links
-      dynamically against `/usr/local/lib/libhts.so`. Nothing in
-      `Nanopore_baseContainer.sing` runs `ldconfig`. Building the Docker
-      equivalent surfaced this as a hard runtime failure
-      (`libhts.so.3: cannot open shared object file`) and
-      `nanopore_base.Dockerfile` fixes it with an `ldconfig` after the htslib
-      install. Whether the SIF is affected depends on incidental linker-cache
-      state, so it needs checking rather than assuming. If it fails, apply the
-      same one-line fix to the `.sing`.
+- [x] **Verify `bcftools` works inside the built SIF.** Done on Linux
+      (2026-09-18). The SIF is **not** affected: a fresh `apptainer build` from
+      `Nanopore_baseContainer.sing` produces a working `bcftools 1.21 / htslib
+      1.21` with no `ldconfig` step and no `libhts.so.3` failure, so the `.sing`
+      needs no change. Checked beyond `--version`, since that alone would not
+      exercise the dynamic link under load: the four subcommands the pipeline
+      actually uses — `norm`, `filter -i "FORMAT/AF >= …"`, `index --tbi` and
+      `consensus --mask` — were run against `tests/data/bcftools/` and
+      reproduced the fixture's expected consensus byte for byte, and a
+      malformed VCF still failed non-zero. Those four are the only bcftools
+      calls anywhere in the pipeline, so the missing plugin directory in the
+      image is immaterial. The whole container suite (14 tests at the time) then
+      passed against the rebuilt image.
 
-- [ ] **Confirm the truth test passes under Singularity**, not only under
-      `-profile docker`. The container directive for Clair3 strips the
-      `docker://` prefix only when the engine is Docker; the Singularity path is
-      unchanged but has not been run since that change.
+      Why the Docker build hit it and the SIF does not is worth keeping in
+      mind rather than treating as settled luck: both install htslib to
+      `/usr/local/lib`, but the `%post` shell in the SIF build leaves a linker
+      cache state the Docker layer does not. Any change to the htslib install
+      step should re-run the check above.
 
-- [ ] **Confirm Singularity/Apptainer pull and run `docker://` images cleanly**,
-      including by digest. Expected to work — `clair3_container` already relies
-      on it for NANOPORE, so the truth test exercises it — but it has only been
-      run under Docker on this Mac, and the answer gates the item below.
+- [x] **Confirm the truth test passes under Singularity**, not only under
+      `-profile docker`. Done on Linux, and repeatedly since — most recently
+      2026-09-22 against the camelCase refactor, where it passed in 38.6s
+      alongside the multi-sample fan-out test. The Clair3 directive's
+      `docker://` handling is fine under Singularity: the digest-pinned image is
+      pulled and converted to
+      `hkubal-clair3@sha256-1430f7b5….img` in `NXF_SINGULARITY_CACHEDIR`, and
+      Clair3 runs from it natively on amd64.
+
+      Note the truth values survived five changes to the nanopore path made
+      here — the `--trimLen` normalization, the GENPLOTS staged-path fix, the
+      switch to `bam trimBam --clip`, the bamUtil tool spec, and the rename —
+      which is the main thing this test is for. The soft-clip change did move
+      depth (mean 176.36 → 166.47 on the 5072-read fixture), but the designed
+      variants and masked consensus still match.
+
+- [x] **Confirm Singularity/Apptainer pull and run `docker://` images cleanly**,
+      including by digest. Done on Linux (apptainer 1.5.3, Singularity 3.8.7
+      also installed). Every nanopore run of this review pulled Clair3 from its
+      pinned digest and ran it, so this has been exercised repeatedly rather
+      than once. Three reference forms are proven, all sitting in the local
+      caches:
+
+      | Form | Cached as |
+      |---|---|
+      | `docker://` by digest | `hkubal-clair3@sha256-1430f7b5….img` (1.4G) |
+      | `docker://` by tag | `hkubal-clair3-v1.2.0.img` (1.4G) |
+      | third-party registry | `community.wave.seqera.io-library-pip_bio_numpy_pandas-….img` (217M) |
+
+      The digest form is the one that matters: Nextflow converts the OCI image
+      to a `.img` in `NXF_SINGULARITY_CACHEDIR` on first use and reuses it after,
+      the digest survives into the filename, and `container_manifest.tsv`
+      records it as `remote_uri` with checksum `NA`.
+
+      One practical caveat for anyone repeating this: the conversion needs
+      several GB of temporary space and Singularity/Apptainer default to `/tmp`.
+      On a machine where `/` is tight that fails as a confusing "no space left
+      on device" partway through the pull. Set `APPTAINER_TMPDIR`,
+      `SINGULARITY_TMPDIR` and `NXF_SINGULARITY_CACHEDIR` somewhere with room —
+      both scripts in `viralflow_box/` do this.
+
+      This unblocks the modular-container evaluation below: registry pulls are
+      reliable here, so that decision can be made on its merits rather than on
+      whether the mechanism works.
 
 - [ ] **Then evaluate breaking the NANOPORE base container into modular pulled
       images.** Today `baseContainer.sif` is one monolith built locally from
@@ -53,21 +93,33 @@ Cannot be settled on macOS/Docker.
       airgapped sites would need all of them mirrored. Worth deciding before
       the alpha ships, since it changes what gets published.
 
-- [ ] **Confirm `intrahost_analysis:1.1.0.sif` really carries what its recipe
-      says.** `runIntraHostScript` now uses it instead of a registry image, on
-      the strength of a def file deleted eight months ago (`c2be157`); the
-      published library image could have moved since. One command settles it:
-      ```bash
-      singularity exec vfnext/containers/intrahost_analysis:1.1.0.sif \
-        python -c "import sys, pandas, numpy, Bio; print(sys.version, pandas.__version__, numpy.__version__, Bio.__version__)"
-      ```
-      Expect Python 3.8.x, pandas 1.5.3, numpy 1.23, biopython 1.81. The
-      equivalents were verified here against a Python 3.8 environment built to
-      those pins — `intrahost.py` compiles and runs `--help` clean — so the only
-      untested link is the image itself. If the Python differs, update
-      `per-file-target-version` in `ruff.toml` and
-      `INTRAHOST_CONTAINER_PYTHON` in `tests/test_container_recipes.py` to
-      match; a newer Python needs no other change.
+- [x] **Confirm `intrahost_analysis:1.1.0.sif` really carries what its recipe
+      says.** Done on Linux (2026-09-21). The image matches the expected pins
+      exactly, so `ruff.toml` and `INTRAHOST_CONTAINER_PYTHON` need no change:
+
+      | | expected | in the image |
+      |---|---|---|
+      | Python | 3.8.x | **3.8.0** |
+      | pandas | 1.5.3 | **1.5.3** |
+      | numpy | 1.23 | **1.23.0** |
+      | biopython | 1.81 | **1.81** |
+
+      `bam-readcount` is present too, at
+      `/usr/local/bam-readcount/build/bin/bam-readcount`, which matters because
+      `runReadCounts` shares this image. `intrahost.py` compiles under the
+      container's own interpreter (`python3 -m py_compile`), and the
+      `uv run --python 3.8` path the `intrahost-py38` pre-commit hook uses works
+      here as well.
+
+      The image provides both `python` and `python3`
+      (`/usr/local/bin/mm/bin/`), which is directly relevant to the `fixWGS`
+      item in section 3: giving that process this container would satisfy its
+      `#!/usr/bin/env python` shebang as it stands, though switching the
+      shebang to `python3` is still worth doing rather than relying on a
+      `python` alias.
+
+      Confirmed end to end afterwards: `runIntraHostScript` completed for all
+      three samples of `viralflow_box/run_illumina_check.sh`.
 
 - [ ] **Decide where the snpEff writable-filesystem workaround belongs.**
       Deleting the commented arch block changed nothing, but it made a
@@ -288,6 +340,58 @@ Deliberately kept out of the nanopore PR.
       three could serve nanopore output too, so this is what would let NANOPORE
       reuse the ILLUMINA annotation stack rather than reimplement it.
 - [ ] **Move the `coveragePlot` import into `GENPLOTS.nf`.** Agreed on PR #47.
+- [ ] **`fixWGS` fails for every sample and always has.** It runs its script
+      under `#!/usr/bin/env python` (`modules/fixWGS.nf:17`) and is the only
+      ILLUMINA process with no entry in `configs/containers.config`, so it runs
+      on the host — where Ubuntu 24.04 provides `python3` and no `python`:
+      ```
+      ILLUMINA:fixWGS (ART1)  exit: 127
+      /usr/bin/env: 'python': No such file or directory
+      ```
+      The run does not stop. `compileOutputs` still writes a batch summary and
+      the only trace is the task status, which is how this went unnoticed.
+      Whatever the step contributes has therefore never been produced, and it
+      is worth establishing what that is before fixing it. Seen on all three
+      samples of `viralflow_box/run_illumina_check.sh`, and identically in the
+      2026-08-12 baseline under `viralflow_box/test_box/output/`, so nothing
+      about it is new. Inherited from `develop`, where the same shebang and the
+      same absent container directive are already present. The fix is a
+      container plus `python3`: the script imports `pandas` and `Bio`, which
+      `intrahost_analysis:1.1.0.sif` already carries for `runReadCounts` and
+      `runIntraHostScript`.
+- [ ] **Boolean parameters given on the command line are ignored, and the
+      metadata layer disagrees with the workflow about them.** Nextflow hands
+      over command line parameters as Strings, and the two idioms that read
+      them are each wrong for a String in a different direction:
+
+      | Idiom | Where | `--runSnpEff true` | `--runSnpEff false` |
+      |---|---|---|---|
+      | `params.X == true` | `workflows/ILLUMINA.nf:112`, `workflows/GENPLOTS.nf:22` | **false** | false |
+      | `if (params.X)` | `modules/metadata_helpers.nf:240`, `:286` | true | **true** |
+
+      So `--runSnpEff true` **silently does not run snpEff** — `"true" == true`
+      is false in Groovy, and only the `nextflow.config` default, a real
+      boolean, ever enables it. Same for `--writeMappedReads true` and
+      `--dedup true`. Meanwhile `container_manifest.tsv` and
+      `software_versions.tsv` declare `snpeff` and `generate_report` for a
+      `--runSnpEff false` run, because the metadata layer reads the same
+      parameter as truthy; confirmed in
+      `viralflow_box/test_box/output_illumina_check/RUN_METADATA/`.
+
+      The `== true` half is inherited from `develop` (`main.nf:164` and `:181`
+      there; this branch only moved the gates into `GENPLOTS.nf` and
+      `ILLUMINA.nf`). The disagreement is not: the metadata layer is new here,
+      so a provenance record that contradicts the run is this branch's to own.
+      `--writeMappedReads` also gates NANOPORE through `GENPLOTS`, so this is
+      not purely an ILLUMINA concern — fixing that one instance before the PR
+      merges is defensible.
+
+      Same class as the `--trimLen` String/Integer bug fixed in `074caf3`. The
+      fix is the same shape: a `normalizeFlag(value)` beside `normalizeTrimLen`
+      in `modules/param_helpers.nf`, rejecting anything that is not a
+      recognised boolean, read by the workflow gate and the metadata gate
+      alike. Auditing for the remaining `params.X == true` and bare
+      `if (params.X)` sites is part of the job.
 - [ ] **`getMappedReads.nf` / `getUnmappedReads.nf`: the paired branch
       desynchronizes R1 and R2.** Neither branch passes `-s`, so a read whose
       mate was removed by the `-F 4` / `-f 4` filter is written to the R1 file
