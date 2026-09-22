@@ -77,10 +77,8 @@ nextflow run path/to/vfnext/main.nf \
         --mode NANOPORE \
         --inDir /path/to/input_dir/ \
         --referenceGenome /path/to/reference_genome/fasta_file.fa
-
-
-
 ```
+
 ---
 ## NOTES
 Paths provided for the parameters **must be absolute paths**
