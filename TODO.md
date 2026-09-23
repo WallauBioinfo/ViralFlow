@@ -346,7 +346,6 @@ come from reading the code and want a run before anyone relies on them.
       says no `FILTER=PASS` condition is applied, but not that this makes the
       parameter inert. Fix: add `-f PASS` (or `-i 'FILTER="PASS" && …'`) and
       a fixture VCF with a `LowQual` row.
-
       An earlier draft of this audit also claimed `RefCall` rows would be
       applied, because Clair3 defines their `AF` as the *reference* allele
       frequency and `bcftools consensus` is run without `-s`. That part is
@@ -373,17 +372,30 @@ come from reading the code and want a run before anyone relies on them.
       `integration_tests/nanopore-no-reads.nf.test`, which runs the whole
       NANOPORE workflow, Clair3 included, on a negative control. All three
       fail against `-a`. The truth and multi-sample tests are unchanged by it.
-- [ ] **An empty FASTQ aborts the whole batch.** Found while testing the item
-      above. A barcode that demultiplexed nothing gives a 20-byte gzip with no
-      reads, which passes input validation (it rejects only zero-byte files).
-      Porechop_ABI's ab initio adapter inference then fails with
-      `ERROR - Unable to build graph`, exit 1, and with the default error
-      strategy every other sample in the run is abandoned with it. Reproduce
-      with an empty `gzip -n < /dev/null` FASTQ through
-      `tests/integration/nanopore-truth.nf`. Either reject read-less inputs in
-      step0 with a clear message, or skip Porechop (and pass the sample
-      through to a fully masked consensus, which now works) when there are no
-      reads. The second matches how a negative control is treated.
+- [x] **An empty FASTQ aborted the whole batch.** Found while testing the item
+      above, then fixed by rejecting it in step0. A barcode that demultiplexed
+      nothing gives a 20-byte gzip with no reads, which passed input
+      validation (it rejected only zero-byte files). Porechop_ABI's ab initio
+      adapter inference then failed with `ERROR - Unable to build graph`,
+      exit 1, and with the default error strategy every other sample in the
+      run was abandoned with it. `validateFastqPath` now reads each input up to
+      its first non-blank line and reports `FASTQ contains no reads` for one
+      that has none, gzipped or plain, alongside every other input problem
+      and before any task is submitted. A `.gz` that is not gzip is reported
+      as `FASTQ cannot be read as gzip` instead of failing later inside
+      `prepareSampleReads`. It applies to both modes and to `--inDir` as well
+      as `--samplesheet`, and it also catches a `concat-fastq` output whose
+      reads were all dropped by the length filter. Covered by
+      `Rejects FASTQ files that hold no reads` in
+      `tests/workflows/input-fixture.nf.test`.
+
+      The check is per file, like the zero-byte check it sits beside, so a
+      multi-chunk sample with one read-less chunk is rejected even though its
+      other chunks hold reads. The alternative considered was to let a
+      read-less sample through to an all-`N` consensus, which the fix above
+      makes correct, by skipping Porechop when there is nothing to trim.
+      Rejecting was chosen as the simpler, explicit behaviour; revisit if
+      empty barcodes turn out to be routine in real runs.
 - [ ] **Primer clipping trims only one end of each read.**
       `modules/runAmpliconClip.nf` runs `ampliconclip --strand` without
       `--both-ends`, so only the 5′ primer is clipped. Nanopore amplicon reads
@@ -471,7 +483,8 @@ come from reading the code and want a run before anyone relies on them.
   GENPLOTS and manifest items above.
 - The truth fixture's error-free synthetic reads never produce a `LowQual`
   call, a right-hand primer, or a supplementary alignment. The zero-coverage
-  case now has its own integration test; the empty-FASTQ case does not yet.
+  case now has its own integration test, and read-less inputs are rejected
+  and tested in step0.
 - `integration_tests/nanopore-multisample.nf.test` repeats the Clair3 digest in
   its `params` block, and `tests/test_container_recipes.py` checks only the
   truth test's copy, so that one can drift unnoticed. It could simply inherit
