@@ -21,10 +21,10 @@ def normalizeTrimLen(value) {
     return raw as Integer
 }
 
-// Whether GENPLOTS writes the mapped and unmapped reads, and so whether the run
-// uses the generate_consensus image those two processes run in. GENPLOTS and
-// containerSpecs() both ask here, so the container manifest cannot list that
-// image for a run that never started it, or omit it from one that did.
+// Whether GENPLOTS writes the mapped and unmapped reads. Kept here, beside
+// normalizeTrimLen, so that anything else needing the answer - the metadata
+// layer did, while NANOPORE ran these processes in an ILLUMINA image - asks the
+// same rule GENPLOTS does.
 //
 // Deliberately the same `== true` test GENPLOTS has always used, String and
 // all. `--writeMappedReads true` on the command line arrives as the String

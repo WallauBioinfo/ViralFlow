@@ -424,22 +424,52 @@ come from reading the code and want a run before anyone relies on them.
 
 ### Documented runs that fail, or record the wrong thing
 
-- [ ] **A full NANOPORE run needs ILLUMINA images nobody is told to get.**
-      GENPLOTS runs in NANOPORE mode: `coveragePlot` uses
-      `generate_plots:2.0.0.sif`, `getMappedReads`/`getUnmappedReads` use
-      `generate_consensus:2.0.0.sif`, and `writeMappedReads` defaults to true.
-      `runFaidx.nf` explains exactly why sharing that image breaks nanopore,
-      then GENPLOTS does it anyway. `tests/workflows/genplots-fixture.config`
-      redirects both read processes to the base container, which is why CI
-      never notices, and `coveragePlot` is not tested at all.
-- [ ] **`-profile docker` through `main.nf` should fail in METADATA.** Not yet
-      run; nothing runs `main.nf --mode NANOPORE` end to end. Three causes:
-      `captureToolVersion` uses the raw `docker://hkubal/clair3@…` reference,
-      the prefix `runClair3` has to strip for Docker; `nanopore_base` is
-      recorded as `local_sif`, so the Docker tag becomes the path
-      `<launchDir>/viralflow/nanopore-base:2.0.0a1` and
-      `captureContainerMetadata` fails on it; and GENPLOTS then asks Docker for
-      the `.sif` paths above. `NANOPORE.md` documents this exact command.
+- [x] **A full NANOPORE run needs ILLUMINA images nobody is told to get.**
+      GENPLOTS ran in NANOPORE mode in two ILLUMINA images: `coveragePlot` in
+      `generate_plots:2.0.0.sif`, `getMappedReads`/`getUnmappedReads` in
+      `generate_consensus:2.0.0.sif`. `runFaidx.nf` explains exactly why
+      sharing that image breaks nanopore, and GENPLOTS did it anyway. Under
+      `-profile docker` there was no way to run them at all: those images are
+      SIFs pulled from the Sylabs library (`library://wallaulabs2/…`), with no
+      Docker equivalent. In NANOPORE mode all three now use the base image
+      (the mode check is in their `configs/containers.config` closures), and
+      the base image gained what they need. Both recipes:
+      - pin `bamdash==0.4.4` (the version `generate_plots` carries), with
+        `kaleido==0.2.1`, `plotly==5.24.1` and `pysam==0.23.3`;
+      - add `python-is-python3`, since `coveragePlot` runs under
+        `#!/usr/bin/env python`.
+      samtools was already there. The images grow: the Docker image from
+      1.3 GB to 2.48 GB and the SIF from 460 MB to 778 MB, mostly kaleido's
+      bundled Chromium. A NANOPORE run now needs only the base image and
+      Clair3, so the manifest lists just those two again, and bamdash is
+      recorded in `software_versions.tsv`. Checked on 2026-09-23 under both
+      engines: `main-nanopore.nf.test` passes under Singularity and asserts the
+      HTML, PNG and SVG plots. Under Docker, GENPLOTS completes in
+      `viralflow/nanopore-base:2.0.0a1` and publishes all five GENPLOTS files.
+      The PNG and SVG are new: no run of either mode had produced them before
+      (see the section 4 item on ILLUMINA's coverage plots).
+- [ ] **`-profile docker` through `main.nf` fails in METADATA.** Confirmed on
+      the Linux box on 2026-09-23 with the base image built from
+      `nanopore_base.Dockerfile` and Clair3 pulled by digest. Run on the truth
+      fixture via `tests/data/input/nanopore-truth.csv`. The analysis itself is
+      correct under Docker: variants equal `truth.vcf`, every metric matches
+      `expected_metrics.tsv`, and the consensus is byte-identical to the
+      Singularity run. Rerun with `process.errorStrategy = 'ignore'` to see
+      every failure rather than the first, it showed exactly the three
+      predicted causes and no others:
+
+      | Task | Exit | Cause |
+      |---|---|---|
+      | `METADATA:captureToolVersion (clair3)` | 125 | raw `docker://hkubal/clair3@…` reference; `docker: invalid reference format`. `runClair3` strips the prefix for Docker; this does not |
+      | `METADATA:captureContainerMetadata (nanopore_base)` | 1 | recorded as `local_sif`, so the tag becomes the path `<launchDir>/viralflow/nanopore-base:2.0.0a1`: `Configured SIF file does not exist` |
+      | `GENPLOTS:coveragePlot`, `getMappedReads`, `getUnmappedReads` | 125 | Docker asked to run the ILLUMINA `.sif` paths. **Fixed**: see "A full NANOPORE run needs ILLUMINA images" above |
+
+      The first two remain, and with them the next item, which the same run
+      shows as `profile docker`, `container_engine singularity`. Under
+      `--profile docker`, as CI runs it, the unit suite passes (46/46), as do
+      the truth, multi-sample and no-reads integration tests.
+      `main-nanopore.nf.test` fails, because the first METADATA failure stops
+      the run. `NANOPORE.md` documents this exact command.
 - [x] **`container_manifest.tsv` omits images a NANOPORE run used.**
       `containerSpecs()` listed only `nanopore_base` and `clair3`, not
       `generate_plots` or `generate_consensus`, the drift `containers.config`
@@ -449,13 +479,11 @@ come from reading the code and want a run before anyone relies on them.
       `writeMappedReadsEnabled()` in `modules/param_helpers.nf`, the same rule
       GENPLOTS uses to decide whether the two processes run, so the two cannot
       disagree. Caught by `integration_tests/main-nanopore.nf.test`, which
-      checks every image the trace says a task ran against the manifest, and
-      now passes under Singularity. Pinned in
-      `tests/workflows/metadata-fixture.nf.test` for both settings of the flag.
-      Still missing: the GENPLOTS tools themselves (`samtools` in
-      `generate_consensus`, bamdash in `generate_plots`) are absent from a
-      NANOPORE run's `software_versions.tsv`. See the task-reported provenance
-      item in section 4.
+      checks every image the trace says a task ran against the manifest.
+      Superseded the same day: GENPLOTS now runs in the base image in NANOPORE
+      mode (see "A full NANOPORE run needs ILLUMINA images" above), so a
+      NANOPORE manifest lists `nanopore_base` and `clair3` only, which is again
+      the truth. The same test guards it either way.
 - [ ] **`run_manifest.json` records Docker runs as `singularity`.**
       `container_engine` is guessed from the profile name
       (`metadata_helpers.nf`); `workflow.containerEngine` has the real answer.
@@ -483,7 +511,8 @@ come from reading the code and want a run before anyone relies on them.
       `getUnmappedReads` have no `set -o pipefail`, so a failed
       `samtools sort` still publishes an empty FASTQ; `coveragePlot` calls
       bamdash through `subprocess.run(..., shell=True)` without checking the
-      exit status.
+      exit status. That is how ILLUMINA's PNG and SVG coverage plots have gone
+      missing on every run without anyone noticing; see the section 4 item.
 - [ ] Minor: `runPorechop` publishes an uncompressed `*.chopped.fastq`,
       roughly doubling storage; `runNanoporeSummary` calls
       `${projectDir}/bin/…` rather than relying on `bin/` being on `PATH`,
@@ -515,6 +544,20 @@ Deliberately kept out of the nanopore PR.
       dropping `vfnext/`. Agreed on PR #47. Touches every `includeConfig` and
       `$projectDir` path, the wrapper's `root_path`, `.readthedocs.yaml` and the
       CI workflow, so it wants its own PR with nothing else in it.
+- [ ] **ILLUMINA coverage plots have never included the PNG or SVG.**
+      `coveragePlot` asks bamdash for HTML, PNG and SVG, but only the HTML is
+      ever published, in every run checked, including the 2026-08-12 baseline
+      under `viralflow_box/test_box/output/`. The `generate_plots:2.0.0.sif`
+      image has kaleido 1.0.0, while bamdash 0.4.4 requires `kaleido==0.2.*`.
+      Kaleido 1.x needs a separately installed Chrome for static export, the
+      image has none, and the task log says so (`plotly_get_chrome`, then
+      `mv: cannot stat 'NC_045512.2_plot.png'`). The task still succeeds,
+      because `coveragePlot` ignores bamdash's exit status (the "Silent
+      failures in the GENPLOTS steps" item in section 3). The nanopore base
+      image pins `kaleido==0.2.1` with `plotly==5.24.1` and produces all three
+      formats (checked on the truth fixture), so rebuilding `generate_plots`
+      with the same pins is the likely fix. Installing Chrome is the
+      alternative. Inherited: the image predates this branch.
 - [ ] **Publish through workflow outputs, and retire `--outDir` in favour of
       Nextflow's `outputDir`.** `outputDir` (`-output-dir`) is the root for the
       workflow `output {}` block, which Nextflow documents as "intended to
@@ -542,8 +585,9 @@ Deliberately kept out of the nanopore PR.
       Examples: the GENPLOTS images missing from the manifest, bamUtil needing
       its own gate, version capture using the raw `docker://` Clair3 reference
       under `-profile docker`, ILLUMINA's `toolSpecs()` still hardcoding `.sif`
-      paths rather than reading `params.illumina_containers`, and no GENPLOTS
-      tool in a NANOPORE `software_versions.tsv`. Instead, have each process
+      paths rather than reading `params.illumina_containers`, and bamdash
+      missing from `software_versions.tsv` until GENPLOTS moved into the
+      nanopore base image. Instead, have each process
       report what it used, in the same task:
       ```groovy
       tuple val(task.process), val(task.container), eval('samtools --version | head -n 1'), topic: provenance

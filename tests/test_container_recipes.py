@@ -38,6 +38,10 @@ PINNED = (
     "HTSLIB_VERSION",
     "MINIMAP2_TAG",
     "NETWORKX_VERSION",
+    "BAMDASH_VERSION",
+    "KALEIDO_VERSION",
+    "PLOTLY_VERSION",
+    "PYSAM_VERSION",
     "PORECHOP_ABI_COMMIT",
     "BAMUTIL_COMMIT",
     "LIBSTATGEN_COMMIT",
@@ -203,12 +207,20 @@ def illumina_container_images():
 
 
 def illumina_container_references():
-    """The image names the process directives resolve, in file order."""
-    return re.findall(
-        r"container\s*=\s*\{\s*params\.getOrDefault\(\s*'illumina_containers'"
-        r"\s*,\s*\[:\]\s*\)\.(\w+)\s*\}",
-        CONTAINERS_CONFIG.read_text(),
-    )
+    """The image names the process directives resolve, in file order.
+
+    Read from inside each container closure rather than matching the whole
+    closure, because the GENPLOTS directives choose between the nanopore base
+    image and an ILLUMINA one depending on the mode.
+    """
+    return [
+        name
+        for body in container_closure_bodies(CONTAINERS_CONFIG)
+        for name in re.findall(
+            r"params\.getOrDefault\(\s*'illumina_containers'\s*,\s*\[:\]\s*\)\.(\w+)",
+            body,
+        )
+    ]
 
 
 def container_closure_bodies(path):
