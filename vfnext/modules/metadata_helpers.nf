@@ -1,4 +1,4 @@
-include {normalizeTrimLen} from './param_helpers.nf'
+include {normalizeTrimLen; writeMappedReadsEnabled} from './param_helpers.nf'
 
 def metadataDir(outputDir) {
     java.nio.file.Path.of(outputDir.toString()).toAbsolutePath().normalize()
@@ -239,6 +239,15 @@ def containerSpecs(params, _workflow) {
     if (params.mode == 'NANOPORE') {
         specs << localContainerSpec('nanopore_base', params.base_container)
         specs << remoteContainerSpec('clair3', params.clair3_container)
+        // GENPLOTS runs after NANOPORE as well, in two images from the ILLUMINA
+        // set: coveragePlot always, getMappedReads and getUnmappedReads when
+        // mapped reads are written. Without these the manifest described a
+        // four-image run as a two-image one. Both are read from
+        // params.illumina_containers, as their process directives are.
+        specs << illuminaContainerSpec(params, 'generate_plots')
+        if (writeMappedReadsEnabled(params.writeMappedReads)) {
+            specs << illuminaContainerSpec(params, 'generate_consensus')
+        }
     }
     else if (params.mode == 'ILLUMINA') {
         // Names, not paths: the paths live in params.illumina_containers, which

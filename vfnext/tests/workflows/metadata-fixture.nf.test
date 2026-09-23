@@ -98,9 +98,15 @@ nextflow_workflow {
         when {
             params {
                 mode = "NANOPORE"
-                // Stands in for a built SIF: any regular file exercises the
-                // local_sif branch and gives a deterministic checksum.
+                // Stand in for built SIFs: any regular file exercises the
+                // local_sif branch and gives a deterministic checksum. The two
+                // GENPLOTS images must be distinct files from the base one,
+                // because containerSpecs() drops repeated paths.
                 base_container = "${projectDir}/tests/data/bcftools/ref.fa"
+                illumina_containers = [
+                    generate_plots: "${projectDir}/tests/data/bcftools/ref_two_contigs.fa",
+                    generate_consensus: "${projectDir}/tests/data/genplots/reads.sam"
+                ]
             }
         }
 
@@ -114,7 +120,13 @@ nextflow_workflow {
             assert rows.every { fields -> fields.size() == 5 }
 
             def byName = rows.collectEntries { fields -> [(fields[0]): fields] }
-            assert byName.keySet() == ["nanopore_base", "clair3"] as Set
+            assert byName.keySet() ==
+                ["nanopore_base", "clair3", "generate_plots", "generate_consensus"] as Set
+
+            assert byName.generate_plots[1] == "local_sif"
+            assert byName.generate_plots[2].endsWith("/tests/data/bcftools/ref_two_contigs.fa")
+            assert byName.generate_consensus[1] == "local_sif"
+            assert byName.generate_consensus[2].endsWith("/tests/data/genplots/reads.sam")
 
             // Column order is the contract: name, kind, identity, size, sha256.
             def base = byName.nanopore_base
@@ -129,6 +141,55 @@ nextflow_workflow {
             assert clair3[2].startsWith("docker://hkubal/clair3")
             assert clair3[3] == "NA"
             assert clair3[4] == "NA"
+        }
+    }
+
+    test("Should declare the GENPLOTS images a NANOPORE run uses") {
+        workflow "CONTAINER_SPECS_TUPLES_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def byName = workflow.out.containerSpecsCh
+                .collectEntries { spec -> [(spec[0]): spec] }
+
+            // GENPLOTS runs after NANOPORE in two images from the ILLUMINA set:
+            // coveragePlot in generate_plots, and with writeMappedReads on (the
+            // default) getMappedReads and getUnmappedReads in
+            // generate_consensus. The manifest used to list only nanopore_base
+            // and clair3.
+            assert byName.keySet() ==
+                ["nanopore_base", "clair3", "generate_plots", "generate_consensus"] as Set
+            // Read from params.illumina_containers, like the process
+            // directives, rather than from a second copy of the paths.
+            assert byName.generate_plots[2].endsWith("/containers/generate_plots:2.0.0.sif")
+            assert byName.generate_consensus[2].endsWith("/containers/generate_consensus:2.0.0.sif")
+        }
+    }
+
+    test("Should leave out generate_consensus when mapped reads are not written") {
+        workflow "CONTAINER_SPECS_TUPLES_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+                // Decided by the same writeMappedReadsEnabled() GENPLOTS uses to
+                // decide whether the two processes run at all.
+                writeMappedReads = false
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def names = workflow.out.containerSpecsCh.collect { spec -> spec[0] }
+            assert names.toSorted() == ["clair3", "generate_plots", "nanopore_base"]
         }
     }
 

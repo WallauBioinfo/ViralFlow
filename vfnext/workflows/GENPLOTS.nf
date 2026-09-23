@@ -2,6 +2,7 @@
 include { coveragePlot } from '../modules/generatePlots.nf'
 include { getMappedReads } from '../modules/getMappedReads.nf'
 include { getUnmappedReads } from '../modules/getUnmappedReads.nf'
+include { writeMappedReadsEnabled } from '../modules/param_helpers.nf'
 
 workflow GENPLOTS {
     take:
@@ -19,7 +20,7 @@ workflow GENPLOTS {
     coveragePlotOutCh
     | view { result -> log.warn("${result.text}") }
 
-    if ((params.writeMappedReads == true)){
+    if (writeMappedReadsEnabled(params.writeMappedReads)) {
         // write mapped reads
         getMappedReads(readsCh)
 
