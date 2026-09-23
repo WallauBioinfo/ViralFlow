@@ -1,0 +1,2 @@
+sample_id,fastq_1,fastq_2
+nanopore_truth,../../integration/data/nanopore_truth/reads.fastq.gz,
