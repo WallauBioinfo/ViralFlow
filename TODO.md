@@ -440,10 +440,22 @@ come from reading the code and want a run before anyone relies on them.
       `<launchDir>/viralflow/nanopore-base:2.0.0a1` and
       `captureContainerMetadata` fails on it; and GENPLOTS then asks Docker for
       the `.sif` paths above. `NANOPORE.md` documents this exact command.
-- [ ] **`container_manifest.tsv` omits images a NANOPORE run used.**
-      `containerSpecs()` lists only `nanopore_base` and `clair3`, not
-      `generate_plots` or `generate_consensus` — the drift `containers.config`
-      says the shared map prevents.
+- [x] **`container_manifest.tsv` omits images a NANOPORE run used.**
+      `containerSpecs()` listed only `nanopore_base` and `clair3`, not
+      `generate_plots` or `generate_consensus`, the drift `containers.config`
+      says the shared map prevents. It now declares `generate_plots` for every
+      NANOPORE run and `generate_consensus` when mapped reads are written, both
+      read from `params.illumina_containers`. The second is gated by
+      `writeMappedReadsEnabled()` in `modules/param_helpers.nf`, the same rule
+      GENPLOTS uses to decide whether the two processes run, so the two cannot
+      disagree. Caught by `integration_tests/main-nanopore.nf.test`, which
+      checks every image the trace says a task ran against the manifest, and
+      now passes under Singularity. Pinned in
+      `tests/workflows/metadata-fixture.nf.test` for both settings of the flag.
+      Still missing: the GENPLOTS tools themselves (`samtools` in
+      `generate_consensus`, bamdash in `generate_plots`) are absent from a
+      NANOPORE run's `software_versions.tsv`. See the task-reported provenance
+      item in section 4.
 - [ ] **`run_manifest.json` records Docker runs as `singularity`.**
       `container_engine` is guessed from the profile name
       (`metadata_helpers.nf`); `workflow.containerEngine` has the real answer.
@@ -503,6 +515,62 @@ Deliberately kept out of the nanopore PR.
       dropping `vfnext/`. Agreed on PR #47. Touches every `includeConfig` and
       `$projectDir` path, the wrapper's `root_path`, `.readthedocs.yaml` and the
       CI workflow, so it wants its own PR with nothing else in it.
+- [ ] **Publish through workflow outputs, and retire `--outDir` in favour of
+      Nextflow's `outputDir`.** `outputDir` (`-output-dir`) is the root for the
+      workflow `output {}` block, which Nextflow documents as "intended to
+      replace the publishDir directive" (stable since 25.10; we require 26.04).
+      It does not affect `publishDir`, and every module here publishes through
+      `publishDir` under `params.outDir` (28 files), so switching the parameter
+      alone gains nothing. Today `nextflow.config` sets
+      `outputDir = params.outDir`, and step0 stops the run when the two
+      disagree. What migrating buys: one output-directory setting instead of
+      two, with no conflict check; index files, a structured per-sample
+      catalog of what was published, which could replace hand-written files
+      like `resolved_sample_inputs.tsv`; and data lineage (next item), which
+      records only outputs published through `outputDir`. It does not move the
+      trace, report or timeline: those default to the launch directory, not
+      `outputDir`, so their paths stay explicit in `nextflow.config`, and
+      `run_manifest.json` records where they actually went. Keep `--outDir` as
+      a deprecated alias that warns and sets `outputDir`, since the wrapper,
+      the three language docs and users' parameter files all use it, and drop
+      it in v3 along with `--inDir`. Touches every module, so pair it with the
+      repository-root move above.
+- [ ] **Capture provenance in the tasks that ran, instead of predicting it.**
+      Nearly every metadata bug on the nanopore branch has had the same cause:
+      `containerSpecs()` and `toolSpecs()` in `modules/metadata_helpers.nf`
+      predict which images and tools a run will use, and the prediction drifts.
+      Examples: the GENPLOTS images missing from the manifest, bamUtil needing
+      its own gate, version capture using the raw `docker://` Clair3 reference
+      under `-profile docker`, ILLUMINA's `toolSpecs()` still hardcoding `.sif`
+      paths rather than reading `params.illumina_containers`, and no GENPLOTS
+      tool in a NANOPORE `software_versions.tsv`. Instead, have each process
+      report what it used, in the same task:
+      ```groovy
+      tuple val(task.process), val(task.container), eval('samtools --version | head -n 1'), topic: provenance
+      ```
+      METADATA then reads `channel.topic('provenance')`, de-duplicates, and
+      checksums each distinct local image once. Checked on 26.04.6 in an
+      ordinary (untyped) process: it emitted the process name, the real
+      container path and `samtools 1.21` from inside that container. Topic
+      channels are stable since 25.04, `eval` since 24.04. This is the pattern
+      nf-core moved to for versions. It removes the separate
+      `captureToolVersion` tasks and the Docker METADATA failure by
+      construction. Costs: an output line in every process, ILLUMINA's
+      included, which is why it is not on the nanopore branch; and a failing
+      version command fails the task, so each needs care.
+
+      Not a replacement for our files: the trace, report and timeline cannot
+      be read to build the manifest, because `workflow.onComplete` runs before
+      Nextflow writes the report and timeline (`Session.shutdown0()` runs the
+      shutdown callbacks, then notifies the observers). The trace is written
+      asynchronously, nf-test replaces it, and users can move or disable all
+      three. Keep `run_manifest.json` for the analysis settings Nextflow knows
+      nothing about. Data lineage (`lineage.enabled = true`) records
+      parameters, commit, per-task container and input/output checksums, but
+      it is experimental ("may change in future releases"), records only
+      outputs published through `outputDir`, and writes no new records for
+      cached tasks. Worth trying alongside our files once publishing moves to
+      workflow outputs.
 - [ ] **Add an `annotations` subworkflow** grouping snpEff, pangolin, nextclade
       and compileOutput. Agreed on PR #47. The reviewer's point is that all
       three could serve nanopore output too, so this is what would let NANOPORE
@@ -534,8 +602,13 @@ Deliberately kept out of the nanopore PR.
 
       | Idiom | Where | `--runSnpEff true` | `--runSnpEff false` |
       |---|---|---|---|
-      | `params.X == true` | `workflows/ILLUMINA.nf:112`, `workflows/GENPLOTS.nf:22` | **false** | false |
-      | `if (params.X)` | `modules/metadata_helpers.nf:240`, `:286` | true | **true** |
+      | `params.X == true` | `workflows/ILLUMINA.nf:112`, `modules/param_helpers.nf:35` | **false** | false |
+      | `if (params.X)` | `modules/metadata_helpers.nf:269`, `:315` | true | **true** |
+
+      `param_helpers.nf:35` is `writeMappedReadsEnabled()`, which GENPLOTS and
+      `containerSpecs()` both call, so for `--writeMappedReads` the workflow and
+      the metadata already agree. Both still reject the String `"true"`, so
+      normalizing there fixes both at once.
 
       So `--runSnpEff true` **silently does not run snpEff** — `"true" == true`
       is false in Groovy, and only the `nextflow.config` default, a real
