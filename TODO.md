@@ -113,7 +113,7 @@ Cannot be settled on macOS/Docker.
 
       The image provides both `python` and `python3`
       (`/usr/local/bin/mm/bin/`), which is directly relevant to the `fixWGS`
-      item in section 3: giving that process this container would satisfy its
+      item in section 4: giving that process this container would satisfy its
       `#!/usr/bin/env python` shebang as it stands, though switching the
       shebang to `python3` is still worth doing rather than relying on a
       `python` alias.
@@ -216,7 +216,7 @@ Done in code; the thread is just waiting for a note.
       reads carrying neither READ1 nor READ2, and which compresses from the
       file extension so the separate `gzip` step is gone; output payload
       verified byte-identical to the two-step form. **One follow-up in section
-      3.**
+      4.**
 - [x] `containers.config`: delete the commented-out architecture-specific
       `runOptions` block rather than leaving it commented, now that engine
       selection is profile-driven. Deleted. Verified as a pure no-op:
@@ -293,12 +293,12 @@ These need an answer from the team before anything is written.
       anyone assumes a change to `docs-es/` will appear online.
 - [x] **Drop the `vfnext/` directory** — **agreed on the PR**, deferred to the
       next round of work. It exists only because the Nextflow code was kept
-      apart from the wrapper early on. Moved to section 3.
+      apart from the wrapper early on. Moved to section 4.
 - [x] **An `annotations` subworkflow** — **agreed on the PR**, deferred until
       NANOPORE merges, on the grounds that this PR already carries a lot of
-      non-nanopore change. Moved to section 3.
+      non-nanopore change. Moved to section 4.
 - [x] Should the `coveragePlot` import live in `GENPLOTS.nf`? — **agreed on the
-      PR**, deferred to the ILLUMINA branch. Moved to section 3.
+      PR**, deferred to the ILLUMINA branch. Moved to section 4.
 - [ ] **The recipes for the pulled containers are no longer in the repo.**
       `def_files/` held one `.def` per image until `c2be157` deleted them in
       favour of pulling prebuilt images from the Sylabs library; only the
@@ -327,7 +327,159 @@ These need an answer from the team before anything is written.
 
 ---
 
-## 3. ILLUMINA follow-up branch
+## 3. NANOPORE bug audit, before the PR merges
+
+From a read-through of the nanopore path on 2026-09-23. Items marked as
+confirmed were checked against real output — Clair3 VCFs from the
+integration tests, runs of the base image, or upstream documentation; the rest
+come from reading the code and want a run before anyone relies on them.
+
+### Can change analysis results
+
+- [ ] **Clair3 `LowQual` calls reach the consensus, so `clair3_qual` does
+      nothing to it.** Confirmed from Clair3's own documentation: `--qual` does
+      not drop variants, it labels them `PASS` or `LowQual` and keeps both.
+      `runBcftools` filters on `FORMAT/AF` alone (`modules/runBcftools.nf`,
+      the `bcftools filter` line) and never looks at `FILTER`, so a `LowQual`
+      call with AF >= `af_threshold` is written into the consensus. The value
+      of `clair3_qual` ends up only in the summary TSV. `NANOPORE.md` already
+      says no `FILTER=PASS` condition is applied, but not that this makes the
+      parameter inert. Fix: add `-f PASS` (or `-i 'FILTER="PASS" && …'`) and
+      a fixture VCF with a `LowQual` row.
+
+      An earlier draft of this audit also claimed `RefCall` rows would be
+      applied, because Clair3 defines their `AF` as the *reference* allele
+      frequency and `bcftools consensus` is run without `-s`. That part is
+      **wrong for bcftools 1.21**: on a single-sample VCF it uses the sample's
+      GT anyway (it prints `applying IUPAC codes based on FORMAT/GT in sample
+      sample`), so a `0/0` row is not applied. RefCall rows are also off by
+      default in Clair3 (`--print_ref_calls`). The same message does raise a
+      question worth one fixture: with `--haploid_sensitive`, Clair3 can call
+      `0/1`, and bcftools may then write an IUPAC ambiguity code rather than
+      the ALT. Nothing tests that today.
+- [x] **A sample with no aligned reads published the reference as its
+      consensus, reported 100% callable.** Confirmed end to end, then fixed.
+      `runBcftoolsConsensus` built its mask from `samtools depth -J -a`, and a
+      single `-a` prints zero-depth positions only on contigs with at least one
+      read: a contig no read reached is not in the output at all. For a
+      negative control (20 random 1 kb reads, none aligned) the run succeeded,
+      `low_cov.bed` was empty, the consensus was byte-identical to
+      `NC_045512.2`, and the summary said `zero_depth_bases 0`,
+      `callable_percent 100.000000`. The same gap left any uncovered contig of
+      a multi-contig reference unmasked. Now `-aa`, which reports every
+      reference position. Covered by two new cases in
+      `tests/workflows/bcftools-fixture.nf.test` (no reads; a two-contig
+      reference with one contig unreached) and by
+      `integration_tests/nanopore-no-reads.nf.test`, which runs the whole
+      NANOPORE workflow, Clair3 included, on a negative control. All three
+      fail against `-a`. The truth and multi-sample tests are unchanged by it.
+- [ ] **An empty FASTQ aborts the whole batch.** Found while testing the item
+      above. A barcode that demultiplexed nothing gives a 20-byte gzip with no
+      reads, which passes input validation (it rejects only zero-byte files).
+      Porechop_ABI's ab initio adapter inference then fails with
+      `ERROR - Unable to build graph`, exit 1, and with the default error
+      strategy every other sample in the run is abandoned with it. Reproduce
+      with an empty `gzip -n < /dev/null` FASTQ through
+      `tests/integration/nanopore-truth.nf`. Either reject read-less inputs in
+      step0 with a clear message, or skip Porechop (and pass the sample
+      through to a fully masked consensus, which now works) when there are no
+      reads. The second matches how a negative control is treated.
+- [ ] **Primer clipping trims only one end of each read.**
+      `modules/runAmpliconClip.nf` runs `ampliconclip --strand` without
+      `--both-ends`, so only the 5′ primer is clipped. Nanopore amplicon reads
+      span the whole amplicon, so the 3′ primer stays in the consensus.
+      ILLUMINA's `ampliconclip.nf` does pass `--both-ends`. The fixture has one
+      left primer on one forward read, so it cannot see this; it needs a read
+      carrying both primers. Two smaller points on the same line: `--strand`
+      needs a 6th strand column that nothing validates, and there is no
+      `--filter-len`, so reads clipped to nothing are kept.
+- [ ] **The mapped-reads FASTQ carries duplicate and truncated reads.**
+      `samtools fastq -F 4` in `modules/getMappedReads.nf` *replaces* the
+      default exclusion mask `0x900`, so secondary and supplementary alignments
+      are written as reads too. minimap2 on ONT data produces many
+      supplementary records, hard-clipped fragments sharing the primary's name.
+      Fix: `-F 0x904`. ILLUMINA shares the module and the problem.
+- [ ] **A multi-contig reference gives duplicate FASTA headers.**
+      `runBcftoolsConsensus` renames every header to `>${meta.id}` with `sed`,
+      and NANOPORE never checks the reference is a single sequence;
+      `coveragePlot` likewise draws only `references[0]`. Either reject
+      multi-contig references in step0 or name headers `${id}|${contig}`. The
+      new two-contig bcftools fixture asserts sequence lines only, so it will
+      not pin the current behaviour.
+
+### Documented runs that fail, or record the wrong thing
+
+- [ ] **A full NANOPORE run needs ILLUMINA images nobody is told to get.**
+      GENPLOTS runs in NANOPORE mode: `coveragePlot` uses
+      `generate_plots:2.0.0.sif`, `getMappedReads`/`getUnmappedReads` use
+      `generate_consensus:2.0.0.sif`, and `writeMappedReads` defaults to true.
+      `runFaidx.nf` explains exactly why sharing that image breaks nanopore,
+      then GENPLOTS does it anyway. `tests/workflows/genplots-fixture.config`
+      redirects both read processes to the base container, which is why CI
+      never notices, and `coveragePlot` is not tested at all.
+- [ ] **`-profile docker` through `main.nf` should fail in METADATA.** Not yet
+      run; nothing runs `main.nf --mode NANOPORE` end to end. Three causes:
+      `captureToolVersion` uses the raw `docker://hkubal/clair3@…` reference,
+      the prefix `runClair3` has to strip for Docker; `nanopore_base` is
+      recorded as `local_sif`, so the Docker tag becomes the path
+      `<launchDir>/viralflow/nanopore-base:2.0.0a1` and
+      `captureContainerMetadata` fails on it; and GENPLOTS then asks Docker for
+      the `.sif` paths above. `NANOPORE.md` documents this exact command.
+- [ ] **`container_manifest.tsv` omits images a NANOPORE run used.**
+      `containerSpecs()` lists only `nanopore_base` and `clair3`, not
+      `generate_plots` or `generate_consensus` — the drift `containers.config`
+      says the shared map prevents.
+- [ ] **`run_manifest.json` records Docker runs as `singularity`.**
+      `container_engine` is guessed from the profile name
+      (`metadata_helpers.nf`); `workflow.containerEngine` has the real answer.
+- [ ] **The wrapper cannot set any NANOPORE parameter.** Neither the
+      `parse_params` allow-list nor `viralflow run` knows `clair3_model`,
+      `np_min_depth`, `af_threshold`, `clair3_qual`, `clair3_chunk_size`,
+      `base_container` or the per-tool cpus/memory, and a params file naming
+      one is rejected. The model matters most: the default
+      `r941_prom_sup_g5014` is for R9.4.1 flowcells, so an R10.4.1 user of the
+      wrapper gets the wrong model with no way out.
+- [ ] **The Docker image's smoke test cannot fail the build.** The last `RUN`
+      of `nanopore_base.Dockerfile` ends `… && bam help > /dev/null 2>&1 ||
+      true`; the `|| true` binds to the whole `&&` chain, so a broken minimap2,
+      samtools or bcftools still builds. Only `bam help` needs the exemption.
+
+### Smaller
+
+- [ ] **`np_min_depth` and ILLUMINA's `--depth` mean different things.** Depth
+      <= 20 is masked, so nanopore needs 21x; ILLUMINA's `--depth 25` (ivar
+      `-m`) needs 25x. Documented, but two similarly named thresholds with
+      opposite edge semantics invite mistakes.
+- [ ] **The coverage plot draws the wrong threshold for nanopore** —
+      `params.depth` (25), while masking uses `np_min_depth` (20).
+- [ ] **Silent failures in the GENPLOTS steps.** `getMappedReads` and
+      `getUnmappedReads` have no `set -o pipefail`, so a failed
+      `samtools sort` still publishes an empty FASTQ; `coveragePlot` calls
+      bamdash through `subprocess.run(..., shell=True)` without checking the
+      exit status.
+- [ ] Minor: `runPorechop` publishes an uncompressed `*.chopped.fastq`,
+      roughly doubling storage; `runNanoporeSummary` calls
+      `${projectDir}/bin/…` rather than relying on `bin/` being on `PATH`,
+      which breaks on cloud executors; `concat-fastq` defaults to
+      `--max-len 500`, silently dropping nearly every read of 1200 bp or
+      whole-genome protocols; legacy `--inDir` discovery fails a nanopore file
+      named `*_R1.fastq` as an "orphan Illumina mate".
+
+### Test gaps behind these
+
+- Nothing runs `main.nf --mode NANOPORE`, which would have caught the METADATA,
+  GENPLOTS and manifest items above.
+- The truth fixture's error-free synthetic reads never produce a `LowQual`
+  call, a right-hand primer, or a supplementary alignment. The zero-coverage
+  case now has its own integration test; the empty-FASTQ case does not yet.
+- `integration_tests/nanopore-multisample.nf.test` repeats the Clair3 digest in
+  its `params` block, and `tests/test_container_recipes.py` checks only the
+  truth test's copy, so that one can drift unnoticed. It could simply inherit
+  the pin from `tests/nextflow.config`, as `nanopore-no-reads.nf.test` does.
+
+---
+
+## 4. ILLUMINA follow-up branch
 
 Deliberately kept out of the nanopore PR.
 
@@ -453,7 +605,7 @@ Deliberately kept out of the nanopore PR.
 
 ---
 
-## 4. Repository maintenance, after the PR merges
+## 5. Repository maintenance, after the PR merges
 
 - [ ] **History cleanup.** Two 4.38 MB blobs live only on this branch —
       `test_files/nanopore/test.fastq.gz` and the `test.fastq.tar.gz` it
