@@ -50,7 +50,7 @@ exclusivo do ILLUMINA, enquanto `mapping_quality` é usado nos dois.
 | `clair3_chunk_size` | 10000 | Tamanho em bases dos blocos em que o Clair3 divide a referência para chamada paralela, passado como `--chunk_size`. Afeta o tempo de execução e a memória, não os resultados |
 | `mapping_quality` | 30 | Qualidade de mapeamento mínima para que uma read seja usada na chamada de variantes, passada ao Clair3 como `--min_mq` |
 | `af_threshold` | 0.51 | Limiar de frequência alélica aplicado à saída do Clair3: o BCFtools mantém uma variante quando `FORMAT/AF >= af_threshold`. Nenhuma condição adicional de profundidade ou de `FILTER=PASS` é aplicada. O padrão, acima de 0.5, mantém o alelo majoritário em cada sítio |
-| `np_min_depth` | 20 | Limiar de mascaramento do consenso. A cobertura vem de `samtools depth -J -a`, e toda posição cuja profundidade seja **menor ou igual** a este valor é escrita como `N`. No padrão, uma posição precisa de pelo menos 21 reads para ser chamada |
+| `np_min_depth` | 20 | Limiar de mascaramento do consenso. A cobertura vem de `samtools depth -J -aa`, e toda posição cuja profundidade seja **menor ou igual** a este valor é escrita como `N`. No padrão, uma posição precisa de pelo menos 21 reads para ser chamada |
 | `porechop_cpus` | 4 | CPUs para a etapa de remoção de adaptadores com o Porechop_ABI |
 | `porechop_memory` | 4.GB | Memória para a etapa do Porechop_ABI |
 | `minimap_cpus` | 4 | CPUs para a etapa de alinhamento com o Minimap2 |

@@ -140,10 +140,14 @@ The current threshold logic is as follows:
   `mapping_quality`.
 - BCFtools retains variants when `FORMAT/AF >= af_threshold`. No additional
   variant depth or `FILTER=PASS` condition is applied.
-- Consensus coverage is calculated with `samtools depth -J -a` without
+- Consensus coverage is calculated with `samtools depth -J -aa` without
   additional mapping-quality or base-quality filters.
 - Consensus positions with depth less than or equal to `np_min_depth` are
   masked.
+- Positions no read reached count as depth 0 and are masked like any other,
+  including whole contigs with no aligned reads. A sample where nothing aligns,
+  such as a negative control, therefore produces an all-`N` consensus with
+  `callable_percent` 0, not a copy of the reference.
 
 Consequently, a low-depth variant can remain in the filtered VCF while the same
 position is masked in the consensus. Each sample directory contains a
@@ -200,3 +204,8 @@ BCFtools, consensus generation, and the Nanopore summary:
 cd vfnext
 NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test
 ```
+
+`integration_tests/` also holds a multi-sample fan-out test and a negative
+control (`nanopore-no-reads.nf.test`): reads that align nowhere, which must come
+out as an all-`N` consensus rather than a copy of the reference. Run the whole
+directory, as CI does, with `nf-test test integration_tests/`.

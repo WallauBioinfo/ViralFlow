@@ -52,7 +52,7 @@ above belong to ILLUMINA mode; `base_quality` is likewise ILLUMINA only, while
 | `clair3_chunk_size` | 10000 | Size in bases of the chunks Clair3 splits the reference into for parallel calling, passed as `--chunk_size`. Affects runtime and memory, not results |
 | `mapping_quality` | 30 | Minimum mapping quality for a read to be used in variant calling, passed to Clair3 as `--min_mq` |
 | `af_threshold` | 0.51 | Allele-frequency cutoff applied to Clair3's output: BCFtools keeps a variant when `FORMAT/AF >= af_threshold`. No variant-depth or `FILTER=PASS` condition is applied alongside it. The default above 0.5 keeps the majority allele at each site |
-| `np_min_depth` | 20 | Consensus masking threshold. Coverage comes from `samtools depth -J -a`, and every position whose depth is **less than or equal to** this value is written as `N`. At the default, a position needs at least 21 reads to be called |
+| `np_min_depth` | 20 | Consensus masking threshold. Coverage comes from `samtools depth -J -aa`, and every position whose depth is **less than or equal to** this value is written as `N`. At the default, a position needs at least 21 reads to be called |
 | `porechop_cpus` | 4 | CPUs for the Porechop_ABI adapter-removal step |
 | `porechop_memory` | 4.GB | Memory for the Porechop_ABI step |
 | `minimap_cpus` | 4 | CPUs for the Minimap2 alignment step |

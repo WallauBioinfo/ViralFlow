@@ -47,7 +47,13 @@ process runBcftoolsConsensus {
 
     # create a bed file with low coverage regions
     # this is used to mask low coverage regions in the consensus sequence
-    samtools depth -J -a ${bam} > ${meta.id}.cov.bed
+    #
+    # -aa, not -a: a single -a reports zero-depth positions only on contigs
+    # that have at least one read, and says nothing at all about a contig no
+    # read reached. Such a contig was therefore never masked, so a sample with
+    # no aligned reads - a negative control, a failed barcode - published the
+    # reference itself as its consensus, reported 100% callable.
+    samtools depth -J -aa ${bam} > ${meta.id}.cov.bed
     awk '\$3 <= int(${min_depth}) {print \$1 "\t" \$2-1 "\t" \$2}' ${meta.id}.cov.bed > ${meta.id}.low_cov.bed
 
     # call consensus sequence and rename it

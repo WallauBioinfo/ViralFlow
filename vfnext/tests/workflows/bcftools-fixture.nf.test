@@ -207,6 +207,116 @@ nextflow_workflow {
         }
     }
 
+    // A negative control or a failed barcode: reads may exist, but none align.
+    // samtools depth -a prints nothing for a contig with no reads, so the mask
+    // came out empty and the reference was published unmasked as the sample's
+    // consensus, reported 100% callable. Every position must be masked instead.
+    test("Should mask the whole consensus when no reads align") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/no_reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def consensus = workflow.out.consensus.get(0)
+            // input.vcf's variant at position 5 passes the AF filter, but it
+            // falls inside the mask, so it must not surface either.
+            assert path(consensus[1]).text.trim() ==
+                ">sample\nNNNNNNNNNNNNNNNNNNNN"
+            assert path(consensus[2]).readLines().size() == 20
+            assert path(consensus[3]).readLines() ==
+                (1..20).collect { position -> "chr1\t${position}\t0".toString() }
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.zero_depth_bases == "20"
+            assert metrics.masked_bases == "20"
+            assert metrics.consensus_n_bases == "20"
+            assert metrics.callable_bases == "0"
+            assert metrics.callable_percent == "0.000000"
+        }
+    }
+
+    // The same gap one level down: in a multi-contig reference, a contig no
+    // read reached was left out of the depth table while its neighbours were
+    // reported, so it passed through as reference sequence. chr1 here is
+    // covered at positions 1-10; chr2 has no reads at all.
+    test("Should mask a reference contig that no read reached") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref_two_contigs.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/two_contigs.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def consensus = workflow.out.consensus.get(0)
+            // Sequence lines only: the header rename is a separate problem
+            // (every contig becomes >sample), tracked in TODO.md.
+            def sequences = path(consensus[1]).readLines().findAll { line ->
+                !line.startsWith(">")
+            }
+            assert sequences == [
+                "ACGTGCGTACNNNNNNNNNN",
+                "NNNNNNNNNNNNNNNNNNNN"
+            ]
+            def chr2Masked = path(consensus[2]).readLines().findAll { line ->
+                line.startsWith("chr2\t")
+            }
+            assert chr2Masked.size() == 20
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.reference_length == "40"
+            assert metrics.zero_depth_bases == "30"
+            assert metrics.masked_bases == "30"
+            assert metrics.consensus_n_bases == "30"
+            assert metrics.callable_bases == "10"
+        }
+    }
+
     test("Should fail on a malformed VCF") {
 
         when {
