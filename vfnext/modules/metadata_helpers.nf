@@ -64,6 +64,26 @@ def metadataFailureMessage(workflow) {
     safeMetadataValue { -> workflow.errorMessage } ?: safeMetadataValue { -> workflow.errorReport }
 }
 
+// Where Nextflow writes one of its own reports - `trace`, `report` or
+// `timeline` - as the session resolved it, or null when that report is off.
+//
+// Read from the session rather than derived from params.outDir, because the two
+// can disagree. nextflow.config builds these paths from params.outDir while it
+// is parsed, before a -c config is merged, so an outDir set there moves every
+// other output but not these three. -with-report, -with-timeline and
+// -with-trace move them anywhere; nf-test always does so for the trace. A
+// manifest that assumed outDir would name files that are not there.
+//
+// A relative path is resolved against the launch directory, as Nextflow does.
+def nextflowReportPath(workflow, scope) {
+    safeMetadataValue { ->
+        def options = nextflow.Global.session.config[scope] as Map
+        options?.enabled && options.file
+            ? absoluteMetadataPath(workflow.launchDir.resolve(options.file.toString()))
+            : null
+    }
+}
+
 def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessage = null) {
     def metadataOutputDir = metadataDir(configuredOutputDir)
     java.nio.file.Files.createDirectories(metadataOutputDir)
@@ -130,9 +150,9 @@ def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessa
             resolved_sample_inputs: 'resolved_sample_inputs.tsv',
             software_versions: 'software_versions.tsv',
             containers: 'container_manifest.tsv',
-            trace: metadataOutputDir.resolve('execution_trace.tsv').toString(),
-            report: metadataOutputDir.resolve('execution_report.html').toString(),
-            timeline: metadataOutputDir.resolve('execution_timeline.html').toString()
+            trace: nextflowReportPath(workflow, 'trace'),
+            report: nextflowReportPath(workflow, 'report'),
+            timeline: nextflowReportPath(workflow, 'timeline')
         ]
     ]
 

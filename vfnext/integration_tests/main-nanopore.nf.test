@@ -98,9 +98,12 @@ nextflow_pipeline {
 
             // The manifest names these files, so they must be where it says.
             // outDir comes from tests/nextflow.config here, a -c config, which
-            // is exactly how a user redirecting the output would set it.
+            // nextflow.config's own report paths never see; and nf-test always
+            // moves the trace with -with-trace. A manifest that assumed outDir
+            // rather than asking where Nextflow wrote them fails here.
             assert path(manifest.files.report).exists()
             assert path(manifest.files.timeline).exists()
+            assert path(manifest.files.trace).exists()
 
             // The engine that actually ran, read from a task's launcher script
             // rather than from the profile name, which is only a label.
