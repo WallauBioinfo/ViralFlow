@@ -395,7 +395,10 @@ come from reading the code and want a run before anyone relies on them.
       read-less sample through to an all-`N` consensus, which the fix above
       makes correct, by skipping Porechop when there is nothing to trim.
       Rejecting was chosen as the simpler, explicit behaviour; revisit if
-      empty barcodes turn out to be routine in real runs.
+      empty barcodes turn out to be routine in real runs. For ILLUMINA, where
+      empty samples used to be reported rather than rejected, this is a
+      behaviour change. See the section 4 item "A read-less sample now stops
+      an ILLUMINA run".
 - [ ] **Primer clipping trims only one end of each read.**
       `modules/runAmpliconClip.nf` runs `ampliconclip --strand` without
       `--both-ends`, so only the 5′ primer is clipped. Nanopore amplicon reads
@@ -557,6 +560,49 @@ Deliberately kept out of the nanopore PR.
       recognised boolean, read by the workflow gate and the metadata gate
       alike. Auditing for the remaining `params.X == true` and bare
       `if (params.X)` sites is part of the job.
+- [ ] **A read-less sample now stops an ILLUMINA run instead of being
+      reported.** A behaviour change this branch introduces, not a bug, but
+      nobody has decided it for ILLUMINA. Before this branch, ILLUMINA let an
+      empty sample through and reported it: the 2023 fixture in
+      `viralflow_box/empty_fastq_set/` (ART1 plus a sample with zero-byte R1
+      and R2, run by its `run_test.sh`) finished ART1 and wrote
+      `sample,ERROR,No consensus sequence obtained` to
+      `COMPILED_OUTPUT/errors_detected.csv`. On this branch the same input
+      stops at input validation, before any task is submitted, and ART1 is
+      never processed. Confirmed on the Linux box on 2026-09-23, with ART1
+      next to a zero-byte sample and next to a 20-byte gzip sample:
+      ```
+      Input validation failed:
+       - legacy sample sample fastq_1: FASTQ is empty: .../sample_R1.fastq.gz
+       - legacy sample sample fastq_1: FASTQ contains no reads: .../sample_R1.fastq.gz
+      ```
+      (first line from the zero-byte run, second from the 20-byte run;
+      `completed=0` both times).
+
+      Two commits, both on this branch: the zero-byte check came with
+      `4a80659` (samplesheet handling) and is absent from `develop` and
+      `main`. `28d2fd4` extended it to read-less files, which is the section 3
+      item "An empty FASTQ aborted the whole batch". That extension is what
+      makes this likely to happen: a sample that demultiplexed to nothing
+      usually arrives as a 20-byte gzip, not a zero-byte file. Low-read
+      samples still pass. `test_box`'s Cneg negative control has 63 pairs and
+      runs as before.
+
+      For NANOPORE, rejecting is clearly better than what it replaced:
+      Porechop_ABI crashed and took every other sample down with it. For
+      ILLUMINA, a plate with one failed library no longer gives partial
+      results, and the operator has to remove the sample and rerun. Options:
+      - Keep rejecting in both modes, and say so in the release notes and
+        `docs/parameters.md` so users are not surprised.
+      - In ILLUMINA, warn and let read-less samples through to the existing
+        `No consensus sequence obtained` path. This needs the pre-branch path
+        re-checked with a 20-byte gzip: the 2023 fixture only covers zero-byte
+        files.
+      - Warn and drop read-less samples from the batch in both modes, keeping
+        a record of each in the compiled output.
+
+      Worth deciding before the PR merges, even if the code change waits for
+      this branch: the current behaviour ships with the merge.
 - [ ] **`getMappedReads.nf` / `getUnmappedReads.nf`: the paired branch
       desynchronizes R1 and R2.** Neither branch passes `-s`, so a read whose
       mate was removed by the `-F 4` / `-f 4` filter is written to the R1 file
