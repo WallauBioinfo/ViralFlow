@@ -28,6 +28,18 @@ nextflow_pipeline {
             )
             assert manifest.execution.end_time != null
             assert manifest.parameters.mode == "INVALID_MODE"
+
+            // The engine the run actually used. Each of these profiles enables
+            // exactly one, so the recorded engine must follow the profile; it
+            // used to be guessed from the profile name as apptainer or
+            // singularity, so every -profile docker run said singularity.
+            def expectedEngine = [
+                singularity: "singularity",
+                apptainer: "apptainer",
+                docker: "docker"
+            ][manifest.execution.profile]
+            assert expectedEngine
+            assert manifest.runtime.container_engine == expectedEngine
         }
     }
 

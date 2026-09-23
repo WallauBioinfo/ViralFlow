@@ -120,7 +120,10 @@ def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessa
             os_version: System.getProperty('os.version'),
             architecture: System.getProperty('os.arch'),
             executor: profile.contains('pbs') ? 'pbs' : 'local',
-            container_engine: profile.contains('apptainer') ? 'apptainer' : 'singularity'
+            // The engine Nextflow actually ran tasks with, not a guess from the
+            // profile name: that recorded every -profile docker run as
+            // singularity. Null when no container engine is enabled.
+            container_engine: safeMetadataValue { -> workflow.containerEngine }
         ],
         paths: [
             launch_dir: absoluteMetadataPath(safeMetadataValue { -> workflow.launchDir }),

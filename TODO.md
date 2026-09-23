@@ -481,8 +481,8 @@ come from reading the code and want a run before anyone relies on them.
       manifest's IDs and sizes match `docker image inspect`. Pinned in
       `tests/workflows/metadata-fixture.nf.test`, whose fixtures now fix the
       engine per test so they assert the same thing under either profile.
-      `main-nanopore.nf.test` under `--profile docker` now reaches the next
-      item and fails there, on the recorded engine alone.
+      With the next item fixed too, `main-nanopore.nf.test` passes under
+      `--profile docker`, as it does under Singularity.
 - [x] **`container_manifest.tsv` omits images a NANOPORE run used.**
       `containerSpecs()` listed only `nanopore_base` and `clair3`, not
       `generate_plots` or `generate_consensus`, the drift `containers.config`
@@ -497,9 +497,18 @@ come from reading the code and want a run before anyone relies on them.
       mode (see "A full NANOPORE run needs ILLUMINA images" above), so a
       NANOPORE manifest lists `nanopore_base` and `clair3` only, which is again
       the truth. The same test guards it either way.
-- [ ] **`run_manifest.json` records Docker runs as `singularity`.**
-      `container_engine` is guessed from the profile name
-      (`metadata_helpers.nf`); `workflow.containerEngine` has the real answer.
+- [x] **`run_manifest.json` records Docker runs as `singularity`.**
+      `container_engine` was guessed from the profile name
+      (`metadata_helpers.nf`): `apptainer` if the name said so, otherwise
+      `singularity`. It now records `workflow.containerEngine`, the engine
+      Nextflow actually used, or null when none is enabled.
+      `main-nanopore.nf.test` checks it against the engine a task's
+      `.command.run` launched, and passes under both `--profile singularity`
+      and `--profile docker`. `tests/main.metadata.nf.test` also checks it on
+      every push and in CI, and fails under Docker with the old guess. The line
+      above it still guesses `executor` the same way
+      (`profile.contains('pbs') ? 'pbs' : 'local'`), so a run sent to another
+      executor by a config file is recorded as `local`. Not fixed here.
 - [ ] **The wrapper cannot set any NANOPORE parameter.** Neither the
       `parse_params` allow-list nor `viralflow run` knows `clair3_model`,
       `np_min_depth`, `af_threshold`, `clair3_qual`, `clair3_chunk_size`,
@@ -536,8 +545,10 @@ come from reading the code and want a run before anyone relies on them.
 
 ### Test gaps behind these
 
-- Nothing runs `main.nf --mode NANOPORE`, which would have caught the METADATA,
-  GENPLOTS and manifest items above.
+- ~~Nothing runs `main.nf --mode NANOPORE`~~. Closed by
+  `integration_tests/main-nanopore.nf.test`, which found the report-path bug
+  as well as the METADATA, GENPLOTS and manifest items above. It passes under
+  both engines and runs in CI's integration step.
 - The truth fixture's error-free synthetic reads never produce a `LowQual`
   call, a right-hand primer, or a supplementary alignment. The zero-coverage
   case now has its own integration test, and read-less inputs are rejected
