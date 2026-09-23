@@ -205,9 +205,24 @@ def illumina_container_images():
 def illumina_container_references():
     """The image names the process directives resolve, in file order."""
     return re.findall(
-        r"container\s*=\s*\{\s*params\.illumina_containers\.(\w+)\s*\}",
+        r"container\s*=\s*\{\s*params\.getOrDefault\(\s*'illumina_containers'"
+        r"\s*,\s*\[:\]\s*\)\.(\w+)\s*\}",
         CONTAINERS_CONFIG.read_text(),
     )
+
+
+def container_closure_bodies(path):
+    """The source of every `container = { ... }` closure in a config file."""
+    text = path.read_text()
+    bodies = []
+    for match in re.finditer(r"\bcontainer\s*=\s*\{", text):
+        depth, start = 1, match.end()
+        for index in range(start, len(text)):
+            depth += {"{": 1, "}": -1}.get(text[index], 0)
+            if depth == 0:
+                bodies.append(text[start:index])
+                break
+    return bodies
 
 
 class ContainerConfigTests(unittest.TestCase):
@@ -249,6 +264,32 @@ class ContainerConfigTests(unittest.TestCase):
             [],
             "container directives must read params.illumina_containers",
         )
+
+    def test_container_closures_do_not_read_params_directly(self):
+        """Container closures read params through getOrDefault.
+
+        Nextflow evaluates every container closure once at startup, to fill
+        workflow.container, before it binds the config params. A plain
+        params.x read there finds nothing and prints "Access to undefined
+        parameter" on every run - harmless, since tasks resolve the closure
+        again later, but it reads like a misconfiguration to anyone running
+        the pipeline. getOrDefault returns the same value once params are bound
+        and stays quiet before.
+        """
+        configs = [
+            path
+            for path in sorted((PROJECT_ROOT / "vfnext").rglob("*.config"))
+            if ".nf-test" not in path.parts
+        ]
+        offenders = [
+            f"{path.relative_to(PROJECT_ROOT)}: {body.strip()}"
+            for path in configs
+            for body in container_closure_bodies(path)
+            if re.search(r"\bparams\.(?!getOrDefault\()", body)
+        ]
+        closures = sum(len(container_closure_bodies(path)) for path in configs)
+        self.assertGreater(closures, 20, "container closures not found")
+        self.assertEqual(offenders, [])
 
     def test_every_referenced_image_is_declared(self):
         """No directive resolves a name the map does not declare.
