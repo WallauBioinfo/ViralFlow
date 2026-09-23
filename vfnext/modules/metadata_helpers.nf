@@ -197,6 +197,23 @@ def remoteContainerSpec(name, uri) {
     [name: name, kind: 'remote_uri', identity: uri]
 }
 
+// The reference a container engine accepts for an image. Singularity and
+// Apptainer need the docker:// prefix on a registry image; the Docker engine
+// rejects it ("invalid reference format"). Strip it for Docker only - the rule
+// the runClair3 directive in nextflow.config applies, which a config file
+// cannot share by calling this function.
+def engineImageReference(reference, engine) {
+    def value = reference.toString()
+    engine == 'docker' ? value.replaceFirst(/^docker:\/\//, '') : value
+}
+
+// An image the Docker daemon resolves: a tag or digest reference, never a file.
+// base_container is one under -profile docker (viralflow/nanopore-base:...),
+// and recording it as a local SIF turned the tag into a path that does not exist.
+def dockerImageSpec(name, reference) {
+    [name: name, kind: 'docker_image', identity: engineImageReference(reference, 'docker')]
+}
+
 def toolSpec(mode, name, command, containerValue) {
     [mode: mode, tool: name, command: command, container: containerValue.toString()]
 }
@@ -204,17 +221,21 @@ def toolSpec(mode, name, command, containerValue) {
 // The channel builders below own the spec-map -> tuple mapping. captureToolVersion
 // and captureContainerMetadata read those tuples positionally, so keeping the
 // mapping in one place is what lets a test pin the field order.
-def containerSpecChannel(params, workflow) {
+//
+// engine is the container engine actually in use: main.nf passes
+// workflow.containerEngine. An argument rather than read here so a test can pin
+// it; the suite runs under -profile docker in CI and singularity elsewhere.
+def containerSpecChannel(params, engine) {
     channel.fromList(
-        containerSpecs(params, workflow).collect { spec ->
+        containerSpecs(params, engine).collect { spec ->
             tuple(spec.name, spec.kind, spec.identity)
         }
     )
 }
 
-def toolSpecChannel(params, workflow) {
+def toolSpecChannel(params, workflow, engine) {
     channel.fromList(
-        toolSpecs(params, workflow).collect { spec ->
+        toolSpecs(params, workflow, engine).collect { spec ->
             tuple(spec.mode, spec.tool, spec.command, spec.container)
         }
     )
@@ -231,14 +252,20 @@ def illuminaContainerSpec(params, name) {
     return localContainerSpec(name, image)
 }
 
-// Takes workflow to match toolSpecs() and containerSpecChannel(), though it no
-// longer needs it: the ILLUMINA paths used to be built from workflow.projectDir
-// and now come from params.illumina_containers.
-def containerSpecs(params, _workflow) {
+def containerSpecs(params, engine) {
     def specs = []
     if (params.mode == 'NANOPORE') {
-        specs << localContainerSpec('nanopore_base', params.base_container)
-        specs << remoteContainerSpec('clair3', params.clair3_container)
+        if (engine == 'docker') {
+            // Both are references the Docker daemon resolves, not files: the
+            // docker profile sets base_container to an image tag, and Clair3 is
+            // pulled by digest.
+            specs << dockerImageSpec('nanopore_base', params.base_container)
+            specs << dockerImageSpec('clair3', params.clair3_container)
+        }
+        else {
+            specs << localContainerSpec('nanopore_base', params.base_container)
+            specs << remoteContainerSpec('clair3', params.clair3_container)
+        }
         // These two are the whole list: GENPLOTS runs after NANOPORE too, but
         // in NANOPORE mode its processes use the base image (see
         // configs/containers.config). An ILLUMINA image listed here would be
@@ -272,17 +299,21 @@ def containerSpecs(params, _workflow) {
     specs.unique { spec -> spec.identity }
 }
 
-def toolSpecs(params, workflow) {
+// Each version command runs in the image it reports on, so the container must be
+// a reference the engine in use accepts; see engineImageReference().
+def toolSpecs(params, workflow, engine) {
     if (params.mode == 'NANOPORE') {
+        def base = engineImageReference(params.base_container, engine)
+        def clair3 = engineImageReference(params.clair3_container, engine)
         def specs = [
-            toolSpec('NANOPORE', 'porechop_abi', 'porechop_abi --version', params.base_container),
-            toolSpec('NANOPORE', 'minimap2', 'minimap2 --version', params.base_container),
-            toolSpec('NANOPORE', 'samtools', 'samtools --version | head -n 1', params.base_container),
-            toolSpec('NANOPORE', 'bcftools', 'bcftools --version | head -n 1', params.base_container),
-            toolSpec('NANOPORE', 'clair3', 'run_clair3.sh -v ', params.clair3_container),
+            toolSpec('NANOPORE', 'porechop_abi', 'porechop_abi --version', base),
+            toolSpec('NANOPORE', 'minimap2', 'minimap2 --version', base),
+            toolSpec('NANOPORE', 'samtools', 'samtools --version | head -n 1', base),
+            toolSpec('NANOPORE', 'bcftools', 'bcftools --version | head -n 1', base),
+            toolSpec('NANOPORE', 'clair3', 'run_clair3.sh -v ', clair3),
             // Draws the GENPLOTS coverage plot, which every run executes in the
             // base image. GENPLOTS' samtools is the one already listed above.
-            toolSpec('NANOPORE', 'bamdash', 'bamdash --version', params.base_container)
+            toolSpec('NANOPORE', 'bamdash', 'bamdash --version', base)
         ]
         // Only when --trimLen asks for it, from the same rule NANOPORE.nf uses
         // to decide whether runBamUtils runs at all. Listing it unconditionally
@@ -295,7 +326,7 @@ def toolSpecs(params, workflow) {
         // because `bam help` keeps writing afterwards, and head closing the pipe
         // early makes the command exit 141 under pipefail.
         if (normalizeTrimLen(params.trimLen) > 0) {
-            specs << toolSpec('NANOPORE', 'bamutil', 'bam help 2>&1 | sed -n 2p', params.base_container)
+            specs << toolSpec('NANOPORE', 'bamutil', 'bam help 2>&1 | sed -n 2p', base)
         }
         // samtools already covers --primersBED: ampliconclip is a samtools
         // subcommand, so that option adds no tool of its own.

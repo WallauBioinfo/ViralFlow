@@ -14,6 +14,14 @@ include {
 } from '../../modules/metadata_helpers.nf'
 include { processInputs } from '../../workflows/step0-input-handling.nf'
 
+// The container engine the spec helpers classify for. Pinned by a test's params
+// rather than read from workflow.containerEngine, so a test asserts the same
+// thing under -profile docker in CI as under singularity elsewhere. main.nf
+// passes the real engine.
+def fixtureEngine() {
+    params.getOrDefault('engine', 'singularity')
+}
+
 workflow METADATA_FIXTURE {
     main:
         def inputFile = file("${projectDir}/tests/data/bcftools/ref.fa")
@@ -129,7 +137,7 @@ workflow NORMALIZE_METADATA_FIXTURE {
 // This drives the real builder into the real process, so the two stay in agreement.
 workflow CONTAINER_SPECS_FIXTURE {
     main:
-        captureContainerMetadata(containerSpecChannel(params, workflow))
+        captureContainerMetadata(containerSpecChannel(params, fixtureEngine()))
 
     emit:
         rows = captureContainerMetadata.out
@@ -143,7 +151,7 @@ workflow CONTAINER_SPECS_FIXTURE {
 // containers the branch declares and how each is classified.
 workflow CONTAINER_SPECS_TUPLES_FIXTURE {
     main:
-        containerSpecsCh = containerSpecChannel(params, workflow)
+        containerSpecsCh = containerSpecChannel(params, fixtureEngine())
 
     emit:
         containerSpecsCh
@@ -154,7 +162,7 @@ workflow CONTAINER_SPECS_TUPLES_FIXTURE {
 // METADATA_FIXTURE.
 workflow TOOL_SPECS_FIXTURE {
     main:
-        toolSpecsCh = toolSpecChannel(params, workflow)
+        toolSpecsCh = toolSpecChannel(params, workflow, fixtureEngine())
 
     emit:
         toolSpecsCh

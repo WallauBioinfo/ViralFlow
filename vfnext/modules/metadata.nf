@@ -126,6 +126,28 @@ process captureContainerMetadata {
             checksum='NA'
             size='NA'
             ;;
+        docker_image)
+            # Asked of the Docker daemon on the host, which is where this task
+            # runs: it has no container of its own. Pull first when the image is
+            # absent, since nothing orders this task after the ones that make
+            # Docker fetch it, and on a fresh machine it can run first. A local
+            # build such as the nanopore base image cannot be pulled, and then
+            # this fails the way a missing SIF does.
+            if ! docker image inspect '${container_identity}' > /dev/null 2>&1; then
+                if ! docker pull --quiet '${container_identity}' > /dev/null; then
+                    echo "Docker image is not available locally and could not be pulled: ${container_identity}" >&2
+                    exit 1
+                fi
+            fi
+            # The image ID Docker reports, not a file checksum as for a SIF. Which
+            # digest that is depends on the image store: the configuration digest
+            # with Docker's classic store, the manifest digest with the
+            # containerd store - there, an image pulled by digest reports that
+            # same digest. Either identifies the image content.
+            checksum=\$(docker image inspect --format '{{.Id}}' '${container_identity}')
+            checksum=\${checksum#sha256:}
+            size=\$(docker image inspect --format '{{.Size}}' '${container_identity}')
+            ;;
         *)
             echo "Unsupported container metadata kind: ${container_kind}" >&2
             exit 1

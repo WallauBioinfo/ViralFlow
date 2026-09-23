@@ -153,9 +153,9 @@ log.info """
     .concat(primerMetadataCh)
     .concat(samplesheetMetadataCh)
 
-  toolSpecsCh = toolSpecChannel(params, workflow)
+  toolSpecsCh = toolSpecChannel(params, workflow, workflow.containerEngine)
 
-  containerSpecsCh = containerSpecChannel(params, workflow)
+  containerSpecsCh = containerSpecChannel(params, workflow.containerEngine)
 
   METADATA(
     checksumInputsCh,

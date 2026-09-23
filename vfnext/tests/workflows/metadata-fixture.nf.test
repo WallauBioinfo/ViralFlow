@@ -156,6 +156,58 @@ nextflow_workflow {
         }
     }
 
+    test("Should declare Docker images, not files, when the engine is Docker") {
+        workflow "CONTAINER_SPECS_TUPLES_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+                engine = "docker"
+                base_container = "viralflow/nanopore-base:2.0.0a1"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def byName = workflow.out.containerSpecsCh
+                .collectEntries { spec -> [(spec[0]): spec] }
+            assert byName.keySet() == ["nanopore_base", "clair3"] as Set
+            assert byName.values().every { spec -> spec[1] == "docker_image" }
+
+            // The tag as given. As a local SIF it became the path
+            // <launchDir>/viralflow/nanopore-base:2.0.0a1, which does not exist.
+            assert byName.nanopore_base[2] == "viralflow/nanopore-base:2.0.0a1"
+            // The reference Docker accepts: no docker:// prefix.
+            assert byName.clair3[2] ==~ /hkubal\/clair3@sha256:[0-9a-f]{64}/
+        }
+    }
+
+    test("Should capture tool versions in references Docker accepts") {
+        workflow "TOOL_SPECS_FIXTURE"
+
+        when {
+            params {
+                mode = "NANOPORE"
+                engine = "docker"
+                base_container = "viralflow/nanopore-base:2.0.0a1"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def byTool = workflow.out.toolSpecsCh
+                .collectEntries { spec -> [(spec[1]): spec] }
+            // captureToolVersion runs each command in this container. With the
+            // docker:// prefix left on, Docker refused to start it:
+            // "invalid reference format", exit 125.
+            assert byTool.values().every { spec -> !spec[3].contains("://") }
+            assert byTool.clair3[3] ==~ /hkubal\/clair3@sha256:[0-9a-f]{64}/
+            assert byTool.samtools[3] == "viralflow/nanopore-base:2.0.0a1"
+        }
+    }
+
     test("Should declare every ILLUMINA container as a local image") {
         workflow "CONTAINER_SPECS_TUPLES_FIXTURE"
 
