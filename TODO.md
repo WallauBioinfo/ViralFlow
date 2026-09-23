@@ -448,7 +448,7 @@ come from reading the code and want a run before anyone relies on them.
       `viralflow/nanopore-base:2.0.0a1` and publishes all five GENPLOTS files.
       The PNG and SVG are new: no run of either mode had produced them before
       (see the section 4 item on ILLUMINA's coverage plots).
-- [ ] **`-profile docker` through `main.nf` fails in METADATA.** Confirmed on
+- [x] **`-profile docker` through `main.nf` fails in METADATA.** Confirmed on
       the Linux box on 2026-09-23 with the base image built from
       `nanopore_base.Dockerfile` and Clair3 pulled by digest. Run on the truth
       fixture via `tests/data/input/nanopore-truth.csv`. The analysis itself is
@@ -460,16 +460,29 @@ come from reading the code and want a run before anyone relies on them.
 
       | Task | Exit | Cause |
       |---|---|---|
-      | `METADATA:captureToolVersion (clair3)` | 125 | raw `docker://hkubal/clair3@…` reference; `docker: invalid reference format`. `runClair3` strips the prefix for Docker; this does not |
-      | `METADATA:captureContainerMetadata (nanopore_base)` | 1 | recorded as `local_sif`, so the tag becomes the path `<launchDir>/viralflow/nanopore-base:2.0.0a1`: `Configured SIF file does not exist` |
+      | `METADATA:captureToolVersion (clair3)` | 125 | raw `docker://hkubal/clair3@…` reference; `docker: invalid reference format`. `runClair3` strips the prefix for Docker; this does not. **Fixed** |
+      | `METADATA:captureContainerMetadata (nanopore_base)` | 1 | recorded as `local_sif`, so the tag becomes the path `<launchDir>/viralflow/nanopore-base:2.0.0a1`: `Configured SIF file does not exist`. **Fixed** |
       | `GENPLOTS:coveragePlot`, `getMappedReads`, `getUnmappedReads` | 125 | Docker asked to run the ILLUMINA `.sif` paths. **Fixed**: see "A full NANOPORE run needs ILLUMINA images" above |
 
-      The first two remain, and with them the next item, which the same run
-      shows as `profile docker`, `container_engine singularity`. Under
-      `--profile docker`, as CI runs it, the unit suite passes (46/46), as do
-      the truth, multi-sample and no-reads integration tests.
-      `main-nanopore.nf.test` fails, because the first METADATA failure stops
-      the run. `NANOPORE.md` documents this exact command.
+      Both METADATA causes came from the metadata layer ignoring the engine.
+      `containerSpecs()` and `toolSpecs()` in `modules/metadata_helpers.nf`
+      now take it as an argument; `main.nf` passes `workflow.containerEngine`.
+      Under Docker:
+      - both NANOPORE images are recorded as a new kind, `docker_image`, by
+        reference;
+      - version commands run in the reference Docker accepts
+        (`engineImageReference()`, the rule `runClair3` applies);
+      - `captureContainerMetadata` records the image ID and size from
+        `docker image inspect`, pulling first when the image is absent,
+        because nothing orders it after the tasks that make Docker fetch it.
+
+      Singularity and Apptainer runs are unchanged. The same `main.nf` run
+      now completes with 22 tasks and no failures and no override, and the
+      manifest's IDs and sizes match `docker image inspect`. Pinned in
+      `tests/workflows/metadata-fixture.nf.test`, whose fixtures now fix the
+      engine per test so they assert the same thing under either profile.
+      `main-nanopore.nf.test` under `--profile docker` now reaches the next
+      item and fails there, on the recorded engine alone.
 - [x] **`container_manifest.tsv` omits images a NANOPORE run used.**
       `containerSpecs()` listed only `nanopore_base` and `clair3`, not
       `generate_plots` or `generate_consensus`, the drift `containers.config`
@@ -583,8 +596,8 @@ Deliberately kept out of the nanopore PR.
       `containerSpecs()` and `toolSpecs()` in `modules/metadata_helpers.nf`
       predict which images and tools a run will use, and the prediction drifts.
       Examples: the GENPLOTS images missing from the manifest, bamUtil needing
-      its own gate, version capture using the raw `docker://` Clair3 reference
-      under `-profile docker`, ILLUMINA's `toolSpecs()` still hardcoding `.sif`
+      its own gate, the Docker METADATA failures (the specs ignored the
+      engine), ILLUMINA's `toolSpecs()` still hardcoding `.sif`
       paths rather than reading `params.illumina_containers`, and bamdash
       missing from `software_versions.tsv` until GENPLOTS moved into the
       nanopore base image. Instead, have each process
