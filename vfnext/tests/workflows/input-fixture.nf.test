@@ -33,6 +33,41 @@ nextflow_pipeline {
         }
     }
 
+    // A FASTQ can be non-empty on disk and still hold no reads - gzip of
+    // nothing is 20 bytes - which slipped past the zero-byte check. Downstream,
+    // Porechop_ABI then aborted with "Unable to build graph" and took every
+    // other sample in the run with it. All three read-less forms must be named
+    // in one report, and the valid sample beside them must not be.
+    test("Rejects FASTQ files that hold no reads") {
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-no-reads.csv"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.failed
+            // Rejected before any task is submitted, Porechop included.
+            assert workflow.trace.tasks().isEmpty()
+            assert workflow.stdout.any {
+                it.contains('sample-sheet row 2 fastq_1: FASTQ contains no reads') &&
+                    it.contains('no_reads.fastq.gz')
+            }
+            assert workflow.stdout.any {
+                it.contains('sample-sheet row 3 fastq_1: FASTQ contains no reads') &&
+                    it.contains('blank_lines.fastq')
+            }
+            // A .gz that is not gzip gets a validation message, not a stack
+            // trace from deep inside the reader.
+            assert workflow.stdout.any {
+                it.contains('sample-sheet row 4 fastq_1: FASTQ cannot be read as gzip') &&
+                    it.contains('not_gzip.fastq.gz')
+            }
+            assert !workflow.stdout.any { it.contains('sample-sheet row 5') }
+        }
+    }
+
     test("Rejects mixed single and paired rows") {
         when {
             params {

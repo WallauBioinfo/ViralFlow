@@ -9,7 +9,10 @@ ViralFlow constitutes a computational workflow implemented in Nextflow. Below, y
 `--samplesheet` is the canonical input interface. The CSV must contain
 `sample_id,fastq_1,fastq_2`; paths may be absolute or relative to the CSV file.
 Repeat a sample ID to provide ordered chunks or lanes. `fastq_2` must be empty
-for Nanopore and single-end Illumina inputs.
+for Nanopore and single-end Illumina inputs. Every listed FASTQ must contain at
+least one read: a file with none, such as the compressed empty file a barcode
+with nothing demultiplexed into it produces, is rejected before the run starts,
+so leave those samples out of the sheet.
 
 ```csv
 sample_id,fastq_1,fastq_2,batch

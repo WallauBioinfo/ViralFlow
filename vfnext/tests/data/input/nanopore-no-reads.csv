@@ -1,0 +1,5 @@
+sample_id,fastq_1,fastq_2
+no_reads,no_reads.fastq.gz,
+blank_lines,blank_lines.fastq,
+not_gzip,not_gzip.fastq.gz,
+has_reads,sample_a_chunk1.fastq,

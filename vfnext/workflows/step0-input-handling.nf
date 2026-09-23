@@ -25,6 +25,32 @@ def canonicalPath(java.nio.file.Path baseDir, String rawPath) {
   candidate.toAbsolutePath().normalize()
 }
 
+// A FASTQ can be non-empty on disk and still hold no reads: gzip of nothing is
+// 20 bytes, and a barcode that demultiplexed nothing looks exactly like that.
+// The zero-byte check below cannot see it, and downstream Porechop_ABI aborts
+// on such input ("Unable to build graph"), failing every other sample in the
+// run with it. Returns a problem description, or null when a read is present.
+// Stops at the first non-blank line, so a 10 GB FASTQ costs no more than a
+// 10-byte one; it does not validate the FASTQ format itself.
+def fastqReadProblem(java.nio.file.Path path) {
+  def gzipped = path.fileName.toString().toLowerCase().endsWith('.gz')
+  try {
+    return java.nio.file.Files.newInputStream(path).withCloseable { raw ->
+      (gzipped ? new java.util.zip.GZIPInputStream(raw) : raw).withCloseable { stream ->
+        // lines() is lazy, so anyMatch stops reading at the first hit.
+        def hasRead = new BufferedReader(new InputStreamReader(stream, 'US-ASCII'))
+          .lines()
+          .anyMatch { line -> !line.isBlank() }
+        hasRead ? null : 'FASTQ contains no reads'
+      }
+    }
+  } catch (Exception exception) {
+    // Exception, not IOException: a read error raised inside lines() arrives
+    // wrapped in an UncheckedIOException.
+    return "FASTQ cannot be read${gzipped ? ' as gzip' : ''} (${exception.message})"
+  }
+}
+
 def validateFastqPath(java.nio.file.Path path, String location, List errors) {
   if (!java.nio.file.Files.exists(path)) {
     errors << "${location}: FASTQ does not exist: ${path}"
@@ -34,8 +60,14 @@ def validateFastqPath(java.nio.file.Path path, String location, List errors) {
     errors << "${location}: FASTQ is not a regular file: ${path}"
     return null
   }
-  if (!java.nio.file.Files.isReadable(path)) errors << "${location}: FASTQ is not readable: ${path}"
-  if (java.nio.file.Files.size(path) == 0) errors << "${location}: FASTQ is empty: ${path}"
+  if (!java.nio.file.Files.isReadable(path)) {
+    errors << "${location}: FASTQ is not readable: ${path}"
+  } else if (java.nio.file.Files.size(path) == 0) {
+    errors << "${location}: FASTQ is empty: ${path}"
+  } else {
+    def problem = fastqReadProblem(path)
+    if (problem) errors << "${location}: ${problem}: ${path}"
+  }
   if (!(path.fileName.toString() ==~ /(?i).+\.(fastq|fq)(\.gz)?/)) {
     errors << "${location}: unsupported FASTQ extension: ${path}"
   }
