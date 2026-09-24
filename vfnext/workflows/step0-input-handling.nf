@@ -196,8 +196,15 @@ def parseLegacyDirectory(String inDir, String mode) {
   }
   def rows = []
   paired.each { sampleId, mates ->
-    if (!(mates['1'] && mates['2'])) error "Legacy input sample '${sampleId}' has an orphan Illumina mate"
-    rows << [sample_id: sampleId, fastq_1: mates['1'], fastq_2: mates['2'], metadata: [:], location: "legacy sample ${sampleId}"]
+    if (mates['1'] && mates['2']) {
+      rows << [sample_id: sampleId, fastq_1: mates['1'], fastq_2: mates['2'], metadata: [:], location: "legacy sample ${sampleId}"]
+    }
+    // _R1/_R2 marks a mate only in ILLUMINA. In NANOPORE a lone file named
+    // *_R1.fastq is a sample like any other. A complete pair stays a pair
+    // above, which validateCanonicalRows rejects in NANOPORE mode: it is most
+    // likely Illumina data given the wrong --mode.
+    else if (mode == 'NANOPORE') singles.addAll(mates.values())
+    else error "Legacy input sample '${sampleId}' has an orphan Illumina mate"
   }
   singles.each { path ->
     def sampleId = path.fileName.toString().replaceFirst(/(?i)\.(fastq|fq)(\.gz)?$/, '')

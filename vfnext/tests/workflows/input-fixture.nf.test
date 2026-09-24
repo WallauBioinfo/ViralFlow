@@ -158,4 +158,41 @@ nextflow_pipeline {
             }
         }
     }
+
+    // _R1 marks a mate only in ILLUMINA. A Nanopore file that happens to be
+    // named *_R1.fastq is one single-end sample, named after the whole file
+    // as any other single file is.
+    test("Discovers a lone _R1 file as a Nanopore sample") {
+        when {
+            params {
+                mode = "NANOPORE"
+                inDir = "${projectDir}/tests/data/legacy-input/orphan"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.stdout.any {
+                it.contains('PREPARED orphan_R1 paired=false files=orphan_R1.SE.fastq.gz')
+            }
+        }
+    }
+
+    // A complete pair in NANOPORE mode is most likely Illumina data given the
+    // wrong --mode, so it is refused rather than run as two samples.
+    test("Rejects an _R1/_R2 pair in NANOPORE mode") {
+        when {
+            params {
+                mode = "NANOPORE"
+                inDir = "${projectDir}/tests/data/legacy-input/uncompressed-fastq"
+                referenceGenome = "${projectDir}/tests/data/bcftools/ref.fa"
+            }
+        }
+        then {
+            assert workflow.failed
+            assert workflow.stdout.any {
+                it.contains('legacy sample sample_fastq: fastq_2 must be empty in NANOPORE mode')
+            }
+        }
+    }
 }

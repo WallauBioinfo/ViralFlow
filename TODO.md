@@ -709,8 +709,19 @@ come from reading the code and want a run before anyone relies on them.
       seqkit arguments with and without a maximum, the rejection, and the
       command's default. What the filters drop is still not reported; see
       section 5.
-- [ ] Minor: legacy `--inDir` discovery fails a nanopore file
-      named `*_R1.fastq` as an "orphan Illumina mate".
+- [x] **Legacy `--inDir` discovery failed a Nanopore file named
+      `*_R1.fastq` as an "orphan Illumina mate".** Fixed 2026-09-24.
+      Reproduced with a new `input-fixture.nf.test` case: `--mode NANOPORE`
+      over a folder holding only `orphan_R1.fastq` stopped with "Legacy input
+      sample 'orphan' has an orphan Illumina mate". `_R1`/`_R2` marks a mate
+      only in ILLUMINA, so in NANOPORE mode a lone mate is now an ordinary
+      single-end sample, named after the whole file (`orphan_R1`) as any
+      other single file is. A complete `_R1`/`_R2` pair in NANOPORE mode is
+      still refused ("fastq_2 must be empty in NANOPORE mode"), since it is
+      most likely Illumina data given the wrong `--mode`; a second new test
+      pins that. ILLUMINA is unchanged. Two `_R1` chunk files of one name in
+      NANOPORE mode (`x_R1_001`, `x_R1_002`) still stop with the existing
+      "duplicate sample ID … use --samplesheet" error, which says what to do.
 
 ### Test gaps behind these
 
