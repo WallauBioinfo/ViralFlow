@@ -26,6 +26,18 @@ ARG BAMDASH_VERSION=0.4.4
 ARG KALEIDO_VERSION=0.2.1
 ARG PLOTLY_VERSION=5.24.1
 ARG PYSAM_VERSION=0.23.3
+# The rest of bamdash's dependency closure, which pip used to resolve freely -
+# bamdash 0.4.4 asks only for pandas>=1.4.4 and biopython>=1.79, so each build
+# took whatever was newest. These are the versions a 2026-09-24 build resolved,
+# checked to draw a correct coverage plot. Installed with --no-deps below, so
+# nothing outside this list can enter the image.
+ARG PANDAS_VERSION=3.0.6
+ARG BIOPYTHON_VERSION=1.88
+ARG NUMPY_VERSION=2.5.3
+ARG PYTHON_DATEUTIL_VERSION=2.9.0.post0
+ARG SIX_VERSION=1.17.0
+ARG TENACITY_VERSION=9.1.4
+ARG PACKAGING_VERSION=26.3
 # Pinned to commits rather than tags, on purpose - see Nanopore_baseContainer.sing
 # for the reasoning (Porechop_ABI master is ahead of its last tag; bamUtil's last
 # tag clones libStatGen over the retired git:// protocol).
@@ -114,11 +126,22 @@ RUN pip install --break-system-packages "networkx==${NETWORKX_VERSION}" \
 
 # bamdash, for the GENPLOTS coverage plot. The import and the kaleido check
 # fail this step on their own, rather than relying on the final smoke test.
-RUN pip install --break-system-packages \
+# --no-deps installs exactly the pins above; pip check then fails the build if
+# they are not a complete, consistent set - which is what a version bump that
+# brings in a new dependency looks like, instead of pip quietly fetching it.
+RUN pip install --break-system-packages --no-deps \
         "bamdash==${BAMDASH_VERSION}" \
         "kaleido==${KALEIDO_VERSION}" \
         "plotly==${PLOTLY_VERSION}" \
         "pysam==${PYSAM_VERSION}" \
+        "pandas==${PANDAS_VERSION}" \
+        "biopython==${BIOPYTHON_VERSION}" \
+        "numpy==${NUMPY_VERSION}" \
+        "python-dateutil==${PYTHON_DATEUTIL_VERSION}" \
+        "six==${SIX_VERSION}" \
+        "tenacity==${TENACITY_VERSION}" \
+        "packaging==${PACKAGING_VERSION}" \
+    && pip check \
     && python -c "import bamdash, kaleido, plotly, pysam" \
     && bamdash --help > /dev/null
 

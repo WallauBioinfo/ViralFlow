@@ -139,6 +139,18 @@ Cannot be settled on macOS/Docker.
       `--writable-tmpfs`; some HPC builds without overlay support reject it,
       which would rule out making it a global default.
 
+- [ ] **Build the SIF with bamdash's pinned dependencies.** The Docker image was
+      rebuilt and tested with the full closure pinned, `--no-deps` and
+      `pip check` (section 3), but a SIF cannot be built on macOS, so
+      `Nanopore_baseContainer.sing` has only had its pins checked by
+      `tests/test_container_recipes.py`. Two things only a real build shows:
+      that the pinned set installs on amd64 as it does on arm64, and that
+      `pip check` passes there. The second is the one to watch — it checks the
+      whole environment, and the `.sing` installs apt packages with their
+      recommendations where the Dockerfile uses `--no-install-recommends`, so
+      its system Python packages differ. Then run `main-nanopore.nf.test` under
+      Singularity, which asserts all three coverage plots.
+
 ---
 
 ## 2. Open review feedback on PR #47
@@ -448,6 +460,27 @@ come from reading the code and want a run before anyone relies on them.
       `viralflow/nanopore-base:2.0.0a1` and publishes all five GENPLOTS files.
       The PNG and SVG are new: no run of either mode had produced them before
       (see the section 4 item on ILLUMINA's coverage plots).
+- [x] **bamdash's own dependencies were unpinned.** Follow-up to the item
+      above, found when the Docker image was rebuilt on Apple Silicon
+      (2026-09-24). bamdash 0.4.4 asks only for `pandas>=1.4.4` and
+      `biopython>=1.79`, so pip took the newest of everything each time the
+      image was built: that build resolved pandas 3.0.6, numpy 2.5.3 and
+      biopython 1.88 — pandas two majors past anything bamdash 0.4.4 was
+      written against. It worked, but the next build could have pulled a
+      release that did not, on any platform. Both recipes now pin the whole
+      closure at those resolved versions — `pandas`, `biopython`, `numpy`,
+      `python-dateutil`, `six`, `tenacity`, `packaging` — beside the four
+      already pinned, all eleven in `PINNED` in `tests/test_container_recipes.py`
+      so the recipes cannot drift. They are installed with `--no-deps` and
+      followed by `pip check`, so nothing outside the list can enter the
+      image, and a bump that brings in a new dependency fails the build
+      instead of fetching it unpinned (checked: with `six` removed,
+      `pip check` exits 1). Verified on arm64 under `-profile docker`: the
+      pinned build installs exactly the same eleven packages, all with native
+      aarch64 wheels, kaleido's bundled Chromium exports PNG and SVG, the
+      coverage plot shows the truth fixture's gap and deletion correctly, and
+      the unit and integration suites pass. The `.sing` side still needs a
+      build on Linux; see section 1.
 - [x] **`-profile docker` through `main.nf` fails in METADATA.** Confirmed on
       the Linux box on 2026-09-23 with the base image built from
       `nanopore_base.Dockerfile` and Clair3 pulled by digest. Run on the truth
