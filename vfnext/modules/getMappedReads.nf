@@ -9,6 +9,12 @@ process getMappedReads{
     tuple val(meta), path("*.mapped.*.fq.gz")
   script:
     """
+    # pipefail: the shell Nextflow uses has none, so a samtools sort that dies
+    # partway through its output left samtools fastq exiting 0 on the part it
+    # got. Reproduced by cutting a name-sorted BAM at a BGZF block boundary:
+    # the task succeeded and published 1720 of 3382 reads.
+    set -euo pipefail
+
     if [[ ${is_paired_end}  == true ]]; then
       samtools sort -n ${bam} | \
       samtools fastq -F 4 -1 ${meta.id}.mapped.R1.fq.gz -2 ${meta.id}.mapped.R2.fq.gz

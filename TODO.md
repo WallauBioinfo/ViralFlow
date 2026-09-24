@@ -634,12 +634,41 @@ come from reading the code and want a run before anyone relies on them.
       `callable_percent`. That assertion failed before the fix, reading 25x
       and 97.77. ILLUMINA's plot has the same class of mismatch, off by one;
       see section 4.
-- [ ] **Silent failures in the GENPLOTS steps.** `getMappedReads` and
-      `getUnmappedReads` have no `set -o pipefail`, so a failed
-      `samtools sort` still publishes an empty FASTQ; `coveragePlot` calls
-      bamdash through `subprocess.run(..., shell=True)` without checking the
-      exit status. That is how ILLUMINA's PNG and SVG coverage plots have gone
-      missing on every run without anyone noticing; see the section 4 item.
+- [x] **Silent failures in the GENPLOTS steps.** Confirmed and fixed
+      2026-09-24. Two separate holes:
+      - **`getMappedReads` / `getUnmappedReads` had no `pipefail`.** This item
+        first said a failed `samtools sort` would publish an empty FASTQ; it
+        does not — a sort that fails outright writes nothing, and
+        `samtools fastq` then fails on the empty stream too. The real case is
+        a sort that dies *partway through* its output, as an OOM kill does.
+        Reproduced by cutting a name-sorted BAM at a BGZF block boundary (BGZF
+        is written a whole block per `write()`, so that is where a killed
+        process stops): under Nextflow's default `bash -ue` the task exited 0
+        and published 1720 of 3382 reads, the only trace an "EOF marker is
+        absent" line in `.command.err`. With `set -euo pipefail` it fails
+        with the sort's status. Both modules now set it. The two ILLUMINA
+        modules with the same gap are in section 4.
+      - **`coveragePlot` ignored bamdash entirely**, running it through
+        `subprocess.run(..., shell=True)` without looking at the exit status
+        or the output — how ILLUMINA's PNG and SVG went missing unnoticed. The
+        inline Python moved to `vfnext/bin/coverage_plot.py`: a missing HTML
+        plot fails the task; a missing PNG or SVG is written to
+        `coveragePlot_result.txt`, which GENPLOTS already logs as a warning
+        for the sample. Static formats are deliberately not fatal: ILLUMINA's
+        `generate_plots` image cannot draw them at all (section 4), so failing
+        on them would fail every ILLUMINA run. Make them fatal once that image
+        is rebuilt. A format counts as drawn only if its file exists, not on
+        bamdash's exit status alone. bamdash now gets an argument list, not a
+        shell line: the reference name comes from the BAM header, and SAM
+        allows `;|&$` in it. The output glob was narrowed from
+        `*coveragePlot*`, which also published the result file as a plot.
+        The script is held to Python 3.8 in `ruff.toml`, since the
+        `generate_plots` image's Python is recorded nowhere. Covered by
+        `tests/test_coverage_plot.py` (six cases, fake bamdash), by the
+        genplots fixture and `main-nanopore.nf.test` with the real one, and
+        checked in the nanopore image with kaleido's Chromium removed: exit 0,
+        HTML published, and "not produced: PNG (bamdash exited 1); SVG
+        (bamdash exited 1). The HTML plot is complete."
 - [ ] Minor: `runPorechop` publishes an uncompressed `*.chopped.fastq`,
       roughly doubling storage; `runNanoporeSummary` calls
       `${projectDir}/bin/…` rather than relying on `bin/` being on `PATH`,
@@ -680,13 +709,36 @@ Deliberately kept out of the nanopore PR.
       image has kaleido 1.0.0, while bamdash 0.4.4 requires `kaleido==0.2.*`.
       Kaleido 1.x needs a separately installed Chrome for static export, the
       image has none, and the task log says so (`plotly_get_chrome`, then
-      `mv: cannot stat 'NC_045512.2_plot.png'`). The task still succeeds,
-      because `coveragePlot` ignores bamdash's exit status (the "Silent
-      failures in the GENPLOTS steps" item in section 3). The nanopore base
+      `mv: cannot stat 'NC_045512.2_plot.png'`). The task still succeeds, now
+      by design rather than by accident: since the "Silent failures in the
+      GENPLOTS steps" fix in section 3, each ILLUMINA sample logs a warning
+      naming the missing PNG and SVG instead of saying nothing. Once the image
+      is fixed, make those two formats fatal in `vfnext/bin/coverage_plot.py`
+      (`STATIC_FORMATS` is the list reported rather than failed). The nanopore base
       image pins `kaleido==0.2.1` with `plotly==5.24.1` and produces all three
       formats (checked on the truth fixture), so rebuilding `generate_plots`
       with the same pins is the likely fix. Installing Chrome is the
       alternative. Inherited: the image predates this branch.
+- [ ] **Two ILLUMINA scripts pipe without `pipefail`, one of them into the
+      consensus.** The GENPLOTS read-extraction fix in section 3 showed what
+      that hides: under Nextflow's default `bash -ue`, an upstream command
+      that dies partway through its output leaves the downstream one exiting
+      0 on the part it got, and the task succeeds. Reproduced there on a
+      name-sorted BAM cut at a block boundary: 1720 of 3382 reads published,
+      no error. Still exposed:
+      - `runIvar.nf`: `samtools mpileup … | ivar consensus` (and the
+        `ivar variants` calls) — a pileup killed mid-stream would publish a
+        truncated consensus.
+      - `prepareDatabase.nf`: `esearch … | efetch -format fasta > ref.fa` — a
+        failed search can leave a partial or empty reference.
+
+      Either add `set -euo pipefail` to each script, as the NANOPORE modules
+      do, or set it once for every process with
+      `process.shell = ['/bin/bash', '-euo', 'pipefail']` in `nextflow.config`
+      (the nf-core default). The global option is the better end state, but
+      it changes how every ILLUMINA script fails, so it wants a full ILLUMINA
+      run before merging, and a look for commands that exit non-zero by
+      design in a pipe (a `head` closing it early gives SIGPIPE, exit 141).
 - [ ] **ILLUMINA's coverage plot counts recovery one read short of its
       consensus.** Follow-up to the section 3 NANOPORE plot-threshold fix.
       bamdash counts a position as recovered only when coverage is strictly

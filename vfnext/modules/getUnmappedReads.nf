@@ -10,6 +10,11 @@ process getUnmappedReads {
 
     script:
     """
+    # pipefail: without it, a samtools sort that dies partway through its
+    # output leaves samtools fastq exiting 0 on the part it got - see
+    # getMappedReads.nf, where that was reproduced.
+    set -euo pipefail
+
     samtools view -b -f 4 ${bam} > unmapped.bam
     if [[ ${is_paired_end}  == true ]]; then
       samtools sort -n unmapped.bam | \

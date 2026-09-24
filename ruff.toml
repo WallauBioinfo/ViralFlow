@@ -8,6 +8,9 @@ line-length = 88
 # there at all. Keep this in step with the container.
 [per-file-target-version]
 "vfnext/bin/intrahost.py" = "py38"
+# coverage_plot.py runs inside ILLUMINA's generate_plots image, whose Python
+# version is recorded nowhere, so hold it to the oldest the fleet uses.
+"vfnext/bin/coverage_plot.py" = "py38"
 
 [lint]
 select = ["E4", "E7", "E9", "F"]
