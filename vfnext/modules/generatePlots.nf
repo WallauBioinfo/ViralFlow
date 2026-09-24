@@ -1,6 +1,6 @@
 process coveragePlot {
     tag "${meta.id}"
-    publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy"
+    publishDir { "${params.outDir}/${meta.id}_results/" }, mode: "copy", pattern: "*_coveragePlot.*"
 
     input:
 
@@ -14,7 +14,7 @@ process coveragePlot {
         // Named, not "*coveragePlot*": that glob also caught
         // coveragePlot_result.txt and published it as a plot.
         path("${meta.id}_coveragePlot.{html,png,svg}"), optional: true, emit: plots
-        path("coveragePlot_result.txt"), optional: true, emit: result, hidden: true
+        path("coveragePlot_result.txt"), optional: true, emit: result
     script:
 
     // bin/coverage_plot.py: a missing HTML plot fails the task, a missing PNG

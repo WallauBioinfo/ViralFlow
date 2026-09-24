@@ -94,6 +94,45 @@ nextflow_workflow {
             assert recovery.threshold == "1"
             // bamdash prints a zero as "0", other values as "50.0".
             assert recovery.percent.toDouble() == 0.0
+
+            // publishDir is limited to the plots; they must still get there.
+            ["html", "png", "svg"].each { extension ->
+                assert path("${launchDir}/test_results/sample_results/sample_coveragePlot.${extension}").exists()
+            }
+        }
+    }
+
+    test("Should report a sample with no mapped reads without publishing the report") {
+
+        when {
+            params {
+                fixture_coverage_threshold = 1
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "sample"],
+                          file("${projectDir}/tests/data/bcftools/no_reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            // No reads, no plot: coverage_plot.py says so in its result file,
+            // which GENPLOTS reads from this channel and logs as a warning.
+            assert workflow.out.plots.isEmpty()
+            assert workflow.out.result.size() == 1
+            assert path(workflow.out.result.get(0)).text.contains("No mapped reads")
+
+            // It is a message, not a result. publishDir used to publish it,
+            // and ILLUMINA writes one for every sample, since its image draws
+            // no PNG or SVG.
+            def resultsDir = path("${launchDir}/test_results/sample_results")
+            assert resultsDir.exists()
+            assert !path("${resultsDir}/coveragePlot_result.txt").exists()
         }
     }
 }

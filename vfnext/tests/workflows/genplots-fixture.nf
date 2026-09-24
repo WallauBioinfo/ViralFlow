@@ -51,4 +51,5 @@ workflow GENPLOTS_FIXTURE {
         mapped = getMappedReads.out
         unmapped = getUnmappedReads.out
         plots = coveragePlot.out.plots
+        result = coveragePlot.out.result
 }
