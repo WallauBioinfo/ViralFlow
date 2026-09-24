@@ -511,15 +511,19 @@ def run(
     default=200,
     help="Minimum length of the reads to write on output fastq files, default: 200",
 )
+# No maximum by default. It used to be 500, which kept ~400 bp amplicon runs
+# but dropped every read of a ~1200 bp amplicon scheme and nearly every read
+# of a whole-genome run, while reporting success.
 @click.option(
     "--max-len",
     type=int,
-    default=500,
-    help="Maximum length of the reads to write on output fastq files, default: 500",
+    default=None,
+    help="Maximum length of the reads to write on output fastq files, default: no maximum",
 )
 def concat_fastqs(path, prefix, extension, min_len, max_len):
+    max_len_text = "no maximum length" if max_len is None else f"max length {max_len}"
     click.echo(
-        f"Concat fastq files on path {path} with prefix {prefix} and extension {extension} with min length {min_len} and max length {max_len}"
+        f"Concat fastq files on path {path} with prefix {prefix} and extension {extension} with min length {min_len} and {max_len_text}"
     )
     _call_helper(_concat_fastqs, path, prefix, extension, min_len, max_len)
 

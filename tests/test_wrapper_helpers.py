@@ -160,6 +160,58 @@ class ConcatFastqTests(unittest.TestCase):
             self.assertFalse((root / "filtered" / "barcode02.concat.fastq.gz").exists())
             self.assertEqual(list((root / "filtered").glob("*.tmp")), [])
 
+    def seqkit_arguments(self, min_len, max_len):
+        """Run one barcode through a seqkit that records its arguments."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            log = root / "seqkit.args"
+            seqkit = bin_dir / "seqkit"
+            seqkit.write_text(
+                f'#!/bin/sh\nprintf "%s\\n" "$@" > "{log}"\ncat\n', encoding="utf-8"
+            )
+            seqkit.chmod(0o755)
+            barcode = root / "barcode01"
+            barcode.mkdir()
+            (barcode / "reads.fastq").write_bytes(FASTQ)
+            environment = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"}
+            with patch.dict(os.environ, environment, clear=True):
+                concat_fastqs(root, "barcode", ".fastq", min_len, max_len)
+            return log.read_text().splitlines()
+
+    def test_no_maximum_length_unless_one_is_asked_for(self):
+        """A 500 bp default dropped every read of a 1200 bp amplicon run.
+
+        Reproduced with seqkit 2.12: of 200 reads per barcode it kept 0 at
+        ~1200 bp and 3 of a whole-genome run, and reported success for both.
+        """
+        arguments = self.seqkit_arguments(200, None)
+        self.assertNotIn("--max-len", arguments)
+        self.assertEqual(arguments[arguments.index("--min-len") + 1], "200")
+
+        arguments = self.seqkit_arguments(200, 1500)
+        self.assertEqual(arguments[arguments.index("--max-len") + 1], "1500")
+
+    def test_a_maximum_below_the_minimum_is_rejected_before_any_work(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "barcode01").mkdir()
+            (root / "barcode01" / "reads.fastq").write_bytes(FASTQ)
+            with self.assertRaisesRegex(ValueError, "every read would be dropped"):
+                concat_fastqs(root, "barcode", ".fastq", 200, 100)
+            self.assertFalse((root / "filtered").exists())
+
+    def test_the_command_passes_no_maximum_by_default(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch("wrapper.cli._concat_fastqs") as helper:
+                result = CliRunner().invoke(cli, ["concat-fastq", "--path", temp_dir])
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            helper.call_args, call(temp_dir, "barcode", ".fastq.gz", 200, None)
+        )
+        self.assertIn("no maximum length", result.output)
+
 
 if __name__ == "__main__":
     unittest.main()

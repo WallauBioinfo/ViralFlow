@@ -697,9 +697,19 @@ come from reading the code and want a run before anyone relies on them.
       ILLUMINA allowlist uses `projectDir/bin`, or if a script a module calls
       by name loses its executable bit or shebang. The allowlisted modules
       are in section 4.
-- [ ] Minor: `concat-fastq` defaults to
-      `--max-len 500`, silently dropping nearly every read of 1200 bp or
-      whole-genome protocols; legacy `--inDir` discovery fails a nanopore file
+- [x] **`concat-fastq` defaulted to `--max-len 500`.** Fixed 2026-09-24.
+      Reproduced with the envs' pinned seqkit 2.12 on three barcodes of 200
+      reads: ~400 bp amplicons kept 200, ~1200 bp amplicons (Midnight) kept
+      **0**, and a whole-genome run of 300 bp to 20 kb kept **3**, and the
+      command reported success for each. `--max-len` now defaults to no
+      maximum and is passed to seqkit only when given; with the fix all
+      three keep 200. `--min-len` stays at 200. A `--max-len` below
+      `--min-len`, which would drop every read, is rejected before anything
+      is written (exit 1). Covered in `tests/test_wrapper_helpers.py`: the
+      seqkit arguments with and without a maximum, the rejection, and the
+      command's default. What the filters drop is still not reported; see
+      section 5.
+- [ ] Minor: legacy `--inDir` discovery fails a nanopore file
       named `*_R1.fastq` as an "orphan Illumina mate".
 
 ### Test gaps behind these
@@ -1111,8 +1121,12 @@ Items confirmed on a real run through the wrapper say so.
 - [ ] Smaller: it writes into the input tree; it needs `seqkit` on the host,
       which nothing declares or checks up front, so a missing `seqkit` shows
       up as one failure per barcode; the command has no docstring, so its
-      `--help` is empty; and the `--max-len 500` default is the section 3
-      "Minor" item.
+      `--help` is empty; and it never says how many reads its length filters
+      dropped, so a `--min-len` or `--max-len` that does not suit the
+      protocol still loses reads without a word. Printing "kept N of M
+      reads" per barcode would fix that; counting the input costs a second
+      pass over it, or a counting stage in the pipe. The `--max-len 500`
+      default that made this matter most is fixed (section 3).
 
 ### Documentation
 

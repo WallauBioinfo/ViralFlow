@@ -268,7 +268,13 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
 
     For each directory matching {prefix}* (e.g. barcode01, barcode02, ...),
     concatenates all fastq files and filters reads by min/max length using seqkit.
+    A max_len of None sets no maximum.
     """
+    if max_len is not None and max_len < min_len:
+        raise ValueError(
+            f"--max-len {max_len} is below --min-len {min_len}, so every read "
+            "would be dropped."
+        )
     read_dir = Path(path).resolve()
     output_dir = read_dir / "filtered"
     output_dir.mkdir(exist_ok=True)
@@ -321,18 +327,19 @@ def concat_fastqs(path, prefix, extension, min_len, max_len):
                 )
                 source = subprocess.Popen(reader, stdout=subprocess.PIPE)
                 processes.append(source)
+                seqkit_command = [
+                    "seqkit",
+                    "seq",
+                    "-w",
+                    "0",
+                    "-g",
+                    "--min-len",
+                    str(min_len),
+                ]
+                if max_len is not None:
+                    seqkit_command += ["--max-len", str(max_len)]
                 seqkit = subprocess.Popen(
-                    [
-                        "seqkit",
-                        "seq",
-                        "-w",
-                        "0",
-                        "-g",
-                        "--min-len",
-                        str(min_len),
-                        "--max-len",
-                        str(max_len),
-                    ],
+                    seqkit_command,
                     stdin=source.stdout,
                     stdout=subprocess.PIPE,
                 )
