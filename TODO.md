@@ -684,9 +684,20 @@ come from reading the code and want a run before anyone relies on them.
       content is unchanged: the decompressed output matches the old file
       byte for byte on the fixture. `main-nanopore.nf.test` asserts the `.gz`
       is published with every input read, and that no uncompressed copy is.
-- [ ] Minor: `runNanoporeSummary` calls
-      `${projectDir}/bin/…` rather than relying on `bin/` being on `PATH`,
-      which breaks on cloud executors; `concat-fastq` defaults to
+- [x] **`runNanoporeSummary` called `${projectDir}/bin/nanopore_summary.py`.**
+      Fixed 2026-09-24. Nextflow puts `bin/` on every task's `PATH`
+      (`.command.run` exports it), uploading it first on executors that do
+      not share the launch host's filesystem; `${projectDir}` there still
+      names the launch host's copy, which the task cannot see. It worked
+      locally only because the path is the same inside and outside the
+      container. Not reproduced on a cloud executor, since none is set up. The
+      module now calls the script by name, and the script is now executable
+      (it was `100644`; its shebang was already `#!/usr/bin/env python3`).
+      `tests/test_bin_scripts.py` fails if a module outside a two-entry
+      ILLUMINA allowlist uses `projectDir/bin`, or if a script a module calls
+      by name loses its executable bit or shebang. The allowlisted modules
+      are in section 4.
+- [ ] Minor: `concat-fastq` defaults to
       `--max-len 500`, silently dropping nearly every read of 1200 bp or
       whole-genome protocols; legacy `--inDir` discovery fails a nanopore file
       named `*_R1.fastq` as an "orphan Illumina mate".
@@ -753,6 +764,22 @@ Deliberately kept out of the nanopore PR.
       it changes how every ILLUMINA script fails, so it wants a full ILLUMINA
       run before merging, and a look for commands that exit non-zero by
       design in a pipe (a `head` closing it early gives SIGPIPE, exit 141).
+- [ ] **Two ILLUMINA modules still call scripts through `$projectDir/bin`.**
+      Same problem as NANOPORE's `runNanoporeSummary` (section 3): the path
+      names the launch host's copy, which a cloud executor's task never sees.
+      - `runIntraHostScript.nf`: `python $projectDir/bin/intrahost.py`
+      - `runIvar.nf`: `python $projectDir/bin/tsv_to_vcf.py`
+
+      Neither script is executable (`100644`), so calling them by name needs
+      `chmod +x` as well. The shebangs also need checking against the
+      images: `intrahost.py` has `#!/usr/bin/python3`, and the call uses
+      `python`, so check whether `intrahost_analysis:1.1.0.sif` has a
+      `/usr/bin/python3` and whether it is the 3.8.0 with pandas 1.5.3 that
+      section 1 confirmed; `#!/usr/bin/env python3` is the safer choice.
+      `tsv_to_vcf.py` already uses `env python3`, but the ivar image must
+      then provide `python3`, not only `python`. Once a module is fixed,
+      remove it from `PROJECT_DIR_BIN_ALLOWED` in
+      `tests/test_bin_scripts.py`; the test fails until you do.
 - [ ] **ILLUMINA's coverage plot counts recovery one read short of its
       consensus.** Follow-up to the section 3 NANOPORE plot-threshold fix.
       bamdash counts a position as recovered only when coverage is strictly

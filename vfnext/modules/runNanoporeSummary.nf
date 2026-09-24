@@ -21,10 +21,13 @@ process runNanoporeSummary {
         tuple val(meta), path("${meta.id}.nanopore_summary.tsv")
 
     script:
+    // Called by name: Nextflow puts bin/ on the task's PATH wherever the task
+    // runs. ${projectDir}/bin names the launch host's copy, which a cloud
+    // executor's task never sees; Nextflow uploads bin/ there instead.
     """
     set -euo pipefail
 
-    python3 ${projectDir}/bin/nanopore_summary.py \
+    nanopore_summary.py \
         --raw-vcf ${raw_vcf} \
         --filtered-vcf ${filtered_vcf} \
         --consensus ${consensus} \
