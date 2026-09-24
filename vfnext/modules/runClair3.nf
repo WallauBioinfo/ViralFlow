@@ -1,0 +1,42 @@
+process runClair3{
+    // Define the process parameters
+    publishDir { "${params.outDir}/${meta.id}_results/" }, mode: 'copy', overwrite: true
+    tag "${meta.id}"
+    // container is set from params.clair3_container in nextflow.config
+
+    input:
+        tuple val(meta), path(bam), path(bai)
+        path(ref)
+        // Staged beside the reference so htslib finds it as <ref>.fai. Built
+        // once by runFaidx rather than in every task here.
+        path(ref_fai)
+        val(chunk_size) // 10000
+        val(qual) // 10
+        val(map_qual) // 30
+        val(model)
+
+    output:
+        tuple val(meta), path("${meta.id}.merge_output.vcf.gz")
+
+    script:
+    """
+    set -euo pipefail
+
+    run_clair3.sh \
+        --enable_long_indel \
+        --chunk_size=${chunk_size} \
+        --haploid_sensitive \
+        --no_phasing_for_fa \
+        --bam_fn=${bam} \
+        --ref_fn=${ref} \
+        --output=./ \
+        --threads=${task.cpus} \
+        --platform='ont' \
+        --model_path=/opt/models/${model} \
+        --include_all_ctgs \
+        --qual=${qual} \
+        --min_mq=${map_qual}
+
+    mv ./merge_output.vcf.gz ${meta.id}.merge_output.vcf.gz
+    """
+}

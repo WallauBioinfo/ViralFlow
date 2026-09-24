@@ -11,35 +11,56 @@ containers = [
 
 # temporary logic, before push to remote repo
 container_commands = [
-    f"singularity build -F --fakeroot --sandbox pangolin:4.4.sif def_files/{arch}/Singularity_pangolin",
-    f"singularity build -F --fakeroot --sandbox snpeff:5.0.sif def_files/{arch}/Singularity_snpEff"
+    [
+        "singularity",
+        "build",
+        "-F",
+        "--fakeroot",
+        "--sandbox",
+        "pangolin:4.4.sif",
+        f"def_files/{arch}/Singularity_pangolin",
+    ],
+    [
+        "singularity",
+        "build",
+        "-F",
+        "--fakeroot",
+        "--sandbox",
+        "snpeff:5.0.sif",
+        f"def_files/{arch}/Singularity_snpEff",
+    ],
 ]
 
 failed_containers = []
 already_built = []
 success = True  # Control variable
 
+
 def container_exists(container):
     return os.path.isdir(container)
+
 
 def build_container(container, command):
     print(f"@ Building {container}...")
 
     if container_exists(container):
-        print(f"  > Container already exists. If you desire to rebuild the container, use the following command on 'ViralFlow/vfnext/containers/' directory:")
+        print(
+            "  > Container already exists. If you desire to rebuild the container, use the following command on 'ViralFlow/vfnext/containers/' directory:"
+        )
         print(f"    > {command}")
         already_built.append(container)
         return True
 
     try:
-        subprocess.check_call(command, shell=True)
-        print(f"  > Done <")
+        subprocess.run(command, check=True)
+        print("  > Done <")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"  > Failed <")
+        print("  > Failed <")
         print(f"Error: {e}")
         failed_containers.append((container, command))
         return False
+
 
 print("Building containers:")
 
@@ -50,7 +71,9 @@ for container, command in zip(containers, container_commands):
 print("\nSummary:")
 
 if failed_containers:
-    print("\nSome containers failed to build. Try to build the containers on 'ViralFlow/vfnext/containers/' directory. Here are the details:")
+    print(
+        "\nSome containers failed to build. Try to build the containers on 'ViralFlow/vfnext/containers/' directory. Here are the details:"
+    )
     for container, command in failed_containers:
         print(f"\nContainer {container} failed to build.")
         print(f"Suggested command to build {container}:")
@@ -66,9 +89,22 @@ if success:
     print("\nExecuting additional steps:\n")
 
     print("  > Loading sars-cov2 nextclade dataset...\n")
-    nextclade_command = "singularity exec -B nextclade_dataset/sars-cov-2:/tmp nextclade:3.18.sif nextclade dataset get --name 'sars-cov-2' --output-dir '/tmp'"
+    nextclade_command = [
+        "singularity",
+        "exec",
+        "-B",
+        "nextclade_dataset/sars-cov-2:/tmp",
+        "nextclade:3.18.sif",
+        "nextclade",
+        "dataset",
+        "get",
+        "--name",
+        "sars-cov-2",
+        "--output-dir",
+        "/tmp",
+    ]
     try:
-        subprocess.check_call(nextclade_command, shell=True)
+        subprocess.run(nextclade_command, check=True)
         print("    > Done <\n")
     except subprocess.CalledProcessError as e:
         print("    > Failed <")
@@ -76,9 +112,10 @@ if success:
         success = False
 
     print("  > Downloading snpeff database catalog...")
-    snpeff_command = "singularity exec snpeff:5.0.sif snpEff databases > snpEff_DB.catalog"
+    snpeff_command = ["singularity", "exec", "snpeff:5.0.sif", "snpEff", "databases"]
     try:
-        subprocess.check_call(snpeff_command, shell=True)
+        with open("snpEff_DB.catalog", "w") as catalog:
+            subprocess.run(snpeff_command, stdout=catalog, check=True)
         print("    > Done <")
     except subprocess.CalledProcessError as e:
         print("    > Failed <")
@@ -88,16 +125,31 @@ if success:
     # Check if unsquashfs is in the correct location
     unsquashfs_desired_location = "/usr/local/bin/unsquashfs"
     if not os.path.exists(unsquashfs_desired_location):
-        print("\n\033[91mError:\n  > unsquashfs executable not found at expected location. You should create a symbolic link using the following command:\033[0m")
-        unsquashfs_location = os.path.join(os.environ["HOME"], "miniconda3/envs/viralflow/bin/unsquashfs")
+        success = False
+        print(
+            "\n\033[91mError:\n  > unsquashfs executable not found at expected location. You should create a symbolic link using the following command:\033[0m"
+        )
+        unsquashfs_location = os.path.join(
+            os.environ["HOME"], "miniconda3/envs/viralflow/bin/unsquashfs"
+        )
         print(f"   >  sudo ln -s {unsquashfs_location} /usr/local/bin/unsquashfs\n")
-        print(f"  > If the first symbolic link does not solve the error you can alternatively create a symbolic link using the following command:")
-        print(f"   >  sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs\n")
+        print(
+            "  > If the first symbolic link does not solve the error you can alternatively create a symbolic link using the following command:"
+        )
+        print("   >  sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs\n")
 
         # Print a message indicating the unsquashfs location
-        print(f"  > unsquashfs executable is located at {unsquashfs_location} or at /usr/bin/unsquashfs\n")
-        print(f"  > After create the symbolic link for unsquashfs, please run 'viralflow -build_containers' command again to finish the additional steps necessary to run ViralFlow correctly.")
+        print(
+            f"  > unsquashfs executable is located at {unsquashfs_location} or at /usr/bin/unsquashfs\n"
+        )
+        print(
+            f"  > After creating the symbolic link for unsquashfs, run 'viralflow build-containers --arch {arch}' again to finish the additional steps necessary to run ViralFlow correctly."
+        )
 
 if success:
-    print("\nAll steps from '-build_containers' completed successfully. You can test ViralFlow using the following command:")
+    print(
+        "\nAll build-containers steps completed successfully. You can test ViralFlow using the following command:"
+    )
     print("   > viralflow run --params-file test_files/sars-cov-2.params")
+else:
+    sys.exit(1)

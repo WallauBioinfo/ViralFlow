@@ -6,17 +6,17 @@ process indexReferenceBWA {
     */
     //publishDir "${params.outDir}/"
     label "singlethread"
-    
+
     input:
-        path(ref_fa)
+        path(refFa)
 
     output:
-        path("${ref_fa}*")
+        path("${refFa}*")
 
     script:
         bwa=params.bwa
 
         """
-        ${bwa} index -a bwtsw -p ${ref_fa} ${ref_fa}
+        ${bwa} index -a bwtsw -p ${refFa} ${refFa}
         """
 }

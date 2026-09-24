@@ -9,8 +9,8 @@ process prepareDatabase {
         val(genome_code)
 
     output:
-        path("${genome_code}.fa"), emit: ref_fa
-        path("${genome_code}.gff"), emit: ref_gff
+        path("${genome_code}.fa"), emit: refFa
+        path("${genome_code}.gff"), emit: refGff
 
     script:
         db_path = params.databaseDir

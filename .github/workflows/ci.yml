@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch supersedes the previous run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Runner images and actions are pinned rather than floating. ubuntu-latest
+# migrates to Ubuntu 26 on 2026-10-19, and every action here was emitting a
+# Node 20 deprecation warning until this bump. Pinning turns both into
+# changes someone makes deliberately.
+env:
+  # Kept in step with envs/amd64.yml and the pre-commit hooks.
+  NXF_VER: "26.04.6"
+  NF_TEST_VERSION: "0.9.4"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # Runs the commit-time gate itself rather than a copy of it, so CI and the
+  # hooks cannot drift: ruff, repo hygiene, nextflow lint, Python unit tests.
+  lint:
+    name: Lint and unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Pinned to an exact version, unlike the others: astral-sh stopped
+      # publishing moving major tags after v7, so @v10 does not resolve.
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          # setup-uv caches by default and looks for uv.lock or
+          # requirements*.txt. This repo has neither, so the glob matched
+          # nothing and the cache could never be invalidated. setup.py is
+          # what decides the dependencies the hooks install.
+          cache-dependency-glob: setup.py
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # The nextflow-lint hook needs nextflow on PATH.
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          nextflow -version
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run commit-time hooks
+        run: |
+          pip install "pre-commit==4.6.0"
+          pre-commit run --all-files --show-diff-on-failure
+
+  # Read the Docs builds the documentation on its own infrastructure, so a
+  # broken Sphinx build shows up only after merge, on the published site.
+  # Build it here too. The translated trees are covered because nothing else
+  # checks them at all - .readthedocs.yaml names docs/conf.py and nothing else.
+  docs:
+    name: Docs (${{ matrix.tree }})
+    runs-on: ubuntu-24.04
+    strategy:
+      # One tree failing should not hide the state of the other two.
+      fail-fast: false
+      matrix:
+        tree: [docs, docs-es, docs-pt]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          cache-dependency-glob: docs/requirements.in
+
+      # Taken from .readthedocs.yaml rather than repeated here, so CI cannot
+      # build on a different Python than the published site. Same reason the
+      # container job reads its image tag out of profiles.config.
+      - name: Resolve the Python version Read the Docs uses
+        id: python
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          text = open(".readthedocs.yaml").read()
+          match = re.search(r"python:\s*\"([^\"]+)\"", text)
+          assert match, ".readthedocs.yaml does not pin a Python version"
+          print(f"version={match.group(1)}")
+          PY
+
+      # -W turns warnings into errors: a page missing from a toctree, a broken
+      # cross-reference or a theme option the installed sphinx-rtd-theme no
+      # longer accepts all fail here rather than degrading the built site.
+      # --keep-going reports every warning instead of stopping at the first.
+      # This is the same command dev docs tell contributors to run locally.
+      - name: Build ${{ matrix.tree }}
+        run: |
+          uv run --no-project \
+            --python "${{ steps.python.outputs.version }}" \
+            --with-requirements docs/requirements.in \
+            sphinx-build -b html -W --keep-going \
+            "${{ matrix.tree }}" "_build/${{ matrix.tree }}"
+
+  # The pre-push gate: the Nextflow tests that need no container image.
+  nextflow-tests:
+    name: Nextflow tests (no containers)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Nextflow and nf-test
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          curl -fsSL https://code.askimed.com/install/nf-test \
+            | bash -s "${NF_TEST_VERSION}"
+          sudo mv nf-test /usr/local/bin/
+          nextflow -version
+          nf-test version
+
+      - name: Run tests
+        working-directory: vfnext
+        run: |
+          nf-test test \
+            tests/workflows/input-fixture.nf.test \
+            tests/workflows/step0-input-handling.validation.nf.test \
+            tests/main.metadata.nf.test \
+            --ci
+
+  # The container suite. Runs under -profile docker, which is the only way CI
+  # can execute these at all: the default profile expects Singularity, which is
+  # not available on GitHub runners.
+  container-tests:
+    name: Nextflow tests (containers)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Nextflow and nf-test
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          curl -fsSL https://code.askimed.com/install/nf-test \
+            | bash -s "${NF_TEST_VERSION}"
+          sudo mv nf-test /usr/local/bin/
+
+      # Read the tag from the profile rather than repeating it here, so the
+      # image CI builds is always the one the profile will ask for.
+      - name: Resolve base container image tag
+        id: image
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          text = open("vfnext/configs/profiles.config").read()
+          match = re.search(r"base_container\s*=\s*'([^']+)'", text)
+          assert match, "docker profile does not set params.base_container"
+          print(f"tag={match.group(1)}")
+          PY
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build the nanopore base image
+        uses: docker/build-push-action@v7
+        with:
+          context: vfnext/containers
+          file: vfnext/containers/nanopore_base.Dockerfile
+          tags: ${{ steps.image.outputs.tag }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run the full suite under the docker profile
+        working-directory: vfnext
+        run: nf-test test tests/ --profile docker --ci
+
+      # The end-to-end checks: FASTQ-to-consensus determinism, and multi-sample
+      # fan-out. Kept as a separate step because they are slow and pull Clair3,
+      # and because a failure here means the pipeline changed its output - a
+      # different class of problem from a unit test failing. GitHub runners are
+      # amd64, so Clair3 runs natively; on Apple Silicon it needs emulation.
+      - name: Run the nanopore integration tests
+        working-directory: vfnext
+        run: nf-test test integration_tests/ --profile docker --ci

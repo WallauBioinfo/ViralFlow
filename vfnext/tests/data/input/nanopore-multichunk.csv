@@ -1,0 +1,3 @@
+sample_id,fastq_1,fastq_2,batch
+sample_a,sample_a_chunk1.fastq,,batch_1
+sample_a,sample_a_chunk2.fastq,,batch_1

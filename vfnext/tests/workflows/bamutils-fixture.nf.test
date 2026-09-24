@@ -1,0 +1,80 @@
+nextflow_workflow {
+
+    name "Optional read-end trimming for NANOPORE"
+    script "tests/workflows/bamutils-fixture.nf"
+    workflow "BAMUTILS_FIXTURE"
+
+    test("Should soft-clip trimmed bases at both read ends") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "trim_sample"],
+                          file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                input[1] = Channel.value(2)
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def fields = path(workflow.out.trimmed.get(0))
+                .readLines()
+                .findAll { line -> !line.startsWith("@") }
+                .collect { line -> line.split("\t") }
+
+            assert fields.size() == 1
+            def read = fields[0]
+
+            // input.sam holds one forward read, ACGTACGTAC, aligned 10M from
+            // reference position 1, all qualities I. Soft clipping leaves the
+            // bases and qualities in the record untouched; the CIGAR is what
+            // marks them as not aligned.
+            assert read[9] == "ACGTACGTAC"
+            assert read[10] == "IIIIIIIIII"
+
+            // Clipping, not masking: the alignment now starts at 3 and spans
+            // only the 6 untrimmed bases, so the trimmed positions stop
+            // counting toward the depth consensus masking is computed from.
+            // Masked bases kept that depth and crashed Clair3's pileup.
+            assert read[3] == "3"
+            assert read[5] == "2S6M2S"
+        }
+    }
+
+    test("Should leave the alignment untouched when trimLen is zero") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "trim_sample"],
+                          file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                input[1] = Channel.value(0)
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def read = path(workflow.out.trimmed.get(0))
+                .readLines()
+                .findAll { line -> !line.startsWith("@") }
+                .collect { line -> line.split("\t") }[0]
+
+            // The workflow skips this process entirely at the default trimLen
+            // of 0; this pins that a zero trim is a no-op even when it does run.
+            // Under --clip the sequence is preserved whatever the trim, so the
+            // position and CIGAR are what make this assertion mean anything.
+            assert read[9] == "ACGTACGTAC"
+            assert read[10] == "IIIIIIIIII"
+            assert read[3] == "1"
+            assert read[5] == "10M"
+        }
+    }
+}

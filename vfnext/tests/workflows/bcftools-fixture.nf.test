@@ -1,0 +1,399 @@
+nextflow_workflow {
+
+    name "Test BCFtools filtering and consensus fixture"
+    script "tests/workflows/bcftools-fixture.nf"
+    workflow "BCFTOOLS_FIXTURE"
+
+    test("Should normalize, filter, index, mask, and build consensus") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 4
+
+            def filtered = workflow.out.filtered.get(0)
+            assert filtered[0].id == "sample"
+
+            def filteredVcf = path(filtered[1])
+            def filteredTbi = path(filtered[2])
+            def variantLines = filteredVcf.linesGzip.findAll {
+                !it.startsWith("#")
+            }
+
+            assert variantLines == [
+                "chr1\t5\t.\tA\tG\t60\tPASS\t.\tGT:AF\t1:0.8"
+            ]
+            assert filteredTbi.exists()
+            assert filteredTbi.size() > 0
+
+            def consensus = workflow.out.consensus.get(0)
+            assert consensus[0].id == "sample"
+            assert path(consensus[1]).text.trim() ==
+                ">sample\nACGTGCGTACNNNNNNNNNN"
+            assert path(consensus[2]).readLines() == [
+                "chr1\t10\t11",
+                "chr1\t11\t12",
+                "chr1\t12\t13",
+                "chr1\t13\t14",
+                "chr1\t14\t15",
+                "chr1\t15\t16",
+                "chr1\t16\t17",
+                "chr1\t17\t18",
+                "chr1\t18\t19",
+                "chr1\t19\t20"
+            ]
+            assert path(consensus[3]).readLines() == [
+                "chr1\t1\t1",
+                "chr1\t2\t1",
+                "chr1\t3\t1",
+                "chr1\t4\t1",
+                "chr1\t5\t1",
+                "chr1\t6\t1",
+                "chr1\t7\t1",
+                "chr1\t8\t1",
+                "chr1\t9\t1",
+                "chr1\t10\t1",
+                "chr1\t11\t0",
+                "chr1\t12\t0",
+                "chr1\t13\t0",
+                "chr1\t14\t0",
+                "chr1\t15\t0",
+                "chr1\t16\t0",
+                "chr1\t17\t0",
+                "chr1\t18\t0",
+                "chr1\t19\t0",
+                "chr1\t20\t0"
+            ]
+
+            def summary = workflow.out.summary.get(0)
+            assert summary[0].id == "sample"
+            def summaryMetrics = path(summary[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert summaryMetrics.raw_variant_count == "1"
+            assert summaryMetrics.af_filtered_variant_count == "1"
+            assert summaryMetrics.filtered_variants_depth_missing == "1"
+            assert summaryMetrics.masked_bases == "10"
+            assert summaryMetrics.consensus_n_bases == "10"
+            assert summaryMetrics.callable_bases == "10"
+            assert summaryMetrics.callable_percent == "50.000000"
+        }
+    }
+
+    test("Should report variant depth relative to the unchanged consensus threshold") {
+
+        when {
+            params {
+                fixture_min_depth = 1
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/thresholds.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def filtered = workflow.out.filtered.get(0)
+            def variantLines = path(filtered[1]).linesGzip.findAll {
+                !it.startsWith("#")
+            }
+            assert variantLines.size() == 3
+
+            def consensus = workflow.out.consensus.get(0)
+            assert path(consensus[1]).text.trim() == ">sample\nNNNNNNNNNNNNNNNNNNNN"
+
+            def summary = workflow.out.summary.get(0)
+            def summaryMetrics = path(summary[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert summaryMetrics.filtered_variants_depth_below_min == "1"
+            assert summaryMetrics.filtered_variants_depth_equal_min == "1"
+            assert summaryMetrics.filtered_variants_depth_above_min == "1"
+            assert summaryMetrics.masked_bases == "20"
+            assert summaryMetrics.consensus_mask_rule == "depth <= consensus_min_depth"
+        }
+    }
+
+    // masked_bases and consensus_n_bases look interchangeable and are equal on
+    // an N-free reference, which is the only kind the other fixtures use. They
+    // measure different things: masked_bases counts positions this pipeline
+    // masked for low coverage, consensus_n_bases counts every N in the output
+    // whatever its origin. This pins the difference so the two are not
+    // "simplified" into one.
+    test("Should count reference N separately from coverage masking") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref_with_n.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def summary = workflow.out.summary.get(0)
+            def metrics = path(summary[1]).readLines().drop(1).collectEntries { line ->
+                def fields = line.split("\t", 2)
+                [(fields[0]): fields[1]]
+            }
+
+            // The reference is 20 bp with N at positions 7 and 8 - clear of the
+            // variant at position 5, which bcftools norm would otherwise reject
+            // as a reference-allele mismatch. input.sam covers 1-10, so 11-20
+            // are masked for zero coverage.
+            assert metrics.masked_bases == "10"
+
+            // Ten coverage-masked plus the two the reference already carried.
+            assert metrics.consensus_n_bases == "12"
+
+            // The whole point: these are not the same number.
+            assert metrics.masked_bases != metrics.consensus_n_bases
+
+            // callable_bases is derived from the total N, not from the masked
+            // count, so reference N correctly counts as not callable.
+            assert metrics.consensus_length == "20"
+            assert metrics.callable_bases == "8"
+        }
+    }
+
+    // A negative control or a failed barcode: reads may exist, but none align.
+    // samtools depth -a prints nothing for a contig with no reads, so the mask
+    // came out empty and the reference was published unmasked as the sample's
+    // consensus, reported 100% callable. Every position must be masked instead.
+    test("Should mask the whole consensus when no reads align") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/no_reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def consensus = workflow.out.consensus.get(0)
+            // input.vcf's variant at position 5 passes the AF filter, but it
+            // falls inside the mask, so it must not surface either.
+            assert path(consensus[1]).text.trim() ==
+                ">sample\nNNNNNNNNNNNNNNNNNNNN"
+            assert path(consensus[2]).readLines().size() == 20
+            assert path(consensus[3]).readLines() ==
+                (1..20).collect { position -> "chr1\t${position}\t0".toString() }
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.zero_depth_bases == "20"
+            assert metrics.masked_bases == "20"
+            assert metrics.consensus_n_bases == "20"
+            assert metrics.callable_bases == "0"
+            assert metrics.callable_percent == "0.000000"
+        }
+    }
+
+    // The same gap one level down: in a multi-contig reference, a contig no
+    // read reached was left out of the depth table while its neighbours were
+    // reported, so it passed through as reference sequence. chr1 here is
+    // covered at positions 1-10; chr2 has no reads at all.
+    test("Should mask a reference contig that no read reached") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref_two_contigs.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/two_contigs.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def consensus = workflow.out.consensus.get(0)
+            // Sequence lines only: the header rename is a separate problem
+            // (every contig becomes >sample), tracked in TODO.md.
+            def sequences = path(consensus[1]).readLines().findAll { line ->
+                !line.startsWith(">")
+            }
+            assert sequences == [
+                "ACGTGCGTACNNNNNNNNNN",
+                "NNNNNNNNNNNNNNNNNNNN"
+            ]
+            def chr2Masked = path(consensus[2]).readLines().findAll { line ->
+                line.startsWith("chr2\t")
+            }
+            assert chr2Masked.size() == 20
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.reference_length == "40"
+            assert metrics.zero_depth_bases == "30"
+            assert metrics.masked_bases == "30"
+            assert metrics.consensus_n_bases == "30"
+            assert metrics.callable_bases == "10"
+        }
+    }
+
+    // Clair3's --qual does not drop a call below it: it labels it LowQual and
+    // keeps it. Both rows below clear the AF cutoff, so before FILTER="PASS"
+    // was required the LowQual C>T at position 2 was written into the
+    // consensus. The RefCall row is Clair3's --print_ref_calls output.
+    test("Should keep only PASS calls, leaving LowQual and RefCall out of the consensus") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/lowqual.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def variantLines = path(workflow.out.filtered.get(0)[1]).linesGzip.findAll {
+                !it.startsWith("#")
+            }
+            assert variantLines == [
+                "chr1\t5\t.\tA\tG\t60\tPASS\t.\tGT:AF\t1:0.8"
+            ]
+
+            // Reference ACGTACGTAC over the covered half: only the PASS A>G at
+            // position 5 is applied; position 2 stays C.
+            assert path(workflow.out.consensus.get(0)[1]).text.trim() ==
+                ">sample\nACGTGCGTACNNNNNNNNNN"
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.raw_variant_count == "3"
+            assert metrics.af_filtered_variant_count == "1"
+        }
+    }
+
+    test("Should fail on a malformed VCF") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/malformed.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.errorReport.contains("runBcftools")
+        }
+    }
+}

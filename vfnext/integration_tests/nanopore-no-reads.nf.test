@@ -1,0 +1,81 @@
+nextflow_workflow {
+    name "Nanopore negative control: reads present, none aligned"
+    script "tests/integration/nanopore-truth.nf"
+    workflow "NANOPORE_TRUTH"
+
+    // The truth test covers a sample that aligns; nothing else covered one that
+    // does not. That case used to succeed while publishing the reference itself
+    // as the sample's consensus: samtools depth -a is silent about a contig with
+    // no reads, so nothing was masked and the summary reported 100% callable.
+    // The run must still succeed - a negative control is not an error - but the
+    // consensus has to say, unambiguously, that nothing was called.
+    test("Should publish a fully masked consensus for a sample with no aligned reads") {
+        when {
+            // No params block. Clair3 comes from tests/nextflow.config, whose
+            // digest tests/test_container_recipes.py keeps in step with the
+            // others; repeating it here would be one more copy nothing checks.
+            // The thresholds do not matter either: at depth 0 every one of them
+            // masks.
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        [id: "negative_control"],
+                        file("${projectDir}/tests/integration/data/nanopore_no_reads/unmapped.fastq.gz")
+                    )
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/integration/data/nanopore_truth/reference.fasta")
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            // Same seven steps as the truth test: every one, Clair3 included,
+            // has to cope with an alignment that holds no mapped reads.
+            assert workflow.trace.succeeded().size() == 7
+
+            def fixtureDir = path("${projectDir}/tests/integration/data/nanopore_no_reads")
+            path("${fixtureDir}/SHA256SUMS").readLines().each { line ->
+                def fields = line.split(/\s+/, 2)
+                def digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(path("${fixtureDir}/${fields[1]}").toFile().bytes)
+                    .encodeHex().toString()
+                assert digest == fields[0]
+            }
+
+            def referenceLength = 29903
+
+            // Nothing aligned, so nothing may be called.
+            def filtered = workflow.out.filtered.get(0)
+            assert path(filtered[1]).linesGzip.findAll { !it.startsWith("#") }.isEmpty()
+
+            def consensus = workflow.out.consensus.get(0)
+            assert consensus[0].id == "negative_control"
+            def sequence = path(consensus[1]).readLines()
+                .findAll { !it.startsWith(">") }
+                .join("")
+            assert sequence.size() == referenceLength
+            assert sequence == "N" * referenceLength
+            // Every reference position is in the depth table, at zero.
+            def coverage = path(consensus[3]).readLines()
+            assert coverage.size() == referenceLength
+            assert coverage.every { line -> line.split("\t")[2] == "0" }
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.raw_variant_count == "0"
+            assert metrics.zero_depth_bases == referenceLength.toString()
+            assert metrics.masked_bases == referenceLength.toString()
+            assert metrics.consensus_n_bases == referenceLength.toString()
+            assert metrics.callable_bases == "0"
+            assert metrics.callable_percent == "0.000000"
+        }
+    }
+}
