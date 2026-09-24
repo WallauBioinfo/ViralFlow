@@ -46,10 +46,10 @@ exclusivo do ILLUMINA, enquanto `mapping_quality` é usado nos dois.
 | `base_container` | projectDir/containers/baseContainer.sif | Contêiner que fornece Porechop_ABI, Minimap2, Samtools, BCFtools e bamUtil. Um caminho local `.sif` com Singularity/Apptainer; o perfil `docker` o substitui por uma referência de imagem |
 | `clair3_container` | docker://hkubal/clair3@sha256:1430f7b5… | Imagem do Clair3, fixada por digest para que uma reconstrução não possa trocar o chamador de variantes. Corresponde à versão v1.2.0 |
 | `clair3_model` | r941_prom_sup_g5014 | Modelo de basecalling usado pelo Clair3, passado como `--model_path`. Deve corresponder a um diretório presente em `/opt/models` dentro da imagem do Clair3 e deve ser compatível com o basecaller e a química que geraram as reads |
-| `clair3_qual` | 10 | Qualidade mínima para que o Clair3 reporte uma variante, passada como `--qual` |
+| `clair3_qual` | 10 | Qualidade mínima para que uma variante entre no consenso, passada ao Clair3 como `--qual`. O Clair3 ainda reporta as variantes abaixo dela, marcadas `FILTER=LowQual` em `merge_output.vcf.gz`; o VCF filtrado e o consenso mantêm apenas as `PASS` |
 | `clair3_chunk_size` | 10000 | Tamanho em bases dos blocos em que o Clair3 divide a referência para chamada paralela, passado como `--chunk_size`. Afeta o tempo de execução e a memória, não os resultados |
 | `mapping_quality` | 30 | Qualidade de mapeamento mínima para que uma read seja usada na chamada de variantes, passada ao Clair3 como `--min_mq` |
-| `af_threshold` | 0.51 | Limiar de frequência alélica aplicado à saída do Clair3: o BCFtools mantém uma variante quando `FORMAT/AF >= af_threshold`. Nenhuma condição adicional de profundidade ou de `FILTER=PASS` é aplicada. O padrão, acima de 0.5, mantém o alelo majoritário em cada sítio |
+| `af_threshold` | 0.51 | Limiar de frequência alélica aplicado à saída do Clair3: o BCFtools mantém uma variante quando `FORMAT/AF >= af_threshold` e o Clair3 a marcou `FILTER=PASS` (ver `clair3_qual`). Nenhuma condição adicional de profundidade é aplicada. O padrão, acima de 0.5, mantém o alelo majoritário em cada sítio |
 | `np_min_depth` | 20 | Limiar de mascaramento do consenso. A cobertura vem de `samtools depth -J -aa`, e toda posição cuja profundidade seja **menor ou igual** a este valor é escrita como `N`. No padrão, uma posição precisa de pelo menos 21 reads para ser chamada |
 | `porechop_cpus` | 4 | CPUs para a etapa de remoção de adaptadores com o Porechop_ABI |
 | `porechop_memory` | 4.GB | Memória para a etapa do Porechop_ABI |

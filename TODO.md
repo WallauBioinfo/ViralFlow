@@ -354,26 +354,43 @@ come from reading the code and want a run before anyone relies on them.
 
 ### Can change analysis results
 
-- [ ] **Clair3 `LowQual` calls reach the consensus, so `clair3_qual` does
-      nothing to it.** Confirmed from Clair3's own documentation: `--qual` does
-      not drop variants, it labels them `PASS` or `LowQual` and keeps both.
-      `runBcftools` filters on `FORMAT/AF` alone (`modules/runBcftools.nf`,
-      the `bcftools filter` line) and never looks at `FILTER`, so a `LowQual`
-      call with AF >= `af_threshold` is written into the consensus. The value
-      of `clair3_qual` ends up only in the summary TSV. `NANOPORE.md` already
-      says no `FILTER=PASS` condition is applied, but not that this makes the
-      parameter inert. Fix: add `-f PASS` (or `-i 'FILTER="PASS" && …'`) and
-      a fixture VCF with a `LowQual` row.
+- [x] **Clair3 `LowQual` calls reached the consensus, so `clair3_qual` did
+      nothing to it.** Confirmed end to end, then fixed 2026-09-24. Clair3's
+      `--qual` does not drop a call below it; it labels it `LowQual` and keeps
+      it, and `runBcftools` filtered on `FORMAT/AF` alone. The truth fixture
+      run through `main.nf` at `--clair3_qual 30` showed it with the pinned
+      Clair3: its QUALs for the five designed variants are 33.41, 23.62,
+      27.89, 21.32 and 24.82, so four came back `LowQual`. All five still
+      reached the filtered VCF, and the consensus matched `truth.fasta` base
+      for base outside the mask. `runBcftools` now keeps a call only when
+      `FILTER="PASS" && FORMAT/AF >= af_threshold`, which also leaves out
+      `RefCall` rows. Two new tests, both failing before the fix:
+      - `bcftools-fixture.nf.test`: a VCF with `PASS`, `LowQual` and
+        `RefCall` rows, all above the AF cutoff; only the `PASS` call is
+        kept and applied.
+      - `nanopore-truth.nf.test`: the truth reads at `clair3_qual = 30`; only
+        241 C>T is kept, and the consensus is the reference with that one
+        change, masked where the default run masks. It adds about 80 s to
+        the integration suite, and takes Clair3's pin from
+        `tests/nextflow.config` rather than repeating the digest.
+
+      `NANOPORE.md` and `docs/parameters.md` (and the `-pt` and `-es` copies)
+      now say `LowQual` calls stay in `merge_output.vcf.gz` but not in the
+      filtered VCF or the consensus. The summary's `af_filtered_variant_count`
+      keeps its name but now counts calls that pass both conditions; it no
+      longer says which one removed a call. A `raw_pass_variant_count` would
+      make that visible, at the cost of regenerating `expected_metrics.tsv`.
+
       An earlier draft of this audit also claimed `RefCall` rows would be
-      applied, because Clair3 defines their `AF` as the *reference* allele
-      frequency and `bcftools consensus` is run without `-s`. That part is
-      **wrong for bcftools 1.21**: on a single-sample VCF it uses the sample's
-      GT anyway (it prints `applying IUPAC codes based on FORMAT/GT in sample
-      sample`), so a `0/0` row is not applied. RefCall rows are also off by
-      default in Clair3 (`--print_ref_calls`). The same message does raise a
-      question worth one fixture: with `--haploid_sensitive`, Clair3 can call
-      `0/1`, and bcftools may then write an IUPAC ambiguity code rather than
-      the ALT. Nothing tests that today.
+      applied. That was **wrong for bcftools 1.21**, which uses the sample's
+      GT on a single-sample VCF, so a `0/0` row is not applied; the question
+      is moot now that `RefCall` is filtered out.
+- [ ] **`--haploid_sensitive` may put IUPAC codes in the consensus.** Left
+      over from the item above. `bcftools consensus` applies GT (it prints
+      `applying IUPAC codes based on FORMAT/GT in sample sample`), and with
+      `--haploid_sensitive` Clair3 can call `0/1`, for which bcftools may
+      write an ambiguity code rather than the ALT. Nothing tests that today;
+      it wants one fixture VCF row with a `0/1` GT.
 - [x] **A sample with no aligned reads published the reference as its
       consensus, reported 100% callable.** Confirmed end to end, then fixed.
       `runBcftoolsConsensus` built its mask from `samtools depth -J -a`, and a
@@ -729,10 +746,13 @@ come from reading the code and want a run before anyone relies on them.
   `integration_tests/main-nanopore.nf.test`, which found the report-path bug
   as well as the METADATA, GENPLOTS and manifest items above. It passes under
   both engines and runs in CI's integration step.
-- The truth fixture's error-free synthetic reads never produce a `LowQual`
-  call, a right-hand primer, or a supplementary alignment. The zero-coverage
-  case now has its own integration test, and read-less inputs are rejected
-  and tested in step0.
+- The truth fixture's error-free synthetic reads never produce a right-hand
+  primer or a supplementary alignment; each is the missing test for an open
+  item above (primer clipping, and the mapped-reads FASTQ). ~~`LowQual`~~ is
+  closed: the truth test now runs a second time at `clair3_qual = 30`, where
+  the pinned Clair3 calls four of the five variants `LowQual`. The
+  zero-coverage case has its own integration test, and read-less inputs are
+  rejected and tested in step0.
 - `integration_tests/nanopore-multisample.nf.test` repeats the Clair3 digest in
   its `params` block, and `tests/test_container_recipes.py` checks only the
   truth test's copy, so that one can drift unnoticed. It could simply inherit

@@ -168,4 +168,85 @@ nextflow_workflow {
             assert observedMetrics.callable_percent.toDouble() >= 95.0
         }
     }
+
+    // The reads are error-free, so every designed variant is called PASS at
+    // the default clair3_qual of 10 and no LowQual call ever reaches the test
+    // above. Raising clair3_qual makes the pinned Clair3 produce real ones:
+    // its QUALs for the five variants are 33.41 (241), 23.62 (3037), 27.89
+    // (14408), 21.32 (21990) and 24.82 (23403), so at 30 only position 241
+    // stays PASS. The other four were written into the consensus regardless
+    // until runBcftools required FILTER="PASS".
+    test("Should leave Clair3's LowQual calls out of the consensus") {
+
+        when {
+            params {
+                // Clair3 is left to tests/nextflow.config's pin, as in
+                // nanopore-no-reads.nf.test, rather than repeating the digest.
+                clair3_chunk_size = 10000
+                clair3_qual = 30
+                clair3_model = "r941_prom_sup_g5014"
+                mapping_quality = 30
+                af_threshold = 0.51
+                np_min_depth = 20
+            }
+            workflow {
+                """
+                meta = [id: "nanopore_truth"]
+                input[0] = Channel.of(
+                    tuple(
+                        meta,
+                        file(
+                            "${projectDir}/tests/integration/data/nanopore_truth/reads.fastq.gz"
+                        )
+                    )
+                )
+                input[1] = Channel.value(
+                    file(
+                        "${projectDir}/tests/integration/data/nanopore_truth/reference.fasta"
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def fixtureDir = "${projectDir}/tests/integration/data/nanopore_truth"
+            def filtered = workflow.out.filtered.get(0)
+            def keptVariants = path(filtered[1]).linesGzip
+                .findAll { !it.startsWith("#") }
+                .collect { line -> line.split("\t")[[1, 3, 4, 6]] }
+            assert keptVariants == [["241", "C", "T", "PASS"]]
+
+            // The reference with only 241 C>T applied, masked where the
+            // default run masks. No deletion is applied, so reference and
+            // consensus coordinates stay aligned throughout.
+            def fastaSequence = { fastaPath ->
+                fastaPath.readLines()
+                    .findAll { !it.startsWith(">") }
+                    .join("")
+                    .toUpperCase()
+            }
+            def consensus = workflow.out.consensus.get(0)
+            def maskedPositions = path(consensus[2]).readLines().collect { line ->
+                def fields = line.split("\t")
+                (fields[1].toInteger()..<fields[2].toInteger()).toList()
+            }.flatten() as Set
+            def expected = fastaSequence(path("${fixtureDir}/reference.fasta")).toList()
+            expected[240] = "T"
+            maskedPositions.each { index -> expected[index] = "N" }
+            assert fastaSequence(path(consensus[1])) == expected.join("")
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.clair3_qual == "30"
+            assert metrics.raw_variant_count == "5"
+            assert metrics.af_filtered_variant_count == "1"
+        }
+    }
 }

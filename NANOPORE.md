@@ -137,9 +137,12 @@ than producing a degenerate alignment. Each sample directory gains
 The current threshold logic is as follows:
 
 - Clair3 receives `--qual` from `clair3_qual` and `--min_mq` from
-  `mapping_quality`.
-- BCFtools retains variants when `FORMAT/AF >= af_threshold`. No additional
-  variant depth or `FILTER=PASS` condition is applied.
+  `mapping_quality`. Clair3 does not drop a call below `--qual`; it keeps it
+  with `FILTER=LowQual`.
+- BCFtools retains variants when `FILTER=PASS` and
+  `FORMAT/AF >= af_threshold`, so `LowQual` calls stay in Clair3's
+  `merge_output.vcf.gz` but are left out of the filtered VCF and the
+  consensus. No variant depth condition is applied.
 - Consensus coverage is calculated with `samtools depth -J -aa` without
   additional mapping-quality or base-quality filters.
 - Consensus positions with depth less than or equal to `np_min_depth` are

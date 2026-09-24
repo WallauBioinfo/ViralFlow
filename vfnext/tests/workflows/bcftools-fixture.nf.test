@@ -317,6 +317,58 @@ nextflow_workflow {
         }
     }
 
+    // Clair3's --qual does not drop a call below it: it labels it LowQual and
+    // keeps it. Both rows below clear the AF cutoff, so before FILTER="PASS"
+    // was required the LowQual C>T at position 2 was written into the
+    // consensus. The RefCall row is Clair3's --print_ref_calls output.
+    test("Should keep only PASS calls, leaving LowQual and RefCall out of the consensus") {
+
+        when {
+            params {
+                fixture_min_depth = 0
+            }
+            workflow {
+                """
+                meta = [id: "sample"]
+                input[0] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/lowqual.vcf"))
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/data/bcftools/ref.fa")
+                )
+                input[2] = Channel.of(
+                    tuple(meta, file("${projectDir}/tests/data/bcftools/input.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def variantLines = path(workflow.out.filtered.get(0)[1]).linesGzip.findAll {
+                !it.startsWith("#")
+            }
+            assert variantLines == [
+                "chr1\t5\t.\tA\tG\t60\tPASS\t.\tGT:AF\t1:0.8"
+            ]
+
+            // Reference ACGTACGTAC over the covered half: only the PASS A>G at
+            // position 5 is applied; position 2 stays C.
+            assert path(workflow.out.consensus.get(0)[1]).text.trim() ==
+                ">sample\nACGTGCGTACNNNNNNNNNN"
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.raw_variant_count == "3"
+            assert metrics.af_filtered_variant_count == "1"
+        }
+    }
+
     test("Should fail on a malformed VCF") {
 
         when {

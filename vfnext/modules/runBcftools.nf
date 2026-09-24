@@ -16,11 +16,16 @@ process runBcftools {
               path("${meta.id}.filtered.vcf.gz.tbi")
 
     script:
+    // FILTER="PASS" as well as the AF cutoff: Clair3's --qual (clair3_qual)
+    // does not drop a call below it, it labels it LowQual and keeps it. Without
+    // this, LowQual calls reached the consensus and clair3_qual changed only
+    // the summary. Clair3's RefCall rows, printed only with --print_ref_calls,
+    // are not PASS either.
     """
     set -euo pipefail
 
     bcftools norm -m - -f ${ref} ${vcf} -Ou \
-        | bcftools filter -i "FORMAT/AF >= ${af_threshold}" -Oz \
+        | bcftools filter -i 'FILTER="PASS" && FORMAT/AF >= ${af_threshold}' -Oz \
             -o ${meta.id}.filtered.vcf.gz
 
     bcftools index --tbi ${meta.id}.filtered.vcf.gz
