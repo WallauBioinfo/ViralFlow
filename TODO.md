@@ -669,8 +669,22 @@ come from reading the code and want a run before anyone relies on them.
         checked in the nanopore image with kaleido's Chromium removed: exit 0,
         HTML published, and "not produced: PNG (bamdash exited 1); SVG
         (bamdash exited 1). The HTML plot is complete."
-- [ ] Minor: `runPorechop` publishes an uncompressed `*.chopped.fastq`,
-      roughly doubling storage; `runNanoporeSummary` calls
+- [x] **`runPorechop` published its trimmed reads uncompressed.** Fixed
+      2026-09-24. The cost was far more than the "roughly doubling" this item
+      first said: on the truth fixture the published `.chopped.fastq` was
+      6.9 MB, against 188 KB compressed, about 35 times (the gzipped input
+      is 87 KB). The task now
+      runs `bgzip -@ ${task.cpus}` on Porechop's output and publishes only
+      `${id}.chopped.fastq.gz`, which minimap2 reads as is. Streaming
+      Porechop's stdout into bgzip was tried and rejected: `-abi` runs a
+      helper that prints 43 lines of progress to stdout ahead of the reads,
+      which shifts every FASTQ record. Porechop's own `.gz` output was not
+      used either: it writes the same uncompressed temporary file, then
+      compresses it with single-threaded `gzip` through a shell. The read
+      content is unchanged: the decompressed output matches the old file
+      byte for byte on the fixture. `main-nanopore.nf.test` asserts the `.gz`
+      is published with every input read, and that no uncompressed copy is.
+- [ ] Minor: `runNanoporeSummary` calls
       `${projectDir}/bin/…` rather than relying on `bin/` being on `PATH`,
       which breaks on cloud executors; `concat-fastq` defaults to
       `--max-len 500`, silently dropping nearly every read of 1200 bp or

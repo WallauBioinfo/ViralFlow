@@ -72,11 +72,20 @@ nextflow_pipeline {
             assert path("${resultsDir}/nanopore_truth.consensus.fa").exists()
             assert path("${resultsDir}/nanopore_truth.sorted.bam").exists()
 
+            // The trimmed reads are published compressed, and no uncompressed
+            // copy sits beside them. Porechop keeps every read of the fixture,
+            // so the count matches the input's.
+            def choppedReads = path("${resultsDir}/nanopore_truth.chopped.fastq.gz")
+            assert choppedReads.exists()
+            assert choppedReads.linesGzip.size() ==
+                path("${fixtureDir}/reads.fastq.gz").linesGzip.size()
+            assert !path("${resultsDir}/nanopore_truth.chopped.fastq").exists()
+
             // --- GENPLOTS ---------------------------------------------------
             // Runs only through main.nf. writeMappedReads defaults to true.
             // HTML, PNG and SVG. The static two need kaleido 0.2's bundled
-            // Chromium, which the base image carries; coveragePlot does not
-            // check bamdash's exit status, so a missing file is the only sign.
+            // Chromium, which the base image carries. coverage_plot.py only
+            // warns when one is missing, so the files are checked here.
             ["html", "png", "svg"].each { extension ->
                 def coveragePlot = path("${resultsDir}/nanopore_truth_coveragePlot.${extension}")
                 assert coveragePlot.exists()
