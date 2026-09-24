@@ -57,6 +57,43 @@ def build_containers(root_path, arch: str):
     )
 
 
+# Parameters that only NANOPORE mode reads, by their nextflow.config names. The
+# params-file parser accepts them and the CLI exposes one option for each
+# (wrapper.cli.NANOPORE_OPTIONS); tests/test_wrapper_nanopore.py keeps the two
+# in step. Their defaults live in nextflow.config alone: the wrapper forwards a
+# value only when the user gave one.
+NANOPORE_PARAMS = (
+    "clair3_model",
+    "clair3_qual",
+    "clair3_chunk_size",
+    "af_threshold",
+    "np_min_depth",
+    "base_container",
+    "clair3_container",
+    "porechop_cpus",
+    "porechop_memory",
+    "minimap_cpus",
+    "minimap_memory",
+    "clair3_cpus",
+    "clair3_memory",
+)
+
+# The two NANOPORE images may be a local SIF or a registry reference.
+CONTAINER_PARAMS = ("base_container", "clair3_container")
+
+
+def container_reference(value):
+    """A container value as Nextflow should receive it.
+
+    An existing local file (a SIF) is made absolute, as path parameters are:
+    Nextflow would otherwise resolve it against a task's work directory. Anything
+    else - `viralflow/nanopore-base:2.0.0a1`, `docker://…` - is an image
+    reference for the engine to resolve, and a path lookup would corrupt it.
+    """
+    value = str(value)
+    return os.path.abspath(value) if os.path.isfile(value) else value
+
+
 # input args file load
 def parse_params(in_flpath):
     """
@@ -65,7 +102,7 @@ def parse_params(in_flpath):
     Path parameters consume the entire remainder of their line so unquoted paths
     containing spaces remain a single argument. All other parameters are scalar.
     """
-    valid_args = {
+    valid_args = {*NANOPORE_PARAMS} | {
         "mode",
         "virus",
         "primersBED",
@@ -78,7 +115,6 @@ def parse_params(in_flpath):
         "depth",
         "minDpIntrahost",
         "trimLen",
-        "runSnpEff",
         "refGenomeCode",
         "referenceGFF",
         "referenceGenome",
@@ -119,7 +155,19 @@ def parse_params(in_flpath):
             if key not in path_params and len(value.split()) > 1:
                 raise ValueError(f"Line {line_number}: {key} accepts a single value")
 
-            parsed[key] = os.path.abspath(value) if key in path_params else value
+            if key in path_params:
+                value = os.path.abspath(value)
+            elif key in CONTAINER_PARAMS:
+                value = container_reference(value)
+            parsed[key] = value
+
+    nanopore_only = [key for key in NANOPORE_PARAMS if key in parsed]
+    if nanopore_only and parsed.get("mode") != "NANOPORE":
+        mode = parsed.get("mode", "unset, so ILLUMINA")
+        raise ValueError(
+            f"{', '.join(nanopore_only)} only apply to mode NANOPORE; "
+            f"this file's mode is {mode}"
+        )
 
     args = []
     for key, value in parsed.items():

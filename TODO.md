@@ -546,7 +546,6 @@ come from reading the code and want a run before anyone relies on them.
       `.command.run` launched, and passes under both `--profile singularity`
       and `--profile docker`. `tests/main.metadata.nf.test` also checks it on
       every push and in CI, and fails under Docker with the old guess.
-
       `executor` was guessed the same way (`profile.contains('pbs') ? 'pbs' :
       'local'`), so any other executor was recorded as `local`. It is now
       resolved from the session config as Nextflow resolves it:
@@ -557,13 +556,34 @@ come from reading the code and want a run before anyone relies on them.
       `-process.executor=slurm`, and fails with the old guess. A `withName` or
       `withLabel` selector can still move a single process to another
       executor; no ViralFlow configuration does.
-- [ ] **The wrapper cannot set any NANOPORE parameter.** Neither the
-      `parse_params` allow-list nor `viralflow run` knows `clair3_model`,
+- [x] **The wrapper could not set any NANOPORE parameter.** Neither the
+      `parse_params` allow-list nor `viralflow run` knew `clair3_model`,
       `np_min_depth`, `af_threshold`, `clair3_qual`, `clair3_chunk_size`,
       `base_container` or the per-tool cpus/memory, and a params file naming
-      one is rejected. The model matters most: the default
+      one was rejected. The model mattered most: the default
       `r941_prom_sup_g5014` is for R9.4.1 flowcells, so an R10.4.1 user of the
-      wrapper gets the wrong model with no way out.
+      wrapper had the wrong model with no way out. Fixed 2026-09-24:
+      `wrapper.NANOPORE_PARAMS` names all thirteen, the params file accepts
+      them, and `viralflow run` has one option each (`--clair3-model`,
+      `--np-min-depth`, `--clair3-memory`, …), built from one table in
+      `wrapper/cli.py`. Unlike the older options (section 5), they default to
+      `None` and are forwarded only when given, so `nextflow.config` stays the
+      one source of their defaults; `--help` still shows them, and a test fails
+      if those shown values stop matching `nextflow.config`. Using one outside
+      NANOPORE mode is an error, in a params file or on the command line, and
+      so is combining one with `--params-file`, rather than being silently
+      dropped like the other CLI options there. Values are checked before
+      Nextflow starts (ranges, and memory in any form the directive accepts,
+      `8.GB` or `8GB`), and a container given as a local file is made absolute
+      while a registry reference passes through untouched. A CLI `--x` on a
+      plain `cpus = params.x` directive was checked first and does take
+      effect. Covered by `tests/test_wrapper_nanopore.py`, and run for real
+      through `viralflow run` under `-profile docker` with
+      `--clair3-model r1041_e82_400bps_sup_v500 --np-min-depth 30
+      --af-threshold 0.6 --clair3-cpus 2 --clair3-memory 3.GB`: Clair3 ran
+      with that model and `--threads=2`, its container got 3 GB, and the
+      summary and `run_manifest.json` record the thresholds (`masked_bases`
+      588 → 738 on the truth fixture).
 - [x] **The Docker image's smoke test could not fail the build.** Confirmed
       with deliberately broken builds on 2026-09-24, then fixed. The last
       `RUN` of `nanopore_base.Dockerfile` had two independent ways of hiding a
@@ -577,7 +597,6 @@ come from reading the code and want a run before anyone relies on them.
         historical `libhts.so.3: cannot open shared object file` failure,
         the image built **even with the `|| true` removed**. Dropping only the
         `|| true`, as first proposed here, would not have fixed it.
-
       `bam help` never needed the exemption either: it exits 0. The step now
       has no pipes and no fallback, and also runs `bamdash --help`, which the
       `.sing` `%test` already checked. Re-run against the fix, all three
@@ -873,7 +892,142 @@ Deliberately kept out of the nanopore PR.
 
 ---
 
-## 5. Repository maintenance, after the PR merges
+## 5. Wrapper follow-up branch
+
+From a review of `wrapper/` (`cli.py`, `__init__.py`) and the container
+scripts it drives, on 2026-09-24, while adding the NANOPORE options (section
+3). Kept for a branch of its own: most of these change what `viralflow run`
+sends to Nextflow, so each wants a test that pins the command line it builds.
+Items confirmed on a real run through the wrapper say so.
+
+### Changes what a run does
+
+- [ ] **The wrapper switches off snpEff, mapped-read output and deduplication
+      on every run, and no option can switch them back on.** Confirmed.
+      `--run-snpeff`, `--write-mapped-reads` and `--dedup/--no-dedup` are
+      flags that default to `False`, and every option is forwarded, so every
+      run sends `--runSnpEff false --writeMappedReads false --dedup false`,
+      overriding `nextflow.config`'s `true` for the first two. A NANOPORE run
+      through the wrapper publishes no mapped-read FASTQs for that reason.
+      Turning a flag on does not help either: it sends the String `"true"`,
+      which the `params.X == true` gates reject (the boolean-parameter item in
+      section 4), and a params file's `runSnpEff true` arrives the same way. So
+      the documented quick start, `viralflow run --params-file
+      test_files/sars-cov-2.params`, which asks for snpEff, has never run it
+      through the wrapper, while the metadata layer, reading the same String as
+      truthy, records snpEff as used. Needs both halves: `normalizeFlag` in
+      `param_helpers.nf` (section 4) and flags here that default to `None` and
+      are forwarded only when given.
+- [ ] **Every other option is always forwarded at the wrapper's own copy of
+      its default.** `run`'s docstring says the defaults come from
+      `nextflow.config`, but thirteen options carry their own copies
+      (`--min-len 75`, `--depth 25`, `--out-dir ./output/`, …) and all of them
+      are sent on every run, so `nextflow.config`'s values never apply
+      through the wrapper and the two can drift. It also puts ILLUMINA
+      settings into NANOPORE runs: `--virus sars-cov2` is sent, and
+      `run_manifest.json` records `virus: sars-cov2` for a NANOPORE run
+      (confirmed). The NANOPORE options now show the pattern to follow:
+      default `None`, forward only what was given, show the default in
+      `--help` from a table a test checks against `nextflow.config`.
+- [ ] **With `--params-file`, the other options are silently ignored.**
+      `viralflow run --params-file p.txt --trim-len 5` runs with the file's
+      `trimLen`. Only `--mode` (and now the NANOPORE options) raise an error.
+      The wrapper cannot tell a given option from a default today — the item
+      above fixes that, or click's `ctx.get_parameter_source()` can — after
+      which the choice is to reject the mix or let the CLI override the file.
+- [ ] **Relative paths in a params file resolve against the current directory,
+      not the file.** `parse_params` calls `os.path.abspath(value)`, while
+      sample-sheet paths resolve against the CSV. The shipped
+      `test_files/*.params` therefore work only from the repository root, and
+      `docs/quickstart.md` tells users to always write absolute paths, which
+      the wrapper already makes unnecessary.
+- [ ] **No way past the fixed Nextflow command.** `-resume` is always added,
+      `work/` lands in whatever directory the wrapper is started from, and
+      there is no way to pass `-c extra.config`, `-work-dir`, `-with-tower` or
+      any other Nextflow option. A `--` passthrough would cover them.
+- [ ] **CLI-given numbers are recorded as strings.** Everything the wrapper
+      sends arrives in Nextflow as a String, so `run_manifest.json` records
+      `mapping_quality: "30"` and `af_threshold: "0.6"` beside
+      `clair3_qual: 10` from `nextflow.config` (confirmed). Harmless to the
+      run, awkward for anyone reading the provenance record by type. The same
+      root as the boolean item; normalizing typed parameters once on the
+      Nextflow side fixes both.
+
+### Setup and containers
+
+- [ ] **`build-containers` does nothing for NANOPORE.** It pulls the ILLUMINA
+      images from the Sylabs library and builds the pangolin and snpEff
+      sandboxes. The nanopore base image is never built, so a NANOPORE user
+      still follows `NANOPORE.md` by hand. A `--mode NANOPORE` (or `--all`)
+      that runs `singularity build` on `Nanopore_baseContainer.sing`, or
+      `docker build` on the Dockerfile for `-profile docker`, would close it.
+- [ ] **Singularity only.** `pull_containers.py`, `build_containers.py` and
+      `update-pangolin*` call `singularity` by name, so an Apptainer-only host
+      fails, although `NANOPORE.md` documents Apptainer's `library://` setup
+      and `-profile apptainer` exists. `--profile`'s help lists neither
+      `docker` nor `singularity`.
+- [ ] **`build_containers.py` insists on `/usr/local/bin/unsquashfs`**, and its
+      advice hard-codes `$HOME/miniconda3/envs/viralflow/bin/unsquashfs`, a
+      layout nothing else in the repository sets up.
+- [ ] **The wrapper works only as an editable install from a clone.**
+      `VF_ROOT_PATH` is two directories up from `wrapper/cli.py`, and
+      `setup.py` packages `wrapper` alone. After `pip install .` or from a
+      wheel, `viralflow run` points Nextflow at a `vfnext/main.nf` that does
+      not exist. Either ship `vfnext/` as package data or detect the missing
+      tree and say so.
+- [ ] **A third copy of the Nextflow version.** `run_vfnext` defaults
+      `NXF_VER` to `26.04.6`, beside the CI workflow's `NXF_VER` and the docs;
+      `nextflow.config` asks only for `>=26.04.0`. Nothing keeps the three in
+      step.
+
+### `concat-fastq`
+
+- [ ] **Its output needs the deprecated input path.** It writes
+      `filtered/<barcode>.concat.fastq.gz` and no sample sheet, so the only way
+      to run the result is `--inDir`, deprecated for v3, which names the
+      samples `barcode01.concat` and so on. Writing a `samplesheet.csv` beside
+      the FASTQs would let it feed `--samplesheet` directly.
+- [ ] Smaller: it writes into the input tree; it needs `seqkit` on the host,
+      which nothing declares or checks up front, so a missing `seqkit` shows
+      up as one failure per barcode; the command has no docstring, so its
+      `--help` is empty; and the `--max-len 500` default is the section 3
+      "Minor" item.
+
+### Documentation
+
+- [ ] **The quick start uses command names that do not exist**, in all three
+      languages: `viralflow add_entry_to_snpeff --org_name … --genome_code …`,
+      `update_pangolin` and `update_pangolin_data`. The commands are
+      `add-entry-to-snpeff --org-name … --genome-code …`, `update-pangolin`
+      and `update-pangolin-data`; the underscore forms fail with "No such
+      command" (confirmed).
+- [ ] **No NANOPORE quick start.** The docs cover only ILLUMINA, and
+      `test_files/` has no NANOPORE params file (`test_files/nanopore/` holds
+      just a reference). The truth fixture and
+      `vfnext/tests/data/input/nanopore-truth.csv` would make a working
+      example.
+- [ ] **The CLI option names are documented nowhere.** The parameter tables
+      use the params-file names (`np_min_depth`); only `--help` shows
+      `--np-min-depth`.
+- [ ] **`docs/parameters.md` has gone stale in two NANOPORE rows**, in all
+      three languages: `trimLen` says NANOPORE "masks the bases … with
+      bamUtil", but it has soft-clipped since `--clip`; and `clair3_qual` is
+      "Minimum variant quality for Clair3 to report a call", when Clair3
+      reports every call and only labels those at or below it `LowQual` —
+      which the consensus then ignores (the section 3 `LowQual` item).
+
+### Code health
+
+- [ ] `parse_csv` in `wrapper/__init__.py` is dead code.
+- [ ] `pull_containers.py` and `build_containers.py` are scripts run at import
+      through `sys.executable`, with module-level state (`success`,
+      `failed_containers`), so nothing can test them without running
+      Singularity. Moving the logic into functions the wrapper calls would
+      let the existing mocked-subprocess tests cover them.
+
+---
+
+## 6. Repository maintenance, after the PR merges
 
 - [ ] **History cleanup.** Two 4.38 MB blobs live only on this branch —
       `test_files/nanopore/test.fastq.gz` and the `test.fastq.tar.gz` it
