@@ -82,6 +82,18 @@ nextflow_pipeline {
                 assert coveragePlot.exists()
                 assert coveragePlot.toFile().length() > 0
             }
+            // The plot's recovery figure uses NANOPORE's masking threshold,
+            // not ILLUMINA's `depth` (25 by default), so it describes the same
+            // positions the consensus keeps. bamdash writes it into the HTML's
+            // JSON with escaped markup, which the \S+ spans absorb.
+            def plotHtml = path("${resultsDir}/nanopore_truth_coveragePlot.html").text
+            def recovery = plotHtml =~ /% recovery \S+ (\d+)x:\S+ ([\d.]+)/
+            assert recovery.find()
+            assert recovery.group(1) == "20"
+            // Within a tenth of a point of the consensus: bamdash counts bases
+            // at quality 15 or more and not deletions, samtools depth -J all.
+            assert Math.abs(recovery.group(2).toDouble() -
+                observedMetrics.callable_percent.toDouble()) < 0.1
             def mappedReads = path("${resultsDir}/nanopore_truth.mapped.SE.fq.gz")
             assert mappedReads.exists()
             assert mappedReads.linesGzip.size() > 0

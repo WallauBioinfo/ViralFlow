@@ -5,6 +5,18 @@ nextflow_workflow {
     workflow "GENPLOTS_FIXTURE"
     config "./genplots-fixture.config"
 
+    // bamdash writes its stats into the HTML's JSON as
+    // `% recovery \u003e= <threshold>x:\u003c\u002fb\u003e <percent>`; the \S+
+    // spans match the escaped markup whatever its encoding. A closure here, not
+    // a method: nf-test's then blocks see the variables of this block but not
+    // methods declared in the file.
+    def recoveryInPlot = { plots ->
+        def html = plots.get(0).flatten().find { it.toString().endsWith(".html") }
+        def match = (new File(html.toString()).text =~ /% recovery \S+ (\d+)x:\S+ ([\d.]+)/)
+        assert match.find() : "no recovery figure in ${html}"
+        [threshold: match.group(1), percent: match.group(2)]
+    }
+
     // The fixture stages the alignment as "<id>.trim.sorted.bam". Both processes
     // used to rebuild "<id>.sorted.bam" from meta.id rather than reading the
     // staged path, which broke every NANOPORE run that rebound the BAM
@@ -13,6 +25,9 @@ nextflow_workflow {
     test("Should read the staged BAM whatever it is named") {
 
         when {
+            params {
+                fixture_coverage_threshold = 0
+            }
             workflow {
                 """
                 input[0] = Channel.of(
@@ -25,7 +40,7 @@ nextflow_workflow {
 
         then {
             assert workflow.success
-            assert workflow.trace.succeeded().size() == 3
+            assert workflow.trace.succeeded().size() == 4
 
             def mapped = workflow.out.mapped.get(0)
             assert mapped[0].id == "sample"
@@ -42,6 +57,43 @@ nextflow_workflow {
                 it.startsWith("@")
             }
             assert unmappedReads == ["@orphan_read"]
+
+            // One read covers positions 1-10 of the 20 bp contig at depth 1:
+            // half the contig has depth above 0.
+            def recovery = recoveryInPlot(workflow.out.plots)
+            assert recovery.threshold == "0"
+            assert recovery.percent.toDouble() == 50.0
+        }
+    }
+
+    // The plot's recovery figure has to describe the same positions the
+    // consensus keeps. NANOPORE masks depth <= np_min_depth, and bamdash counts
+    // a position as recovered only when its coverage is strictly above the
+    // threshold, so the two agree when the plot is given np_min_depth itself.
+    // Here every covered position sits at exactly the threshold: the consensus
+    // would mask all of them, so the plot must recover none.
+    test("Should count a position at the threshold as not recovered") {
+
+        when {
+            params {
+                fixture_coverage_threshold = 1
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "sample"],
+                          file("${projectDir}/tests/data/genplots/reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            def recovery = recoveryInPlot(workflow.out.plots)
+            assert recovery.threshold == "1"
+            // bamdash prints a zero as "0", other values as "50.0".
+            assert recovery.percent.toDouble() == 0.0
         }
     }
 }

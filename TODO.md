@@ -26,7 +26,6 @@ Cannot be settled on macOS/Docker.
       calls anywhere in the pipeline, so the missing plugin directory in the
       image is immaterial. The whole container suite (14 tests at the time) then
       passed against the rebuilt image.
-
       Why the Docker build hit it and the SIF does not is worth keeping in
       mind rather than treating as settled luck: both install htslib to
       `/usr/local/lib`, but the `%post` shell in the SIF build leaves a linker
@@ -41,7 +40,6 @@ Cannot be settled on macOS/Docker.
       pulled and converted to
       `hkubal-clair3@sha256-1430f7b5….img` in `NXF_SINGULARITY_CACHEDIR`, and
       Clair3 runs from it natively on amd64.
-
       Note the truth values survived five changes to the nanopore path made
       here — the `--trimLen` normalization, the GENPLOTS staged-path fix, the
       switch to `bam trimBam --clip`, the bamUtil tool spec, and the rename —
@@ -614,8 +612,28 @@ come from reading the code and want a run before anyone relies on them.
       <= 20 is masked, so nanopore needs 21x; ILLUMINA's `--depth 25` (ivar
       `-m`) needs 25x. Documented, but two similarly named thresholds with
       opposite edge semantics invite mistakes.
-- [ ] **The coverage plot draws the wrong threshold for nanopore** —
-      `params.depth` (25), while masking uses `np_min_depth` (20).
+- [x] **The coverage plot used the wrong threshold for nanopore** —
+      `params.depth` (25), while masking uses `np_min_depth` (20). Fixed
+      2026-09-24. bamdash draws no threshold line: `-c` feeds only the plot's
+      stats, the title's "% recovery >= Nx" figure. So every NANOPORE plot
+      reported recovery at ILLUMINA's threshold, a number that described no
+      step of the run. On the truth fixture it read 97.77% at 25x; at
+      `np_min_depth` it reads 98.02%, against the consensus's
+      `callable_percent` of 98.03%. The remaining gap is expected: bamdash
+      counts only bases at quality 15 or more and no deletions, while
+      `samtools depth -J` counts both. `coveragePlot` now takes the threshold
+      as an input instead of reading `params.depth`, `GENPLOTS` takes it from
+      its caller, and `main.nf` passes `params.depth` for ILLUMINA and
+      `params.np_min_depth` for NANOPORE. No offset is needed: bamdash's label
+      says `>=`, but its code counts a position as recovered only when coverage
+      is strictly above the threshold, the exact complement of the
+      `depth <= np_min_depth` mask. Pinned by two genplots fixture tests
+      (threshold 0 gives 50%; threshold 1 over depth-1 reads gives 0%, as the
+      mask would), and `main-nanopore.nf.test` asserts the published plot's
+      threshold is 20, not 25, and its figure is within 0.1 of
+      `callable_percent`. That assertion failed before the fix, reading 25x
+      and 97.77. ILLUMINA's plot has the same class of mismatch, off by one;
+      see section 4.
 - [ ] **Silent failures in the GENPLOTS steps.** `getMappedReads` and
       `getUnmappedReads` have no `set -o pipefail`, so a failed
       `samtools sort` still publishes an empty FASTQ; `coveragePlot` calls
@@ -669,6 +687,19 @@ Deliberately kept out of the nanopore PR.
       formats (checked on the truth fixture), so rebuilding `generate_plots`
       with the same pins is the likely fix. Installing Chrome is the
       alternative. Inherited: the image predates this branch.
+- [ ] **ILLUMINA's coverage plot counts recovery one read short of its
+      consensus.** Follow-up to the section 3 NANOPORE plot-threshold fix.
+      bamdash counts a position as recovered only when coverage is strictly
+      above `-c`, and ILLUMINA passes `params.depth`. But `depth` is ivar's
+      minimum to call a base — `docs/parameters.md`: "Positions with lower
+      coverage depth will not be called" — so a position at exactly `depth`
+      is called in the consensus but not recovered in the plot. Passing
+      `params.depth - 1` in `main.nf`'s ILLUMINA `GENPLOTS` call would line the
+      two up, once ivar's `-m` rule has been confirmed on a real run (not done:
+      nothing here runs ILLUMINA end to end under Docker). Small in practice,
+      but the plot is the figure people quote. The quality filters differ
+      too: bamdash counts bases at quality 15 or more, ivar at `base_quality`
+      (30).
 - [ ] **Publish through workflow outputs, and retire `--outDir` in favour of
       Nextflow's `outputDir`.** `outputDir` (`-output-dir`) is the root for the
       workflow `output {}` block, which Nextflow documents as "intended to
@@ -756,7 +787,7 @@ Deliberately kept out of the nanopore PR.
       them are each wrong for a String in a different direction:
 
       | Idiom | Where | `--runSnpEff true` | `--runSnpEff false` |
-      |---|---|---|---|
+      |:---|:---|:---|:---|
       | `params.X == true` | `workflows/ILLUMINA.nf:112`, `modules/param_helpers.nf:35` | **false** | false |
       | `if (params.X)` | `modules/metadata_helpers.nf:269`, `:315` | true | **true** |
 
@@ -806,7 +837,6 @@ Deliberately kept out of the nanopore PR.
       ```
       (first line from the zero-byte run, second from the 20-byte run;
       `completed=0` both times).
-
       Two commits, both on this branch: the zero-byte check came with
       `4a80659` (samplesheet handling) and is absent from `develop` and
       `main`. `28d2fd4` extended it to read-less files, which is the section 3
@@ -815,7 +845,6 @@ Deliberately kept out of the nanopore PR.
       usually arrives as a 20-byte gzip, not a zero-byte file. Low-read
       samples still pass. `test_box`'s Cneg negative control has 63 pairs and
       runs as before.
-
       For NANOPORE, rejecting is clearly better than what it replaced:
       Porechop_ABI crashed and took every other sample down with it. For
       ILLUMINA, a plate with one failed library no longer gives partial
@@ -828,7 +857,6 @@ Deliberately kept out of the nanopore PR.
         files.
       - Warn and drop read-less samples from the batch in both modes, keeping
         a record of each in the compiled output.
-
       Worth deciding before the PR merges, even if the code change waits for
       this branch: the current behaviour ships with the merge.
 - [ ] **`getMappedReads.nf` / `getUnmappedReads.nf`: the paired branch
@@ -1034,13 +1062,11 @@ Items confirmed on a real run through the wrapper say so.
       replaced. `test.fastq.gz` was deleted from the working tree, but the
       blobs remain and enter `develop` on merge, because the project merges with
       merge commits rather than squashing.
-
       Removing them was deliberately **not** done during the PR: it needs a
       force-push, and PR #47 carries 29 live inline review comments that a
       rewrite would risk detaching. It also strips the GPG signature from
       `8f27ef0`, a GitHub-generated merge commit authored by @dezordi.
       Authorship itself is preserved — only the "Verified" badge is lost.
-
       If this is ever done, do it once for the whole repository: the ~50 MB of
       ILLUMINA test FASTQs already in `main`
       (`test_files/sars-cov-2/input/ART*.fq.gz`) dominate the 58 MB history far

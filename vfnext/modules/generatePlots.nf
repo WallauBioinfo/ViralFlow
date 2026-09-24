@@ -5,14 +5,16 @@ process coveragePlot {
     input:
 
       tuple val(meta), path(bam), path(bai)
+      // bamdash -c: the depth a position must exceed to count as recovered in
+      // the plot's stats. The caller passes its mode's consensus threshold, so
+      // the figure describes the positions the consensus keeps; see GENPLOTS.
+      val(depth)
 
     output:
-        path("*coveragePlot*"), optional: true
+        path("*coveragePlot*"), optional: true, emit: plots
         path("coveragePlot_result.txt"), optional: true, emit: result, hidden: true
     script:
 
-    //bam = bam_file[0].toString()
-    depth = params.depth
     html = "${meta.id}_coveragePlot.html"
     png = "${meta.id}_coveragePlot.png"
     svg = "${meta.id}_coveragePlot.svg"

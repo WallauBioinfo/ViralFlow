@@ -167,12 +167,12 @@ log.info """
 
   if (params.mode == "ILLUMINA"){
     ILLUMINA(readsCh, refFa,refGff,refGcode)
-    GENPLOTS(ILLUMINA.out.bamsCh)
+    GENPLOTS(ILLUMINA.out.bamsCh, params.depth)
   }
 
   if (params.mode == "NANOPORE"){
     NANOPORE(readsCh, refFa)
-    GENPLOTS(NANOPORE.out.bamsCh)
+    GENPLOTS(NANOPORE.out.bamsCh, params.np_min_depth)
   }
 
 }

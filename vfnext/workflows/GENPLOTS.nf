@@ -7,6 +7,12 @@ include { writeMappedReadsEnabled } from '../modules/param_helpers.nf'
 workflow GENPLOTS {
     take:
         bamsCh // meta, bam_file, bai_file, is_paired_end
+        // The mode's consensus depth threshold, for the coverage plot's stats:
+        // params.depth for ILLUMINA, params.np_min_depth for NANOPORE. Taken
+        // from the caller rather than read here, because the two modes name it
+        // differently and plotting ILLUMINA's `depth` over a NANOPORE run
+        // reported recovery at a threshold its consensus never used.
+        coverageThreshold
     main:
     // Create sub-channels for each process type
     coverageCh = bamsCh.map { meta, bam, bai, _is_pe -> tuple(meta, bam, bai) }
@@ -14,7 +20,7 @@ workflow GENPLOTS {
 
     //QC
     //Rendering the depth coverage plot
-    coveragePlot(coverageCh)
+    coveragePlot(coverageCh, coverageThreshold)
     // Check if there are mapped reads
     coveragePlotOutCh = coveragePlot.out.result
     coveragePlotOutCh
