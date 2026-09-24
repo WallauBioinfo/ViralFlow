@@ -505,10 +505,18 @@ come from reading the code and want a run before anyone relies on them.
       `main-nanopore.nf.test` checks it against the engine a task's
       `.command.run` launched, and passes under both `--profile singularity`
       and `--profile docker`. `tests/main.metadata.nf.test` also checks it on
-      every push and in CI, and fails under Docker with the old guess. The line
-      above it still guesses `executor` the same way
-      (`profile.contains('pbs') ? 'pbs' : 'local'`), so a run sent to another
-      executor by a config file is recorded as `local`. Not fixed here.
+      every push and in CI, and fails under Docker with the old guess.
+
+      `executor` was guessed the same way (`profile.contains('pbs') ? 'pbs' :
+      'local'`), so any other executor was recorded as `local`. It is now
+      resolved from the session config as Nextflow resolves it:
+      `process.executor`, then `executor.name`, then `NXF_EXECUTOR`, then
+      `local`. Checked with `-process.executor=slurm`, a `-c` config setting
+      `executor.name`, `-profile fiocruz_pbs` and `NXF_EXECUTOR`, each against
+      the old guess. `tests/main.metadata.nf.test` pins it with
+      `-process.executor=slurm`, and fails with the old guess. A `withName` or
+      `withLabel` selector can still move a single process to another
+      executor; no ViralFlow configuration does.
 - [ ] **The wrapper cannot set any NANOPORE parameter.** Neither the
       `parse_params` allow-list nor `viralflow run` knows `clair3_model`,
       `np_min_depth`, `af_threshold`, `clair3_qual`, `clair3_chunk_size`,

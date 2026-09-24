@@ -40,6 +40,34 @@ nextflow_pipeline {
             ][manifest.execution.profile]
             assert expectedEngine
             assert manifest.runtime.container_engine == expectedEngine
+
+            // nextflow.config sets executor.name = "local".
+            assert manifest.runtime.executor == "local"
+        }
+    }
+
+    test("Should record the executor the configuration selects") {
+
+        // Validation fails before any task is submitted, so no Slurm is needed
+        // for the run to reach its manifest.
+        options "-process.executor=slurm"
+
+        when {
+            params {
+                mode = "INVALID_MODE"
+                inDir = "${projectDir}/missing-input"
+            }
+        }
+
+        then {
+            assert workflow.failed
+
+            def manifest = new groovy.json.JsonSlurper().parse(
+                path("${launchDir}/test_results/RUN_METADATA/run_manifest.json").toFile()
+            )
+            // Resolved as Nextflow resolves it. The old guess read the profile
+            // name, which says nothing here, and recorded local.
+            assert manifest.runtime.executor == "slurm"
         }
     }
 

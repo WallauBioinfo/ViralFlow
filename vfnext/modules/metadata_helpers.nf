@@ -84,6 +84,25 @@ def nextflowReportPath(workflow, scope) {
     }
 }
 
+// The executor Nextflow runs a process on when the process does not choose its
+// own, resolved the way Nextflow resolves it (ExecutorFactory.getExecutorName,
+// as of 26.04.6): process.executor, then executor.name, then the NXF_EXECUTOR
+// environment variable, then local. -process.executor=... on the command line
+// sets the first. A withName or withLabel selector can still send one process
+// elsewhere; no ViralFlow configuration does.
+//
+// Read from the session config rather than guessed from the profile name,
+// which recorded any executor but PBS as local.
+def configuredExecutor() {
+    safeMetadataValue { ->
+        def config = nextflow.Global.session.config
+        def processExecutor = (config.process as Map)?.executor
+        def executorName = (config.executor as Map)?.name
+        (processExecutor ?: (executorName instanceof String ? executorName : null)
+            ?: System.getenv('NXF_EXECUTOR') ?: 'local').toString()
+    }
+}
+
 def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessage = null) {
     def metadataOutputDir = metadataDir(configuredOutputDir)
     java.nio.file.Files.createDirectories(metadataOutputDir)
@@ -119,7 +138,7 @@ def writeRunManifest(workflow, params, configuredOutputDir, status, failureMessa
             os: System.getProperty('os.name'),
             os_version: System.getProperty('os.version'),
             architecture: System.getProperty('os.arch'),
-            executor: profile.contains('pbs') ? 'pbs' : 'local',
+            executor: configuredExecutor(),
             // The engine Nextflow actually ran tasks with, not a guess from the
             // profile name: that recorded every -profile docker run as
             // singularity. Null when no container engine is enabled.
