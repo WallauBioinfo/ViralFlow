@@ -151,6 +151,14 @@ Cannot be settled on macOS/Docker.
       its system Python packages differ. Then run `main-nanopore.nf.test` under
       Singularity, which asserts all three coverage plots.
 
+      While building, check that `%test` can actually fail — the Docker smoke
+      test could not (section 3). Its commands have no pipes, but every tool
+      check is followed by an `echo`, so if Apptainer runs `%test` without
+      `-e` only the last `echo` decides. Apptainer's documentation says a
+      failing command halts the build without naming the shell flags. The quick
+      test: add `rm -f /usr/local/bin/bcftools` at the end of `%post` and
+      confirm the build fails at `%test`.
+
 ---
 
 ## 2. Open review feedback on PR #47
@@ -400,7 +408,6 @@ come from reading the code and want a run before anyone relies on them.
       reads were all dropped by the length filter. Covered by
       `Rejects FASTQ files that hold no reads` in
       `tests/workflows/input-fixture.nf.test`.
-
       The check is per file, like the zero-byte check it sits beside, so a
       multi-chunk sample with one read-less chunk is rejected even though its
       other chunks hold reads. The alternative considered was to let a
@@ -557,10 +564,30 @@ come from reading the code and want a run before anyone relies on them.
       one is rejected. The model matters most: the default
       `r941_prom_sup_g5014` is for R9.4.1 flowcells, so an R10.4.1 user of the
       wrapper gets the wrong model with no way out.
-- [ ] **The Docker image's smoke test cannot fail the build.** The last `RUN`
-      of `nanopore_base.Dockerfile` ends `… && bam help > /dev/null 2>&1 ||
-      true`; the `|| true` binds to the whole `&&` chain, so a broken minimap2,
-      samtools or bcftools still builds. Only `bam help` needs the exemption.
+- [x] **The Docker image's smoke test could not fail the build.** Confirmed
+      with deliberately broken builds on 2026-09-24, then fixed. The last
+      `RUN` of `nanopore_base.Dockerfile` had two independent ways of hiding a
+      failure, and this item originally named only the first:
+      - `… && bam help > /dev/null 2>&1 || true` — the `|| true` binds to the
+        whole `&&` chain, so nothing in it could fail. With minimap2 deleted,
+        the image built.
+      - `samtools --version | head -n 1` and the same for bcftools — Docker
+        runs `RUN` under `/bin/sh` without `pipefail`, so the step saw
+        `head`'s exit status. With `libhts.so*` deleted, recreating the
+        historical `libhts.so.3: cannot open shared object file` failure,
+        the image built **even with the `|| true` removed**. Dropping only the
+        `|| true`, as first proposed here, would not have fixed it.
+
+      `bam help` never needed the exemption either: it exits 0. The step now
+      has no pipes and no fallback, and also runs `bamdash --help`, which the
+      `.sing` `%test` already checked. Re-run against the fix, all three
+      broken builds (libhts removed, minimap2 removed, bamdash removed) fail
+      and name the tool, and the unmodified recipe still builds.
+      `tests/test_container_recipes.py` now asserts the step contains no `|`
+      at all, which rules out both forms, and that it runs every tool the
+      pipeline takes from the image. The `.sing` has no pipes in `%test`;
+      whether its shell stops at the first failure is on the section 1 SIF
+      item.
 
 ### Smaller
 

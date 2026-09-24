@@ -162,11 +162,19 @@ RUN git clone https://github.com/statgen/bamUtil.git \
 
 # Mirrors the %test section of Nanopore_baseContainer.sing: fail the build here
 # rather than in the middle of a pipeline run.
+#
+# No pipes and no `|| true`. Docker runs RUN under /bin/sh without pipefail, so
+# `samtools --version | head -n 1` reported head's exit status rather than
+# samtools', and a trailing `|| true` swallowed the whole && chain. Together
+# they let an image build whose bcftools could not load libhts.so.3 - the very
+# failure this step exists to catch. `bam help` never needed the exemption: it
+# exits 0. tests/test_container_recipes.py keeps it that way.
 RUN python3 --version \
     && minimap2 --version \
-    && samtools --version | head -n 1 \
-    && bcftools --version | head -n 1 \
+    && samtools --version \
+    && bcftools --version \
     && porechop_abi --version \
-    && bam help > /dev/null 2>&1 || true
+    && bam help > /dev/null 2>&1 \
+    && bamdash --help > /dev/null
 
 WORKDIR /

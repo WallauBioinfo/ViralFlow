@@ -91,6 +91,35 @@ def manifest_version():
     return match.group(1) if match else None
 
 
+# Every tool the pipeline runs from the nanopore base image. Clair3 is not here:
+# it has an image of its own.
+BASE_IMAGE_TOOLS = (
+    "minimap2",
+    "samtools",
+    "bcftools",
+    "porechop_abi",
+    "bam",
+    "bamdash",
+)
+
+
+def docker_smoke_test():
+    """The Dockerfile's final smoke-test RUN, continuation lines joined."""
+    lines = DOCKER_RECIPE.read_text().splitlines()
+    start = next(
+        index
+        for index, line in enumerate(lines)
+        if line.startswith("RUN ")
+        and any("Mirrors the %test section" in earlier for earlier in lines[:index])
+    )
+    command = []
+    for line in lines[start:]:
+        command.append(line.rstrip("\\").strip())
+        if not line.rstrip().endswith("\\"):
+            break
+    return " ".join(command)
+
+
 def clair3_pins():
     """Every place the pinned Clair3 image is written down.
 
@@ -376,6 +405,26 @@ class ContainerRecipeTests(unittest.TestCase):
             "the docker profile image tag and the pipeline manifest version "
             "have diverged",
         )
+
+    def test_docker_smoke_test_can_fail(self):
+        """Every command in the smoke test decides the build's outcome.
+
+        Docker runs RUN under /bin/sh without pipefail, so `tool | head` reports
+        head's status, and a trailing `|| true` reports none. The smoke test had
+        both, and an image whose bcftools could not load libhts.so.3 - the
+        failure this step exists to catch - built cleanly. No `|` at all rules
+        out both forms.
+        """
+        self.assertNotIn("|", docker_smoke_test())
+
+    def test_docker_smoke_test_runs_every_base_image_tool(self):
+        command = docker_smoke_test()
+        missing = [
+            tool
+            for tool in BASE_IMAGE_TOOLS
+            if not re.search(rf"(^|[\s;&(]){re.escape(tool)}\s", command)
+        ]
+        self.assertEqual(missing, [], f"smoke test does not run: {missing}")
 
 
 if __name__ == "__main__":
