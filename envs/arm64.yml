@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python
+  - python=3.12
   - pip
   - setuptools
   - wheel
@@ -12,8 +12,11 @@ dependencies:
   - numpy
   - pandas
   - spython
-  - nextflow=22.04.0
+  - nextflow=26.04.6
+  - nf-test=0.9.4
+  - pre-commit=4.6.0
   - click=8.3
   - entrez-direct
   - openjdk=17
   - procps-ng
+  - seqkit=2.12

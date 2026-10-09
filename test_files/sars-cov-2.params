@@ -17,3 +17,4 @@ bwa_threads 1
 mafft_threads 1
 dedup false
 ndedup 3
+mode ILLUMINA

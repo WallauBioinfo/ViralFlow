@@ -8,17 +8,19 @@ channels:
   - pkgs/main
   - wallaulab
 dependencies:
-  - python
+  - python=3.12
   - pip
   - setuptools
   - wheel
   - biopython
   - numpy
   - pandas
-  - nextflow=22.04.0
+  - nextflow=26.04.6
+  - nf-test=0.9.4
+  - pre-commit=4.6.0
   - entrez-direct
   - openjdk=17
   - procps-ng
   - spython=0.3.1
   - singularityce=3.11.4
-
+  - seqkit=2.12

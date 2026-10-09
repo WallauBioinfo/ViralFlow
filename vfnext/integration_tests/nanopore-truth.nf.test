@@ -1,0 +1,252 @@
+nextflow_workflow {
+
+    name "Nanopore FASTQ-to-consensus truth integration"
+    script "tests/integration/nanopore-truth.nf"
+    workflow "NANOPORE_TRUTH"
+
+    test("Should recover the designed variants and masked consensus") {
+
+        when {
+            params {
+                // base_container is deliberately not set here. It already
+                // defaults to containers/baseContainer.sif, and pinning it in
+                // this block would override whatever profile is active,
+                // preventing the test from running under -profile docker.
+                //
+                // Pinned by digest so the truth values are tied to one exact
+                // image. Must match the clair3 row in expected_containers.tsv;
+                // the assertions below cross-check the two.
+                clair3_container = "docker://hkubal/clair3@sha256:1430f7b520674bb282b5a1ba165e8555b012df67b9cdb22ff3d48f26cf1474a3"
+                clair3_chunk_size = 10000
+                clair3_qual = 10
+                clair3_model = "r941_prom_sup_g5014"
+                mapping_quality = 30
+                af_threshold = 0.51
+                np_min_depth = 20
+            }
+            workflow {
+                """
+                meta = [id: "nanopore_truth"]
+                input[0] = Channel.of(
+                    tuple(
+                        meta,
+                        file(
+                            "${projectDir}/tests/integration/data/nanopore_truth/reads.fastq.gz"
+                        )
+                    )
+                )
+                input[1] = Channel.value(
+                    file(
+                        "${projectDir}/tests/integration/data/nanopore_truth/reference.fasta"
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            // runFaidx, runPorechop, runMinimap2, runClair3, runBcftools,
+            // runBcftoolsConsensus, runNanoporeSummary. Neither optional
+            // step runs here: primersBED is unset and trimLen is 0.
+            assert workflow.trace.succeeded().size() == 7
+
+            def fixtureDir = path(
+                "${projectDir}/tests/integration/data/nanopore_truth"
+            )
+            def sha256 = { filePath ->
+                def digest = java.security.MessageDigest.getInstance("SHA-256")
+                filePath.toFile().withInputStream { stream ->
+                    byte[] buffer = new byte[1024 * 1024]
+                    int count
+                    while ((count = stream.read(buffer)) > 0) {
+                        digest.update(buffer, 0, count)
+                    }
+                }
+                digest.digest().encodeHex().toString()
+            }
+
+            path("${fixtureDir}/SHA256SUMS").readLines().each { line ->
+                def fields = line.split(/\s+/, 2)
+                assert sha256(path("${fixtureDir}/${fields[1]}")) == fields[0]
+            }
+
+            // expected_containers.tsv records the images the truth values were
+            // generated with.
+            //
+            // The base container is built locally from Nanopore_baseContainer.sing,
+            // and that build is not reproducible byte for byte: %post runs an
+            // unpinned apt-get install and clones Porechop_ABI and bamUtil from
+            // their default branches, and SIF images embed build metadata. Two
+            // people building from the same definition get different checksums,
+            // so its sha256 is recorded as NA and only its presence is asserted.
+            // The checksum of the image that actually ran is captured at runtime
+            // in RUN_METADATA/container_manifest.tsv, which is where that
+            // provenance belongs.
+            def containerRows = path(
+                "${fixtureDir}/expected_containers.tsv"
+            ).readLines().drop(1).collect { it.split("\t") }
+
+            def baseContainer = containerRows.find { it[0] == "nanopore_base" }
+            assert baseContainer[2] == "NA"
+            // No filesystem check on the base container: it is a local SIF
+            // under Singularity but an image reference under -profile docker,
+            // and params inside a then block reflects only this test's own
+            // params block, so there is nothing reliable to resolve a path
+            // from. The workflow reaching this point already proves whichever
+            // base container the active profile selected was usable.
+
+            // Clair3 is pulled, so it can be pinned. The digest is declared in two
+            // independent places - this test's params block and the fixture row -
+            // and regenerating the fixture against a new image requires updating
+            // both. Also assert the pin is a digest, not a mutable tag.
+            def clair3Container = containerRows.find { it[0] == "clair3" }
+            assert clair3Container[1] == "docker://hkubal/clair3@sha256:${clair3Container[2]}"
+            assert clair3Container[1] == params.clair3_container
+
+            def parseVariants = { lines ->
+                lines.findAll { !it.startsWith("#") }.collect { line ->
+                    def fields = line.split("\t")
+                    [fields[0], fields[1], fields[3], fields[4]]
+                }
+            }
+
+            def truthVariants = parseVariants(
+                path("${fixtureDir}/truth.vcf").readLines()
+            )
+            def filtered = workflow.out.filtered.get(0)
+            assert filtered[0].id == "nanopore_truth"
+            def observedVariants = parseVariants(path(filtered[1]).linesGzip)
+            assert observedVariants == truthVariants
+
+            def consensus = workflow.out.consensus.get(0)
+            assert consensus[0].id == "nanopore_truth"
+            def maskedPositions = path(consensus[2]).readLines().collect {
+                line ->
+                    def fields = line.split("\t")
+                    (fields[1].toInteger()..<fields[2].toInteger()).toList()
+            }.flatten() as Set
+            assert (15000..<15500).every { maskedPositions.contains(it) }
+
+            def fastaSequence = { fastaPath ->
+                fastaPath.readLines()
+                    .findAll { !it.startsWith(">") }
+                    .join("")
+                    .toUpperCase()
+            }
+            def truthSequence = fastaSequence(path("${fixtureDir}/truth.fasta"))
+            def expectedConsensus = truthSequence.toList()
+            maskedPositions.each { referenceIndex ->
+                def deletedBefore = referenceIndex > 21989 ? 3 : 0
+                def truthIndex = referenceIndex - deletedBefore
+                if (truthIndex < expectedConsensus.size()) {
+                    expectedConsensus[truthIndex] = "N"
+                }
+            }
+            expectedConsensus = expectedConsensus.join("")
+            assert fastaSequence(path(consensus[1])) == expectedConsensus
+
+            def expectedMetrics = path(
+                "${fixtureDir}/expected_metrics.tsv"
+            ).readLines().drop(1).collectEntries { line ->
+                def fields = line.split("\t", 2)
+                [(fields[0]): fields[1]]
+            }
+            def summary = workflow.out.summary.get(0)
+            assert summary[0].id == "nanopore_truth"
+            def observedMetrics = path(summary[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            expectedMetrics
+                .findAll { key, _value -> key != "read_count" }
+                .each { key, value ->
+                    assert observedMetrics[key] == value
+                }
+            assert observedMetrics.callable_percent.toDouble() >= 95.0
+        }
+    }
+
+    // The reads are error-free, so every designed variant is called PASS at
+    // the default clair3_qual of 10 and no LowQual call ever reaches the test
+    // above. Raising clair3_qual makes the pinned Clair3 produce real ones:
+    // its QUALs for the five variants are 33.41 (241), 23.62 (3037), 27.89
+    // (14408), 21.32 (21990) and 24.82 (23403), so at 30 only position 241
+    // stays PASS. The other four were written into the consensus regardless
+    // until runBcftools required FILTER="PASS".
+    test("Should leave Clair3's LowQual calls out of the consensus") {
+
+        when {
+            params {
+                // Clair3 is left to tests/nextflow.config's pin, as in
+                // nanopore-no-reads.nf.test, rather than repeating the digest.
+                clair3_chunk_size = 10000
+                clair3_qual = 30
+                clair3_model = "r941_prom_sup_g5014"
+                mapping_quality = 30
+                af_threshold = 0.51
+                np_min_depth = 20
+            }
+            workflow {
+                """
+                meta = [id: "nanopore_truth"]
+                input[0] = Channel.of(
+                    tuple(
+                        meta,
+                        file(
+                            "${projectDir}/tests/integration/data/nanopore_truth/reads.fastq.gz"
+                        )
+                    )
+                )
+                input[1] = Channel.value(
+                    file(
+                        "${projectDir}/tests/integration/data/nanopore_truth/reference.fasta"
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def fixtureDir = "${projectDir}/tests/integration/data/nanopore_truth"
+            def filtered = workflow.out.filtered.get(0)
+            def keptVariants = path(filtered[1]).linesGzip
+                .findAll { !it.startsWith("#") }
+                .collect { line -> line.split("\t")[[1, 3, 4, 6]] }
+            assert keptVariants == [["241", "C", "T", "PASS"]]
+
+            // The reference with only 241 C>T applied, masked where the
+            // default run masks. No deletion is applied, so reference and
+            // consensus coordinates stay aligned throughout.
+            def fastaSequence = { fastaPath ->
+                fastaPath.readLines()
+                    .findAll { !it.startsWith(">") }
+                    .join("")
+                    .toUpperCase()
+            }
+            def consensus = workflow.out.consensus.get(0)
+            def maskedPositions = path(consensus[2]).readLines().collect { line ->
+                def fields = line.split("\t")
+                (fields[1].toInteger()..<fields[2].toInteger()).toList()
+            }.flatten() as Set
+            def expected = fastaSequence(path("${fixtureDir}/reference.fasta")).toList()
+            expected[240] = "T"
+            maskedPositions.each { index -> expected[index] = "N" }
+            assert fastaSequence(path(consensus[1])) == expected.join("")
+
+            def metrics = path(workflow.out.summary.get(0)[1]).readLines()
+                .drop(1)
+                .collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            assert metrics.clair3_qual == "30"
+            assert metrics.raw_variant_count == "5"
+            assert metrics.af_filtered_variant_count == "1"
+        }
+    }
+}

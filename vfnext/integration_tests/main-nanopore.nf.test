@@ -1,0 +1,180 @@
+nextflow_pipeline {
+
+    name "main.nf --mode NANOPORE, end to end"
+    script "main.nf"
+
+    // The other integration tests call the NANOPORE workflow directly, so
+    // nothing they run passes through main.nf: not input handling, not GENPLOTS,
+    // not METADATA. Each of those had a bug that only a full run shows - the
+    // GENPLOTS images, the container manifest, the recorded container engine.
+    // This test runs the pipeline the way a user does and checks what a user
+    // gets: the analysis, the plots, and the provenance record describing them.
+    test("Should publish the truth results, plots and a provenance record that matches the run") {
+
+        when {
+            params {
+                mode = "NANOPORE"
+                samplesheet = "${projectDir}/tests/data/input/nanopore-truth.csv"
+                referenceGenome = "${projectDir}/tests/integration/data/nanopore_truth/reference.fasta"
+                // The truth test's thresholds, so its expected values hold here.
+                // Clair3 is left to tests/nextflow.config, as in
+                // nanopore-no-reads.nf.test, rather than repeating the digest.
+                clair3_chunk_size = 10000
+                clair3_qual = 10
+                clair3_model = "r941_prom_sup_g5014"
+                mapping_quality = 30
+                af_threshold = 0.51
+                np_min_depth = 20
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def outDir = "${launchDir}/test_results"
+            def resultsDir = "${outDir}/nanopore_truth_results"
+            def metadataDir = "${outDir}/RUN_METADATA"
+            def fixtureDir = "${projectDir}/tests/integration/data/nanopore_truth"
+
+            def readTsv = { filePath ->
+                def lines = path(filePath).readLines()
+                def header = lines[0].split("\t", -1)
+                lines.drop(1).collect { line ->
+                    [header, line.split("\t", -1)].transpose().collectEntries()
+                }
+            }
+
+            // --- Analysis ---------------------------------------------------
+            // Same variants and completeness metrics as the workflow-level
+            // truth test, which proves main.nf hands NANOPORE the same inputs
+            // and thresholds. The consensus sequence itself is asserted base
+            // by base there and is not repeated here.
+            def parseVariants = { lines ->
+                lines.findAll { !it.startsWith("#") }.collect { line ->
+                    def fields = line.split("\t")
+                    [fields[0], fields[1], fields[3], fields[4]]
+                }
+            }
+            assert parseVariants(path("${resultsDir}/nanopore_truth.filtered.vcf.gz").linesGzip) ==
+                parseVariants(path("${fixtureDir}/truth.vcf").readLines())
+
+            def metricsOf = { filePath ->
+                path(filePath).readLines().drop(1).collectEntries { line ->
+                    def fields = line.split("\t", 2)
+                    [(fields[0]): fields[1]]
+                }
+            }
+            def observedMetrics = metricsOf("${resultsDir}/nanopore_truth.nanopore_summary.tsv")
+            metricsOf("${fixtureDir}/expected_metrics.tsv")
+                .findAll { key, _value -> key != "read_count" }
+                .each { key, value -> assert observedMetrics[key] == value }
+
+            assert path("${resultsDir}/nanopore_truth.consensus.fa").exists()
+            assert path("${resultsDir}/nanopore_truth.sorted.bam").exists()
+
+            // The trimmed reads are published compressed, and no uncompressed
+            // copy sits beside them. Porechop keeps every read of the fixture,
+            // so the count matches the input's.
+            def choppedReads = path("${resultsDir}/nanopore_truth.chopped.fastq.gz")
+            assert choppedReads.exists()
+            assert choppedReads.linesGzip.size() ==
+                path("${fixtureDir}/reads.fastq.gz").linesGzip.size()
+            assert !path("${resultsDir}/nanopore_truth.chopped.fastq").exists()
+
+            // --- GENPLOTS ---------------------------------------------------
+            // Runs only through main.nf. writeMappedReads defaults to true.
+            // HTML, PNG and SVG. The static two need kaleido 0.2's bundled
+            // Chromium, which the base image carries. coverage_plot.py only
+            // warns when one is missing, so the files are checked here.
+            ["html", "png", "svg"].each { extension ->
+                def coveragePlot = path("${resultsDir}/nanopore_truth_coveragePlot.${extension}")
+                assert coveragePlot.exists()
+                assert coveragePlot.toFile().length() > 0
+            }
+            // The plot's recovery figure uses NANOPORE's masking threshold,
+            // not ILLUMINA's `depth` (25 by default), so it describes the same
+            // positions the consensus keeps. bamdash writes it into the HTML's
+            // JSON with escaped markup, which the \S+ spans absorb.
+            def plotHtml = path("${resultsDir}/nanopore_truth_coveragePlot.html").text
+            def recovery = plotHtml =~ /% recovery \S+ (\d+)x:\S+ ([\d.]+)/
+            assert recovery.find()
+            assert recovery.group(1) == "20"
+            // Within a tenth of a point of the consensus: bamdash counts bases
+            // at quality 15 or more and not deletions, samtools depth -J all.
+            assert Math.abs(recovery.group(2).toDouble() -
+                observedMetrics.callable_percent.toDouble()) < 0.1
+            def mappedReads = path("${resultsDir}/nanopore_truth.mapped.SE.fq.gz")
+            assert mappedReads.exists()
+            assert mappedReads.linesGzip.size() > 0
+
+            // --- Provenance -------------------------------------------------
+            // nf-test runs Nextflow with its own -with-trace, which replaces the
+            // pipeline's execution_trace.tsv, so read the trace nf-test keeps
+            // instead. workflow.trace exposes only each task's name and status;
+            // the file behind it has every column of the pipeline's
+            // trace.fields, container included, tab-separated despite its name.
+            assert workflow.trace.failed() == []
+            def trace = readTsv("${launchDir}/meta/trace.csv")
+            assert trace
+
+            def manifest = new groovy.json.JsonSlurper()
+                .parse(path("${metadataDir}/run_manifest.json").toFile())
+            assert manifest.execution.status == "SUCCESS"
+            assert manifest.analysis.mode == "NANOPORE"
+
+            // The manifest names these files, so they must be where it says.
+            // outDir comes from tests/nextflow.config here, a -c config, which
+            // nextflow.config's own report paths never see; and nf-test always
+            // moves the trace with -with-trace. A manifest that assumed outDir
+            // rather than asking where Nextflow wrote them fails here.
+            assert path(manifest.files.report).exists()
+            assert path(manifest.files.timeline).exists()
+            assert path(manifest.files.trace).exists()
+
+            // The engine that actually ran, read from a task's launcher script
+            // rather than from the profile name, which is only a label.
+            def minimap2 = trace.find { row -> row.name.startsWith("NANOPORE:runMinimap2") }
+            def (hashDir, hashPrefix) = minimap2.hash.split("/") as List
+            def taskDir = new File("${launchDir}/work/${hashDir}").listFiles()
+                .find { dir -> dir.name.startsWith(hashPrefix) }
+            def launcher = new File(taskDir, ".command.run").text
+            def engine = ["docker", "apptainer", "singularity"].find { name ->
+                launcher.contains("${name} run") || launcher.contains("${name} exec")
+            }
+            assert engine
+            assert manifest.runtime.container_engine == engine
+
+            // Every image a task ran must be in container_manifest.tsv. The
+            // trace writes Singularity paths with ':' escaped, and a pulled
+            // image as its local cache file, so match on the unescaped path,
+            // on the reference without its docker:// prefix, or on the digest.
+            def recorded = readTsv("${metadataDir}/container_manifest.tsv")*.identity
+            def digestOf = { text ->
+                def match = text =~ /[0-9a-f]{64}/
+                match.find() ? match.group() : null
+            }
+            def isRecorded = { used ->
+                recorded.any { identity ->
+                    identity == used ||
+                        identity.replaceFirst(/^docker:\/\//, "") == used ||
+                        (digestOf(used) && digestOf(used) == digestOf(identity))
+                }
+            }
+            def used = trace*.container
+                .collect { container -> container.replace("\\:", ":") }
+                .findAll { container -> container && container != "-" }
+                .unique()
+                .sort()
+            assert used
+            assert used.findAll { container -> !isRecorded(container) } == []
+
+            // Every tool version was actually captured, for every tool the run
+            // used. trimLen is 0, so bamUtil is not among them; bamdash is, for
+            // the GENPLOTS coverage plot.
+            def versions = readTsv("${metadataDir}/software_versions.tsv")
+            assert versions*.tool.sort() ==
+                ["bamdash", "bcftools", "clair3", "minimap2", "porechop_abi", "samtools"]
+            assert versions.every { row -> row.exit_status == "0" }
+        }
+    }
+}

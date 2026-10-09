@@ -1,0 +1,95 @@
+nextflow_function {
+
+    name "NANOPORE trimLen normalization"
+    script "modules/param_helpers.nf"
+    function "normalizeTrimLen"
+
+    // A value passed as --trimLen on the command line reaches the workflow as a
+    // String, while the nextflow.config default is an Integer. Comparing them
+    // aborted the run before any task was submitted, so these pin that both
+    // spellings normalize to the same Integer.
+
+    test("Should accept an Integer, as nextflow.config supplies it") {
+
+        when {
+            function {
+                """
+                input[0] = 30
+                """
+            }
+        }
+
+        then {
+            assert function.success
+            assert function.result == 30
+        }
+    }
+
+    test("Should accept a String, as the command line supplies it") {
+
+        when {
+            function {
+                """
+                input[0] = "30"
+                """
+            }
+        }
+
+        then {
+            assert function.success
+            assert function.result == 30
+        }
+    }
+
+    test("Should treat a null trimLen as disabled") {
+
+        when {
+            function {
+                """
+                input[0] = null
+                """
+            }
+        }
+
+        then {
+            assert function.success
+            assert function.result == 0
+        }
+    }
+
+    test("Should reject a non-numeric trimLen") {
+
+        when {
+            function {
+                """
+                input[0] = "five"
+                """
+            }
+        }
+
+        then {
+            assert function.failed
+            assert function.stdout.any {
+                it.contains("--trimLen must be a non-negative integer, got 'five'")
+            }
+        }
+    }
+
+    test("Should reject a negative trimLen") {
+
+        when {
+            function {
+                """
+                input[0] = "-5"
+                """
+            }
+        }
+
+        then {
+            assert function.failed
+            assert function.stdout.any {
+                it.contains("--trimLen must be a non-negative integer, got '-5'")
+            }
+        }
+    }
+}

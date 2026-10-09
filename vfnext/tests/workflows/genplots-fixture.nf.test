@@ -1,0 +1,138 @@
+nextflow_workflow {
+
+    name "GENPLOTS read extraction on a renamed BAM"
+    script "tests/workflows/genplots-fixture.nf"
+    workflow "GENPLOTS_FIXTURE"
+    config "./genplots-fixture.config"
+
+    // bamdash writes its stats into the HTML's JSON as
+    // `% recovery \u003e= <threshold>x:\u003c\u002fb\u003e <percent>`; the \S+
+    // spans match the escaped markup whatever its encoding. A closure here, not
+    // a method: nf-test's then blocks see the variables of this block but not
+    // methods declared in the file.
+    def recoveryInPlot = { plots ->
+        def html = plots.get(0).flatten().find { it.toString().endsWith(".html") }
+        def match = (new File(html.toString()).text =~ /% recovery \S+ (\d+)x:\S+ ([\d.]+)/)
+        assert match.find() : "no recovery figure in ${html}"
+        [threshold: match.group(1), percent: match.group(2)]
+    }
+
+    // The fixture stages the alignment as "<id>.trim.sorted.bam". Both processes
+    // used to rebuild "<id>.sorted.bam" from meta.id rather than reading the
+    // staged path, which broke every NANOPORE run that rebound the BAM
+    // (--trimLen or --primersBED) because writeMappedReads defaults to true.
+
+    test("Should read the staged BAM whatever it is named") {
+
+        when {
+            params {
+                fixture_coverage_threshold = 0
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "sample"],
+                          file("${projectDir}/tests/data/genplots/reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 4
+
+            def mapped = workflow.out.mapped.get(0)
+            assert mapped[0].id == "sample"
+
+            def mappedReads = path(mapped[1]).linesGzip.findAll {
+                it.startsWith("@")
+            }
+            assert mappedReads == ["@aligned_read"]
+
+            def unmapped = workflow.out.unmapped.get(0)
+            assert unmapped[0].id == "sample"
+
+            def unmappedReads = path(unmapped[1]).linesGzip.findAll {
+                it.startsWith("@")
+            }
+            assert unmappedReads == ["@orphan_read"]
+
+            // One read covers positions 1-10 of the 20 bp contig at depth 1:
+            // half the contig has depth above 0.
+            def recovery = recoveryInPlot(workflow.out.plots)
+            assert recovery.threshold == "0"
+            assert recovery.percent.toDouble() == 50.0
+        }
+    }
+
+    // The plot's recovery figure has to describe the same positions the
+    // consensus keeps. NANOPORE masks depth <= np_min_depth, and bamdash counts
+    // a position as recovered only when its coverage is strictly above the
+    // threshold, so the two agree when the plot is given np_min_depth itself.
+    // Here every covered position sits at exactly the threshold: the consensus
+    // would mask all of them, so the plot must recover none.
+    test("Should count a position at the threshold as not recovered") {
+
+        when {
+            params {
+                fixture_coverage_threshold = 1
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "sample"],
+                          file("${projectDir}/tests/data/genplots/reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            def recovery = recoveryInPlot(workflow.out.plots)
+            assert recovery.threshold == "1"
+            // bamdash prints a zero as "0", other values as "50.0".
+            assert recovery.percent.toDouble() == 0.0
+
+            // publishDir is limited to the plots; they must still get there.
+            ["html", "png", "svg"].each { extension ->
+                assert path("${launchDir}/test_results/sample_results/sample_coveragePlot.${extension}").exists()
+            }
+        }
+    }
+
+    test("Should report a sample with no mapped reads without publishing the report") {
+
+        when {
+            params {
+                fixture_coverage_threshold = 1
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple([id: "sample"],
+                          file("${projectDir}/tests/data/bcftools/no_reads.sam"))
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            // No reads, no plot: coverage_plot.py says so in its result file,
+            // which GENPLOTS reads from this channel and logs as a warning.
+            assert workflow.out.plots.isEmpty()
+            assert workflow.out.result.size() == 1
+            assert path(workflow.out.result.get(0)).text.contains("No mapped reads")
+
+            // It is a message, not a result. publishDir used to publish it,
+            // and ILLUMINA writes one for every sample, since its image draws
+            // no PNG or SVG.
+            def resultsDir = path("${launchDir}/test_results/sample_results")
+            assert resultsDir.exists()
+            assert !path("${resultsDir}/coveragePlot_result.txt").exists()
+        }
+    }
+}

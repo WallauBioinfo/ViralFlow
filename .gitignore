@@ -78,6 +78,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+# sphinx-build output when running the CI docs command locally
+/_build/
 
 # PyBuilder
 target/
@@ -154,3 +156,6 @@ work/*
 vfnext/containers/snpEff_DB.catalog
 vfnext/databases/*
 !vfnext/databases/*.csv
+.nextflow.log*
+.nf-test/
+output/

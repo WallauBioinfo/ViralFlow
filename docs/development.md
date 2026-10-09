@@ -1,0 +1,177 @@
+# ViralFlow - Development Documentation
+
+For computing environments with ARM64 architecture the user should inform the `--arch arm64` flag into some commands.
+
+## Installation
+
+### AMD64
+
+```bash
+git clone -b develop https://github.com/WallauBioinfo/ViralFlow.git
+cd ViralFlow/
+micromamba env create -f envs/amd64.yml
+micromamba activate viralflow
+pip install -e .
+sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
+viralflow build-containers
+```
+
+### ARM64
+
+```bash
+# install singularity
+sudo apt update
+sudo apt install -y build-essential git wget pkg-config \
+    libseccomp-dev squashfs-tools cryptsetup \
+    libglib2.0-dev uuid-dev libssl-dev libgpgme-dev \
+    libarchive-dev runc golang
+
+git clone --recursive https://github.com/sylabs/singularity.git
+cd singularity
+git checkout v3.11.4
+git submodule update --init --recursive
+./mconfig
+make -C builddir
+sudo make -C builddir install
+
+# install viralflow wrapper
+git clone -b develop https://github.com/WallauBioinfo/ViralFlow.git
+cd ViralFlow/
+micromamba env create -f envs/arm64.yml
+micromamba activate viralflow
+pip install -e .
+
+# build containers
+viralflow build-containers --arch arm64
+```
+
+## Development quality checks
+
+Python 3.12 is the supported development version. For a lightweight setup, use
+`uv` to create the Python environment and install ViralFlow and `pre-commit`:
+
+```bash
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -e . "pre-commit==4.6.0"
+```
+
+The Python test hook uses `uv` to create and cache its own Python 3.12
+environment. Nextflow linting and the pre-push tests still require `nextflow` and
+`nf-test` on `PATH`. Alternatively, both architecture-specific development
+environments include Python 3.12, `pre-commit`, Nextflow, and nf-test.
+
+Install both Git hook stages from the repository root:
+
+```bash
+pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+The pre-commit stage runs repository hygiene checks, Ruff linting and formatting,
+Nextflow linting, and the Python unit tests. Hooks that modify files will fail the
+first run so the updated files can be reviewed and staged again.
+
+Run the complete commit-time suite manually with:
+
+```bash
+pre-commit run --all-files
+```
+
+The pre-push stage runs the Nextflow tests that need no container image. Run it
+manually with:
+
+```bash
+pre-commit run --all-files --hook-stage pre-push
+```
+
+The rest of the suite needs a container image, so it is not part of either
+pre-commit stage. With Singularity and a locally built
+`vfnext/containers/baseContainer.sif`:
+
+```bash
+cd vfnext
+NXF_VER=26.04.6 nf-test test \
+  tests/workflows/bcftools-fixture.nf.test \
+  tests/workflows/metadata-fixture.nf.test \
+  --ci
+NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test --ci
+```
+
+Without Singularity — CI runners, and developer machines such as Apple Silicon
+Macs — build the Docker image once and use `-profile docker` instead:
+
+```bash
+cd vfnext/containers
+docker build -f nanopore_base.Dockerfile -t viralflow/nanopore-base:2.0.0a1 .
+cd ..
+NXF_VER=26.04.6 nf-test test tests/ --profile docker --ci
+NXF_VER=26.04.6 nf-test test integration_tests/nanopore-truth.nf.test --profile docker --ci
+```
+
+GitHub Actions runs both of these on every pull request. The truth test pulls
+Clair3, whose published image is amd64-only: it runs natively on CI runners, but
+needs emulation on Apple Silicon and will be slow there.
+
+For an emergency-only bypass, use `git commit --no-verify` or
+`git push --no-verify`, then run the skipped hook stage manually before opening
+or updating a pull request.
+
+### Building the documentation
+
+The site you are reading is Sphinx with MyST, so pages are Markdown.
+`.readthedocs.yaml` at the repository root pins the Python and points Read the
+Docs at `docs/conf.py`; `docs-es/` and `docs-pt/` are the Spanish and Portuguese
+trees.
+
+Adding a page takes two steps, not one. Dropping a `.md` file into `docs/` is
+not enough — Sphinx only links a page into the sidebar if a `toctree` lists it,
+and warns that the document "isn't included in any toctree" otherwise. Add the
+file, then add its name (without the extension) to the `toctree` in
+`docs/index.md`.
+
+Build a tree locally with the same Python and requirements Read the Docs uses:
+
+```bash
+uv run --no-project --python 3.13 \
+  --with-requirements docs/requirements.in \
+  sphinx-build -b html -W --keep-going docs _build/docs
+```
+
+`-W` turns warnings into errors, which is what catches a page missing from a
+toctree, a broken cross-reference, or a theme option the installed
+`sphinx-rtd-theme` no longer accepts. CI runs exactly this command for `docs`,
+`docs-es` and `docs-pt`. Read the Docs itself does not use `-W`, so a warning
+degrades the published site rather than failing the build — which is the reason
+to catch it here.
+
+### Customizing snpEff catalog
+
+#### AMD64
+
+```bash
+viralflow add-entry-to-snpeff --org-name Dengue --genome-code NC_001474.2
+```
+
+#### ARM64
+
+```bash
+viralflow add-entry-to-snpeff --org-name Dengue --genome-code NC_001474.2 --arch arm64
+```
+
+### Updating pangolin
+
+```bash
+viralflow update-pangolin
+
+viralflow update-pangolin-data
+```
+
+### Running ViralFlow
+
+```bash
+viralflow run --params-file test_files/sars-cov-2.params
+```
+
+```bash
+viralflow run --params-file test_files/denv.params
+```

@@ -1,0 +1,10 @@
+metric	value
+reference_length	29903
+consensus_length	29900
+masked_bases	588
+consensus_n_bases	588
+callable_bases	29312
+callable_percent	98.033445
+raw_variant_count	5
+af_filtered_variant_count	5
+read_count	3382

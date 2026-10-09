@@ -1,0 +1,204 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+# This is a Singularity definition file for building a base container
+# with the latest version of Ubuntu 24.04.
+# It includes essential packages for the Nanopore workflow development.
+
+%help
+    This is a Singularity container for Ubuntu 24.04 with essential packages.
+    It is designed to be a base container for the Nanopore workflow development.
+
+%environment
+    # Set up environment variables
+    export PATH=/app/minimap2/:$PATH
+
+
+%post
+
+    HTSLIB_VERSION=1.21
+    MINIMAP2_TAG=v2.28
+    NETWORKX_VERSION=3.6.1
+    # bamdash draws the coverage plot in GENPLOTS, which a NANOPORE run executes
+    # in this image. 0.4.4 is the version the ILLUMINA generate_plots image
+    # carries. It requires kaleido 0.2.*, which bundles its own Chromium for
+    # PNG/SVG export; kaleido 1.x needs a separate Chrome install, and plotly
+    # 6.x deprecates 0.2, hence plotly's last 5.x release. pysam 0.23.3 is the
+    # first release in this range with Python 3.12 wheels.
+    BAMDASH_VERSION=0.4.4
+    KALEIDO_VERSION=0.2.1
+    PLOTLY_VERSION=5.24.1
+    PYSAM_VERSION=0.23.3
+    # The rest of bamdash's dependency closure, which pip used to resolve
+    # freely - bamdash 0.4.4 asks only for pandas>=1.4.4 and biopython>=1.79,
+    # so each build took whatever was newest. These are the versions a
+    # 2026-09-24 build resolved, checked to draw a correct coverage plot.
+    # Installed with --no-deps below, so nothing outside this list can enter
+    # the image.
+    PANDAS_VERSION=3.0.6
+    BIOPYTHON_VERSION=1.88
+    NUMPY_VERSION=2.5.3
+    PYTHON_DATEUTIL_VERSION=2.9.0.post0
+    SIX_VERSION=1.17.0
+    TENACITY_VERSION=9.1.4
+    PACKAGING_VERSION=26.3
+    # Porechop_ABI and bamUtil are pinned to commits rather than tags, on
+    # purpose:
+    #   - Porechop_ABI master is 35 commits ahead of its latest tag (v0.5.0).
+    #     This commit is what unpinned builds have been producing, so pinning it
+    #     keeps the nanopore truth fixture valid. Moving to v0.5.0 would be a
+    #     downgrade and would need the truth values regenerated.
+    #   - bamUtil v1.0.15 clones libStatGen over the git:// protocol, which
+    #     GitHub disabled in 2022, so `make cloneLib` fails at that tag. The fix
+    #     landed on master after the release and was never tagged.
+    PORECHOP_ABI_COMMIT=0bc9f17f31d4ec1dcbab4796871cc09324cc143b
+    BAMUTIL_COMMIT=017721cc07948558395e4934ec10d0f91407c5eb
+    # libStatGen is bamUtil's dependency. bamUtil's own `make cloneLib` target
+    # fetches it from the default branch with no pin, so this is master HEAD -
+    # exactly what that target has been producing. Note the v1.0.15 tag is NOT
+    # an ancestor of master: it sits one commit ahead and differs only by a
+    # version-string bump in the Makefile, so moving to it is a deliberate
+    # upgrade rather than a tidy-up.
+    LIBSTATGEN_COMMIT=fae4fca874b3b78bf9b61c0eae080c15edd976a4
+    # Update the package list and install essential packages
+    apt-get update && apt-get install -y \
+        build-essential \
+        git \
+        curl \
+        wget \
+        vim \
+        nano \
+        less \
+        python3 \
+        python3-pip \
+        python-is-python3 \
+        gcc \
+        make autoconf \
+        libbz2-dev liblzma-dev  libncurses5-dev \
+        libgsl-dev
+    # Clean up to reduce image size
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+    mkdir /app/
+
+    # install minimap2
+    cd /app/
+    git clone --depth 1 --branch ${MINIMAP2_TAG} https://github.com/lh3/minimap2
+    cd minimap2
+    make
+
+    PATH=/app/minimap2/:$PATH
+
+
+    cd /app/
+    # Setup HTSLib
+    wget -O "htslib.tar.bz2" https://github.com/samtools/htslib/releases/download/${HTSLIB_VERSION}/htslib-${HTSLIB_VERSION}.tar.bz2
+    tar -xf htslib.tar.bz2
+    cd htslib-${HTSLIB_VERSION}
+    autoheader
+    autoreconf -i  # Build the configure script and install files it uses
+    ./configure --prefix=/usr/local/   # Optional but recommended, for choosing extra functionality
+    make
+    make install
+
+    # install bcftools
+    cd /app/
+    wget -O "bcftools.tar.gz" https://github.com/samtools/bcftools/archive/${HTSLIB_VERSION}.tar.gz
+    tar xf bcftools.tar.gz
+    cd bcftools-${HTSLIB_VERSION}
+    autoheader
+    autoconf
+    ./configure --enable-libgsl
+    make
+    mv bcftools /usr/local/bin
+
+    # install samtools
+    cd /app/
+    # Retrieve and compile Samtools
+    wget -O "samtools.tar.gz" https://github.com/samtools/samtools/releases/download/$HTSLIB_VERSION/samtools-$HTSLIB_VERSION.tar.bz2
+    tar xf samtools.tar.gz
+    cd samtools-${HTSLIB_VERSION}
+    autoheader
+    autoconf -Wno-syntax
+    ./configure --prefix /usr/local
+    make
+    make install
+
+    # install porechop
+    cd /app/
+    pip install --break-system-packages "networkx==${NETWORKX_VERSION}"
+    git clone https://github.com/bonsai-team/Porechop_ABI.git
+    cd Porechop_ABI
+    git checkout ${PORECHOP_ABI_COMMIT}
+    python3 setup.py install
+
+    # install bamdash, for the GENPLOTS coverage plot
+    # --no-deps installs exactly the pins above; pip check then fails the build
+    # if they are not a complete, consistent set - which is what a version bump
+    # that brings in a new dependency looks like, instead of pip quietly
+    # fetching it.
+    pip install --break-system-packages --no-deps \
+        "bamdash==${BAMDASH_VERSION}" \
+        "kaleido==${KALEIDO_VERSION}" \
+        "plotly==${PLOTLY_VERSION}" \
+        "pysam==${PYSAM_VERSION}" \
+        "pandas==${PANDAS_VERSION}" \
+        "biopython==${BIOPYTHON_VERSION}" \
+        "numpy==${NUMPY_VERSION}" \
+        "python-dateutil==${PYTHON_DATEUTIL_VERSION}" \
+        "six==${SIX_VERSION}" \
+        "tenacity==${TENACITY_VERSION}" \
+        "packaging==${PACKAGING_VERSION}"
+    pip check
+
+    # install bam utils
+    # bamUtil's Makefile.inc defaults LIB_PATH_GENERAL to ../libStatGen, so
+    # cloning it here puts it exactly where the build looks. Doing it ourselves
+    # replaces `make cloneLib`, which clones the default branch unpinned. That
+    # target is deliberately not called afterwards: if this clone ever lands in
+    # the wrong place, the build must fail loudly rather than quietly falling
+    # back to an unpinned checkout.
+    cd /app/
+    git clone https://github.com/statgen/libStatGen.git
+    cd libStatGen
+    git checkout ${LIBSTATGEN_COMMIT}
+
+    cd /app/
+    git clone https://github.com/statgen/bamUtil.git
+    cd bamUtil
+    git checkout ${BAMUTIL_COMMIT}
+    make
+    make install
+
+
+
+
+%test
+    # Test the installation of essential packages
+    echo "---> Testing essential packages..."
+    gcc --version
+    git --version
+    curl --version
+    wget --version
+    python3 --version
+    pip3 --version
+    echo "---| All essential packages are installed successfully."
+    # Test the installation of Porechop
+    porechop_abi -h
+    echo "---| Porechop is installed successfully."
+    # Test the installation of bamdash
+    python -c "import bamdash, kaleido, plotly, pysam"
+    bamdash --help > /dev/null
+    echo "---| bamdash is installed successfully."
+    # Test the installation of bam utils
+    bam help
+    echo "---| bam utils is installed successfully."
+    # Test the installation of Samtools
+    samtools --version
+    echo "---| Samtools is installed successfully."
+    # Test instalation of Minimap2
+    minimap2 --version
+    echo "---| Minimap2 is installed successfully."
+    # Test installation of BCFtools
+    bcftools --version
+    echo "---| BCFtools is installed successfully."

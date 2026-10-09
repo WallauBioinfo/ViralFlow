@@ -33,7 +33,7 @@ lima
 To install ViralFlow, four steps are necessary:
 1. Install system dependencies
 2. Install Conda
-3. Install ViralFlow  
+3. Install ViralFlow
 4. Build the containers for analyses
 
 This process is performed only once.
@@ -68,14 +68,20 @@ micromamba activate
 
 ### Installing ViralFlow
 
-If you already have the aforementioned dependencies and conda installed, you can install ViralFlow with 5 lines of code:
+If you already have the aforementioned dependencies and Conda installed, clone ViralFlow and create the environment for your system architecture. Use `envs/amd64.yml` on x86_64/AMD64 systems:
 
 ```bash
 git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow/
-micromamba env create -f envs/env.yml
+micromamba env create -f envs/amd64.yml
 micromamba activate viralflow
 pip install -e .
+```
+
+On ARM64/AArch64 systems, use `envs/arm64.yml` instead:
+
+```bash
+micromamba env create -f envs/arm64.yml
 ```
 
 ### Building the Containers
@@ -91,8 +97,10 @@ sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
 After ensuring that "unsquashfs" is in the appropriate location, run the command to build the containers:
 
 ```bash
-viralflow build_containers
+viralflow build-containers --arch amd64
 ```
+
+Use `--arch arm64` when building containers on an ARM64/AArch64 system.
 
 ```{note}
 This process will download approximately 4.4GB of container images. Ensure you have sufficient disk space and a stable internet connection.

@@ -1,0 +1,57 @@
+nextflow_workflow {
+    name "Nanopore multi-sample fan-out"
+    script "tests/integration/nanopore-truth.nf"
+    workflow "NANOPORE_TRUTH"
+
+    // Every other nanopore test runs a single sample, so nothing else would
+    // catch a per-sample channel being wired as if it were per-run. The
+    // reference index is the case in point: runFaidx builds it once and
+    // Nextflow broadcasts it, but a stray .collect() or a mispaired join would
+    // either pin every sample to one input or deadlock waiting for a second.
+    test("Should run every sample against a reference indexed once") {
+        when {
+            params {
+                clair3_container = "docker://hkubal/clair3@sha256:1430f7b520674bb282b5a1ba165e8555b012df67b9cdb22ff3d48f26cf1474a3"
+                clair3_chunk_size = 10000
+                clair3_qual = 10
+                clair3_model = "r941_prom_sup_g5014"
+                mapping_quality = 30
+                af_threshold = 0.51
+                np_min_depth = 20
+            }
+            workflow {
+                """
+                reads = file("${projectDir}/tests/integration/data/nanopore_truth/reads.fastq.gz")
+                input[0] = Channel.of(
+                    tuple([id: "sample_one"], reads),
+                    tuple([id: "sample_two"], reads)
+                )
+                input[1] = Channel.value(
+                    file("${projectDir}/tests/integration/data/nanopore_truth/reference.fasta")
+                )
+                """
+            }
+        }
+        then {
+            assert workflow.success
+
+            def ran = { name ->
+                workflow.trace.succeeded().findAll { task -> task.name.contains(name) }.size()
+            }
+
+            // One index for the run, and every per-sample step for each sample.
+            assert ran("runFaidx") == 1 : "runFaidx ran ${ran('runFaidx')} times, expected 1"
+            assert ran("runClair3") == 2 : "runClair3 ran ${ran('runClair3')} times, expected 2"
+            assert ran("runPorechop") == 2
+            assert ran("runMinimap2") == 2
+            assert ran("runBcftoolsConsensus") == 2
+            assert ran("runNanoporeSummary") == 2
+
+            // Both samples produced their own consensus and summary.
+            assert workflow.out.consensus.size() == 2
+            assert workflow.out.summary.size() == 2
+            assert workflow.out.consensus.collect { it[0].id }.toSorted() ==
+                ["sample_one", "sample_two"]
+        }
+    }
+}
