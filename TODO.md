@@ -896,25 +896,36 @@ Deliberately kept out of the nanopore PR.
       three could serve nanopore output too, so this is what would let NANOPORE
       reuse the ILLUMINA annotation stack rather than reimplement it.
 - [ ] **Move the `coveragePlot` import into `GENPLOTS.nf`.** Agreed on PR #47.
-- [ ] **`fixWGS` fails for every sample and always has.** It runs its script
-      under `#!/usr/bin/env python` (`modules/fixWGS.nf:17`) and is the only
-      ILLUMINA process with no entry in `configs/containers.config`, so it runs
-      on the host — where Ubuntu 24.04 provides `python3` and no `python`:
+- [ ] **`fixWGS` depends on the host's Python, and fails silently where it
+      does not match.** The step takes Picard's `CollectWgsMetrics` table,
+      keeps the first row, adds an `EXACT_COV` column (the share of the
+      consensus that is not `N`) and writes `<sample>.metrics.genome.tsv`, a
+      documented per-sample output in all three `outputs.md`. Its script is
+      inline under `#!/usr/bin/env python` (`modules/fixWGS.nf`), and it is
+      the only ILLUMINA process with no entry in `configs/containers.config`,
+      so it runs on the host. It works wherever the host has a `python` with
+      `pandas` and `Bio` installed, and fails wherever it does not. Ubuntu
+      24.04, for one, provides `python3` and no `python`:
       ```
       ILLUMINA:fixWGS (ART1)  exit: 127
       /usr/bin/env: 'python': No such file or directory
       ```
-      The run does not stop. `compileOutputs` still writes a batch summary and
-      the only trace is the task status, which is how this went unnoticed.
-      Whatever the step contributes has therefore never been produced, and it
-      is worth establishing what that is before fixing it. Seen on all three
-      samples of `viralflow_box/run_illumina_check.sh`, and identically in the
-      2026-08-12 baseline under `viralflow_box/test_box/output/`, so nothing
-      about it is new. Inherited from `develop`, where the same shebang and the
-      same absent container directive are already present. The fix is a
-      container plus `python3`: the script imports `pandas` and `Bio`, which
-      `intrahost_analysis:1.1.0.sif` already carries for `runReadCounts` and
-      `runIntraHostScript`.
+      The run does not stop, because the process sets
+      `errorStrategy 'ignore'`. Nothing downstream reads the file
+      (`compileOutput.py` does not use it, and the task only feeds the
+      end-of-run trigger), so the consensus and the batch summaries are
+      unaffected; the documented `metrics.genome.tsv` is simply missing, with
+      the task status as the only trace. That makes the output set depend on
+      the machine, which is a reproducibility problem rather than a wrong
+      result. Seen on all three samples of
+      `viralflow_box/run_illumina_check.sh` and in the 2026-08-12 baseline
+      under `viralflow_box/test_box/output/`, both on hosts without a
+      matching `python`. Inherited from `develop`, where the same shebang and
+      the same missing container directive are already present. The fix is a
+      container plus `python3`: `intrahost_analysis:1.1.0.sif` already carries
+      `pandas` and `Bio` for `runReadCounts` and `runIntraHostScript`. Worth
+      dropping `errorStrategy 'ignore'` at the same time, so a failure here is
+      visible.
 - [ ] **Boolean parameters given on the command line are ignored, and the
       metadata layer disagrees with the workflow about them.** Nextflow hands
       over command line parameters as Strings, and the two idioms that read
