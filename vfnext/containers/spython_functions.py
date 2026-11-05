@@ -10,13 +10,15 @@ def get_repository(repository_list):
             container = container.strip()
             if not container:
                 continue
-            # Full path: e.g. wallaulabs2/viralflow-amd64/edirect:1.1.0
+            
+            # Full path: e.g. quay.io/wallaulabs/amd64-edirect:1.1.0
             parts = container.split("/")
-            org = parts[0]  # wallaulabs2
-            project = parts[1]  # viralflow-amd64
-            container_version = parts[2]  # edirect:1.1.0
-            full_repo = f"{org}/{project}/{container_version}"
-            containers_name_list.append((project, container_version, full_repo))
+            registry = parts[0]       # quay.io
+            organization = parts[1]   # wallaulabs
+            image_filename = parts[2] # amd64-edirect:1.1.0
+            container_version = image_filename.split("-")[1]
+            full_repo = container     # complete quay.io 
+            containers_name_list.append((organization, container_version, full_repo))
     return containers_name_list
 
 
@@ -25,8 +27,7 @@ def container_pull(containers_dir, containers_name_list):
         container_version = container[1]
         full_repo = container[2]
         print(f"Downloading container {container_version}. This could be take a while. Please Wait ...")
-        os.system(f"singularity pull -F {container_version}.sif library://{full_repo}")  
-
+        os.system(f"singularity pull -F {container_version}.sif docker://{full_repo}")
 
 
 def check_containers(containers_name_list, downloaded_list):
@@ -50,4 +51,3 @@ def containers_routine_pull(missing_containers_list, containers_dir, containers_
         attempts -= 1
         if len(lost_containers) == 0:
             break
-
