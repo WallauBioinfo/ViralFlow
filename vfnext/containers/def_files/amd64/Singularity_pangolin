@@ -1,10 +1,14 @@
-Bootstrap: library
+Bootstrap: docker
 From: debian:11
 
 %environment
     export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
     
 %post
+    echo "deb http://archive.debian.org/debian/ bullseye main" > /etc/apt/sources.list && \
+    echo "deb http://archive.debian.org/debian-security/ bullseye-security main" > /etc/apt/sources.list.d/bullseye-security.list && \
+    echo "deb http://archive.debian.org/debian/ bullseye-updates main" > /etc/apt/sources.list.d/bullseye-updates.list
+    
     apt-get update
     apt-get install -y curl bzip2
     cd /usr/local
