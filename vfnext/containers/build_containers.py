@@ -10,7 +10,6 @@ containers = [
     "snpeff:5.0.sif",
 ]
 
-# temporary logic, before push to remote repo
 container_commands = [
     f"singularity build -F --fakeroot --sandbox pangolin:4.4.sif def_files/{arch}/Singularity_pangolin",
     f"singularity build -F --fakeroot --sandbox snpeff:5.0.sif def_files/{arch}/Singularity_snpEff"

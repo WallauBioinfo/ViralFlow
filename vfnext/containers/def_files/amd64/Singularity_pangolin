@@ -1,11 +1,14 @@
 Bootstrap: docker
-From: debian:12-slim
+From: debian:11
 
 %environment
     export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
     
 %post
-    set -e
+    echo "deb http://archive.debian.org/debian/ bullseye main" > /etc/apt/sources.list && \
+    echo "deb http://archive.debian.org/debian-security/ bullseye-security main" > /etc/apt/sources.list.d/bullseye-security.list && \
+    echo "deb http://archive.debian.org/debian/ bullseye-updates main" > /etc/apt/sources.list.d/bullseye-updates.list
+    
     apt-get update
     apt-get install -y curl bzip2
     cd /usr/local
@@ -18,9 +21,6 @@ From: debian:12-slim
     micromamba activate
     micromamba config append channels conda-forge --env
     micromamba install -c bioconda -c conda-forge python=3.11 usher=0.6.2 snakemake-minimal==9.19.0 pangolin=4.4 gofasta ucsc-fatovcf procps-ng git pip
-    # Bioconda requirements differ from those declared by the installed Python packages.
-    python -c "from importlib.metadata import requires; import subprocess, sys; subprocess.check_call([sys.executable, '-m', 'pip', 'install', *(requires('pangolin') or []), *(requires('snakemake') or [])])"
-    python -m pip check
     apt-get clean
     micromamba clean --all --yes
     rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale

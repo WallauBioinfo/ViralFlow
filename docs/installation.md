@@ -13,12 +13,35 @@ Nextflow, Apptainer, ViralFlow and containers. Its default paths are
 `~/ViralFlowGUI/bin`, `~/ViralFlowGUI/micromamba` and `~/ViralFlowGUI/ViralFlow`.
 This branch does not provide `install.sh`.
 
+### Official Quay containers
+
+This branch incorporates upstream commit `77ca0ec` from
+`WallauBioinfo/change_containers_repository`. Both repository manifests are
+identical to upstream and reference `quay.io/wallaulabs/amd64-<image>:<tag>` or
+`quay.io/wallaulabs/arm64-<image>:<tag>`. Downloads use `docker://` and the host's
+`singularity` command to convert the OCI images into SIF files. Local filenames
+remain `<image>:<tag>.sif`, preserving the existing Nextflow paths and reusing
+containers already present. Failed downloads propagate a nonzero exit status.
+No Sylabs remote or registry login is required for the public AMD64 images.
+
+The AMD64 Pangolin and snpEff recipes are byte-for-byte copies of `77ca0ec`.
+On 2026-11-08, both built successfully on Ubuntu 26.04.1 AMD64 with Apptainer
+1.5.5. Pangolin 4.4 classified the public MN908947 reference; snpEff 5.0e
+downloaded `NC_045512.2`, produced its database catalog and annotated a test VCF,
+including HTML and gene reports. Pangolin's `pip check` reported mismatches
+for pandas, scikit-learn and packaging; the official recipe is retained as-is.
+No scientific algorithms, biological parameters or reference datasets were changed.
+
+Anonymous requests for all 11 AMD64 manifests succeeded; the 11 ARM64 manifests
+returned HTTP 401. ARM64 availability requires confirmation with the upstream
+maintainers. This validation did not include a complete pipeline analysis or ARM64.
+
 For manual installation, provide Micromamba and a working `singularity` command
 on the host (Singularity or Apptainer's compatibility command), put them in
 `PATH`, then create the environment from the appropriate YAML:
 
 ```bash
-git clone -b feat/develop/ubuntu26.04 https://github.com/camilodotto/ViralFlow.git
+git clone -b feat/develop/ubuntu26.04-quay.io https://github.com/camilodotto/ViralFlow.git
 cd ViralFlow
 micromamba env create -n viralflow -f envs/amd64.yml -y
 micromamba run -n viralflow python -m pip install -e .

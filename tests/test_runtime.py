@@ -158,14 +158,39 @@ esac
                     self.assertEqual(config.read_text(), "# existing configuration\n")
                     self.assertFalse((config.parent / "data/TEST").exists())
 
-    def test_pull_uses_singularity_and_explicit_library(self):
-        image = ("test", "example:1", "test/test/example:1")
+    def test_pull_uses_quay_and_preserves_local_filename_and_directory(self):
+        image = ("wallaulabs", "edirect:1.1.0", "quay.io/wallaulabs/amd64-edirect:1.1.0")
         with patch.object(containers.subprocess, "check_call") as run:
             containers.container_pull("/tmp/container-test", [image])
         command = run.call_args.args[0]
-        self.assertEqual(command[0], "singularity")
-        self.assertEqual(command[command.index("--library") + 1], "https://library.sylabs.io")
+        self.assertEqual(command, ["singularity", "pull", "-F", "edirect:1.1.0.sif",
+                                   "docker://quay.io/wallaulabs/amd64-edirect:1.1.0"])
         self.assertEqual(run.call_args.kwargs["cwd"], "/tmp/container-test")
+
+    def test_quay_pull_failure_is_propagated(self):
+        image = ("wallaulabs", "edirect:1.1.0", "quay.io/wallaulabs/amd64-edirect:1.1.0")
+        failure = subprocess.CalledProcessError(255, "singularity pull")
+        with patch.object(containers.subprocess, "check_call", side_effect=failure):
+            with self.assertRaises(subprocess.CalledProcessError) as raised:
+                containers.container_pull("/tmp/container-test", [image])
+        self.assertIs(raised.exception, failure)
+
+    def test_quay_manifests_keep_expected_local_names_for_both_architectures(self):
+        expected = ["edirect:1.1.0", "mafft:7.505_2", "samtools:1.11.0", "picard:2.27.2_2",
+                    "intrahost_analysis:1.1.0", "generate_report:1.1.0",
+                    "generate_consensus:2.0.0", "fastp:1.0.1", "generate_plots:2.0.0",
+                    "nextclade:3.18", "compiled_outputs:1.1.0"]
+        for arch in ("amd64", "arm64"):
+            with self.subTest(arch=arch):
+                images = containers.get_repository(
+                    ROOT / f"vfnext/containers/repositories/repositories_{arch}.txt")
+                self.assertEqual([image[1] for image in images], expected)
+                for org, name, repo in images:
+                    self.assertEqual(org, "wallaulabs")
+                    self.assertEqual(repo, f"quay.io/wallaulabs/{arch}-{name}")
+                with tempfile.TemporaryDirectory() as temporary:
+                    (Path(temporary) / f"{expected[0]}.sif").touch()
+                    self.assertEqual(containers.check_containers(images, temporary), images[1:])
 
     def test_missing_downloads_terminate_instead_of_looping_forever(self):
         missing = [("test", "example:1", "test/test/example:1")]

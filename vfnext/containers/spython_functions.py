@@ -10,13 +10,15 @@ def get_repository(repository_list):
             container = container.strip()
             if not container:
                 continue
-            # Full path: e.g. wallaulabs2/viralflow-amd64/edirect:1.1.0
+
+            # Full path: e.g. quay.io/wallaulabs/amd64-edirect:1.1.0
             parts = container.split("/")
-            org = parts[0]  # wallaulabs2
-            project = parts[1]  # viralflow-amd64
-            container_version = parts[2]  # edirect:1.1.0
-            full_repo = f"{org}/{project}/{container_version}"
-            containers_name_list.append((project, container_version, full_repo))
+            registry = parts[0]       # quay.io
+            organization = parts[1]   # wallaulabs
+            image_filename = parts[2] # amd64-edirect:1.1.0
+            container_version = image_filename.split("-")[1]
+            full_repo = container     # complete quay.io
+            containers_name_list.append((organization, container_version, full_repo))
     return containers_name_list
 
 
@@ -26,8 +28,8 @@ def container_pull(containers_dir, containers_name_list):
         full_repo = container[2]
         print(f"Downloading container {container_version}. This could be take a while. Please Wait ...")
         subprocess.check_call([
-            "singularity", "pull", "-F", "--library", "https://library.sylabs.io",
-            f"{container_version}.sif", f"library://{full_repo}"
+            "singularity", "pull", "-F",
+            f"{container_version}.sif", f"docker://{full_repo}"
         ], cwd=containers_dir)
 
 
