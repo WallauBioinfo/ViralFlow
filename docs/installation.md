@@ -24,12 +24,20 @@ remain `<image>:<tag>.sif`, preserving the existing Nextflow paths and reusing
 containers already present. Failed downloads propagate a nonzero exit status.
 No Sylabs remote or registry login is required for the public AMD64 images.
 
-The AMD64 Pangolin and snpEff recipes are byte-for-byte copies of `77ca0ec`.
-On 2026-11-08, both built successfully on Ubuntu 26.04.1 AMD64 with Apptainer
-1.5.5. Pangolin 4.4 classified the public MN908947 reference; snpEff 5.0e
-downloaded `NC_045512.2`, produced its database catalog and annotated a test VCF,
-including HTML and gene reports. Pangolin's `pip check` reported mismatches
-for pandas, scikit-learn and packaging; the official recipe is retained as-is.
+The AMD64 Pangolin and snpEff recipes are restored from this fork's
+`feat/dev/ubuntu26.04-ghcr.io` branch; the Quay download manifests are retained.
+Both recipes use Debian 12. Pangolin installs its declared Python requirements
+and runs `pip check`. snpEff uses Micromamba 1.5.7 with snpEff 5.0 build
+`hdfd78af_3` and Java 17, preserving `/opt/conda/share/snpeff-5.0-3` for database
+maintenance. The original upstream recipes previously passed basic functional
+tests, but Pangolin's `pip check` reported mismatches for pandas, scikit-learn
+and packaging.
+
+`build-containers` reuses existing sandbox directories. Updating a recipe does
+not rebuild an existing sandbox. To use the restored recipes, first back up or
+rename the existing `pangolin:4.4.sif` and `snpeff:5.0.sif` directories in the
+installation being used, preserving any custom databases, then run
+`viralflow build-containers` again.
 No scientific algorithms, biological parameters or reference datasets were changed.
 
 Anonymous requests for all 11 AMD64 manifests succeeded; the 11 ARM64 manifests
