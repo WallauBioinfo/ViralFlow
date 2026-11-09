@@ -154,3 +154,4 @@ work/*
 vfnext/containers/snpEff_DB.catalog
 vfnext/databases/*
 !vfnext/databases/*.csv
+AGENTS.md
