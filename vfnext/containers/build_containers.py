@@ -1,13 +1,17 @@
 import subprocess
 import os
+import sys
+
+arch = sys.argv[1]
 
 containers = [
-    "pangolin_latest.sif",
-    "singularity_snpeff.sif"]
+    "pangolin:4.4.sif",
+    "snpeff:5.0.sif",
+]
 
 container_commands = [
-    "singularity build -F --fakeroot --sandbox pangolin_latest.sif Singularity_pangolin",
-    "singularity build -F --fakeroot --sandbox singularity_snpeff.sif Singularity_snpEff"
+    f"singularity build -F --fakeroot --sandbox pangolin:4.4.sif def_files/{arch}/Singularity_pangolin",
+    f"singularity build -F --fakeroot --sandbox snpeff:5.0.sif def_files/{arch}/Singularity_snpEff"
 ]
 
 failed_containers = []
@@ -61,7 +65,7 @@ if success:
     print("\nExecuting additional steps:\n")
 
     print("  > Loading sars-cov2 nextclade dataset...\n")
-    nextclade_command = "singularity exec -B nextclade_dataset/sars-cov-2:/tmp nextclade:2.4.sif nextclade dataset get --name 'sars-cov-2' --output-dir '/tmp'"
+    nextclade_command = "singularity exec -B nextclade_dataset/sars-cov-2:/tmp nextclade:3.18.sif nextclade dataset get --name 'sars-cov-2' --output-dir '/tmp'"
     try:
         subprocess.check_call(nextclade_command, shell=True)
         print("    > Done <\n")
@@ -71,7 +75,7 @@ if success:
         success = False
 
     print("  > Downloading snpeff database catalog...")
-    snpeff_command = "singularity exec singularity_snpeff.sif snpEff databases > snpEff_DB.catalog"
+    snpeff_command = "singularity exec snpeff:5.0.sif snpEff databases > snpEff_DB.catalog"
     try:
         subprocess.check_call(snpeff_command, shell=True)
         print("    > Done <")
@@ -95,4 +99,4 @@ if success:
 
 if success:
     print("\nAll steps from '-build_containers' completed successfully. You can test ViralFlow using the following command:")
-    print("   > viralflow -run --params_file test_files/sars-cov-2.params")
+    print("   > viralflow run --params-file test_files/sars-cov-2.params")

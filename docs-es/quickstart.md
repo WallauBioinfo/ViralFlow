@@ -11,7 +11,7 @@ Siempre use **rutas absolutas** al especificar directorios y archivos, ej.: `/ho
 La herramienta snpEff presente en el ViralFlow ya viene configurada solamente con el genoma NC_045512.2 del virus SARS-CoV-2. En el caso de querer el análisis del snpEff para otros virus, deberá actualizarse el  banco del snpEff con la siguiente línea de comando (ejemplo Dengue):
 
 ```bash
-viralflow -add_entry_to_snpeff --org_name Dengue --genome_code NC_001474.2
+viralflow add_entry_to_snpeff --org_name Dengue --genome_code NC_001474.2
 ```
 
 ## Modo SARS-CoV-2
@@ -21,7 +21,7 @@ En este modelo, el análisis es realizado considerando el genoma de referencia N
 Para ello, el usuario necesita construir un archivo con los parámetros del análisis. Un ejemplo puede ser [verificado aquí](https://github.com/WallauBioinfo/ViralFlow/blob/main/test_files/sars-cov-2.params).
 
 ```bash
-viralflow -run --params_file test_files/sars-cov-2.params
+viralflow run --params_file test_files/sars-cov-2.params
 ```
 
 ## Modo Custom
@@ -31,7 +31,7 @@ En este modelo, el análisis es realizado considerando los archivos para el viru
 Un ejemplo de archivo de parámetros puede ser [verificado aquí](https://github.com/WallauBioinfo/ViralFlow/blob/main/test_files/denv.params).
 
 ```bash
-viralflow -run --params_file test_files/denv.params
+viralflow run --params_file test_files/denv.params
 ```
 
 ## Actualización Pangolin
@@ -40,8 +40,8 @@ Periódicamente, la herramienta Pangolin actualiza el banco de linajes, así com
 
 ```bash
 # Actualiza la herramienta y las bases de datos
-viralflow -update_pangolin
+viralflow update_pangolin
 
 # Solo actualiza las bases de datos
-viralflow -update_pangolin_data
+viralflow update_pangolin_data
 ```

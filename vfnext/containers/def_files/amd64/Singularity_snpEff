@@ -1,0 +1,30 @@
+Bootstrap: docker
+From: continuumio/miniconda3:4.7.12
+
+%post
+    echo "deb http://archive.debian.org/debian/ buster main" > /etc/apt/sources.list
+    echo "deb http://archive.debian.org/debian-security/ buster/updates main" > /etc/apt/sources.list.d/buster-security.list
+    echo "deb http://archive.debian.org/debian/ buster-updates main" > /etc/apt/sources.list.d/buster-updates.list
+
+    apt-get -o Acquire::Check-Valid-Until=false -o Acquire::AllowInsecureRepositories=true update -y
+    apt-get install -y --allow-unauthenticated procps
+    conda install -y -c conda-forge -c bioconda \
+        snpeff=5.0 \
+        entrez-direct \
+        procps-ng
+    apt-get clean
+    conda clean --all --yes
+    rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale
+    snpEff download NC_045512.2
+
+%environment
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+
+%runscript
+    cd /
+    exec /bin/bash "$@"
+
+%startscript
+    cd /
+    exec /bin/bash "$@"

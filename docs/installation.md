@@ -91,7 +91,7 @@ sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
 After ensuring that "unsquashfs" is in the appropriate location, run the command to build the containers:
 
 ```bash
-viralflow -build_containers
+viralflow build_containers
 ```
 
 ```{note}

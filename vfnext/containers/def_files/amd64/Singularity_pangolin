@@ -1,0 +1,26 @@
+Bootstrap: docker
+From: debian:11
+
+%environment
+    export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
+    
+%post
+    echo "deb http://archive.debian.org/debian/ bullseye main" > /etc/apt/sources.list && \
+    echo "deb http://archive.debian.org/debian-security/ bullseye-security main" > /etc/apt/sources.list.d/bullseye-security.list && \
+    echo "deb http://archive.debian.org/debian/ bullseye-updates main" > /etc/apt/sources.list.d/bullseye-updates.list
+    
+    apt-get update
+    apt-get install -y curl bzip2
+    cd /usr/local
+    rmdir bin
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/1.5.7 | tar -xvj bin/micromamba
+    export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
+    eval "$(/usr/local/bin/micromamba shell hook -s posix)"
+    /usr/local/bin/micromamba shell init -s bash -p /usr/local/bin/mm
+    micromamba shell init --shell=bash --prefix=/usr/local/bin/mm
+    micromamba activate
+    micromamba config append channels conda-forge --env
+    micromamba install -c bioconda -c conda-forge python=3.11 usher=0.6.2 snakemake-minimal==9.19.0 pangolin=4.4 gofasta ucsc-fatovcf procps-ng git pip
+    apt-get clean
+    micromamba clean --all --yes
+    rm -rf /var/lib/apt/lists/* /usr/share/man /usr/share/doc /usr/share/locale

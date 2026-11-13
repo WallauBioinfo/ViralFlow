@@ -11,7 +11,7 @@ Always use **absolute paths** when specifying directories and files, e.g., `/hom
 By default, the snpEff tool in ViralFlow is configured with the NC_045512.2 genome of the SARS-CoV-2 virus only. If you want to include the snpEff analysis for other viruses, you must update the snpEff database with the following command (example with Dengue):
 
 ```bash
-viralflow -add_entry_to_snpeff --org_name Dengue --genome_code NC_001474.2
+viralflow add_entry_to_snpeff --org_name Dengue --genome_code NC_001474.2
 ```
 
 ## SARS-CoV-2 Mode
@@ -21,7 +21,7 @@ In this model, the analysis is performed based on the reference genome NC_045512
 For this, the user needs to build a file with the analysis parameters. An example can be [seen here](https://github.com/WallauBioinfo/ViralFlow/blob/main/test_files/sars-cov-2.params).
 
 ```bash
-viralflow -run --params_file test_files/sars-cov-2.params
+viralflow run --params-file test_files/sars-cov-2.params
 ```
 
 ## Custom Mode
@@ -31,7 +31,7 @@ In this model, the analysis is performed based on the files for the virus that t
 An example parameter file can be [seen here](https://github.com/WallauBioinfo/ViralFlow/blob/main/test_files/denv.params).
 
 ```bash
-viralflow -run --params_file test_files/denv.params
+viralflow run --params-file test_files/denv.params
 ```
 
 ## Pangolin Update
@@ -40,8 +40,8 @@ Periodically the pangolin tool updates the lineage database, as well as the ushe
 
 ```bash
 # Update the tool and databases
-viralflow -update_pangolin
+viralflow update_pangolin
 
 # Update only the databases
-viralflow -update_pangolin_data
+viralflow update_pangolin_data
 ```
