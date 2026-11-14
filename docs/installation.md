@@ -1,5 +1,72 @@
 # Installation
 
+## Ubuntu 26.04
+
+This branch uses Micromamba 1.5.7, Nextflow 22.04.0 and Java 17.
+ViralFlow invokes `singularity` for container build, download, maintenance and
+execution, as in the upstream branch. The GUI installs Apptainer and provides
+the `singularity` compatibility command. Pangolin and snpEff remain
+**sandbox directories**, despite their `.sif` suffix; the other images are SIF.
+
+The ViralFlow GUI manages the installation in separate steps: Micromamba,
+Nextflow, Apptainer, ViralFlow and containers. Its default paths are
+`~/ViralFlowGUI/bin`, `~/ViralFlowGUI/micromamba` and `~/ViralFlowGUI/ViralFlow`.
+This branch does not provide `install.sh`.
+
+### Official Quay containers
+
+This branch incorporates upstream commit `77ca0ec` from
+`WallauBioinfo/change_containers_repository`. Both repository manifests are
+identical to upstream and reference `quay.io/wallaulabs/amd64-<image>:<tag>` or
+`quay.io/wallaulabs/arm64-<image>:<tag>`. Downloads use `docker://` and the host's
+`singularity` command to convert the OCI images into SIF files. Local filenames
+remain `<image>:<tag>.sif`, preserving the existing Nextflow paths and reusing
+containers already present. Failed downloads propagate a nonzero exit status.
+No Sylabs remote or registry login is required for the public AMD64 images.
+
+The AMD64 Pangolin and snpEff recipes are restored from this fork's
+`feat/dev/ubuntu26.04-ghcr.io` branch; the Quay download manifests are retained.
+Both recipes use Debian 12. Pangolin installs its declared Python requirements
+and runs `pip check`. snpEff uses Micromamba 1.5.7 with snpEff 5.0 build
+`hdfd78af_3` and Java 17, preserving `/opt/conda/share/snpeff-5.0-3` for database
+maintenance. The original upstream recipes previously passed basic functional
+tests, but Pangolin's `pip check` reported mismatches for pandas, scikit-learn
+and packaging.
+
+`build-containers` reuses existing sandbox directories. Updating a recipe does
+not rebuild an existing sandbox. To use the restored recipes, first back up or
+rename the existing `pangolin:4.4.sif` and `snpeff:5.0.sif` directories in the
+installation being used, preserving any custom databases, then run
+`viralflow build-containers` again.
+No scientific algorithms, biological parameters or reference datasets were changed.
+
+Anonymous requests for all 11 AMD64 manifests succeeded; the 11 ARM64 manifests
+returned HTTP 401. ARM64 availability requires confirmation with the upstream
+maintainers. This validation did not include a complete pipeline analysis or ARM64.
+
+For manual installation, provide Micromamba and a working `singularity` command
+on the host (Singularity or Apptainer's compatibility command), put them in
+`PATH`, then create the environment from the appropriate YAML:
+
+```bash
+git clone -b feat/develop/ubuntu26.04-quay.io https://github.com/camilodotto/ViralFlow.git
+cd ViralFlow
+micromamba env create -n viralflow -f envs/amd64.yml -y
+micromamba run -n viralflow python -m pip install -e .
+NXF_VER=22.04.0 micromamba run -n viralflow nextflow -version
+micromamba run -n viralflow viralflow --version
+```
+
+Java 17 and Nextflow 22.04.0 come from the YAML, matching the upstream
+environment. The GUI also installs its own Nextflow launcher in `bin` and
+selects that absolute path. The container runtime is provided by the host;
+the YAML does not install a second runtime in the Conda environment.
+For an existing environment, use
+`micromamba update -n viralflow -f envs/amd64.yml --prune -y`.
+The GUI pins its own Nextflow binary and keeps its cache under the installation
+root. See [the migration record](../UBUNTU26.04-CHANGES.md) for changes and
+validation. The remaining instructions describe the older installation paths.
+
 ## MacOS Installation
 
 Due to the limitation of using singularity on MacOS, to run ViralFlow on this type of system, we suggest using a Linux virtualization software called [Lima](https://github.com/lima-vm/lima).

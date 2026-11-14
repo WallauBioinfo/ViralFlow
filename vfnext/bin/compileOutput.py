@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from ast import Assert
+import math
 import os
 import pandas as pd
 import sys
@@ -302,6 +303,7 @@ def compile_output_fls(data_dir, out_dir, depth, virus_tag):
             all_metrics_df = pd.concat(mtrcs_df_lst, ignore_index=True)
             all_metrics_df.to_csv(out_dir + "/reads_count.csv", index=False)
             print("  > reads_count.csv")
+            generate_reads_count_plot(all_metrics_df, out_dir)
         except(AssertionError):
             print("WARN: No reads_count data")
         try:
@@ -369,6 +371,439 @@ def loadCoverageDF(multifasta_path):
         cov = "{:.4f}".format(computeCoverage(seq))
         dct_lst.append({"cod": cod, "coverage_breadth": cov})
     return pd.DataFrame(dct_lst)
+
+
+# --- coverage summary plot ---------------------------------------------------
+def _nice_axis_max(value):
+    """
+    Return a readable upper bound for a numeric axis.
+    """
+    if value <= 0 or math.isnan(value):
+        return 1
+
+    magnitude = 10 ** math.floor(math.log10(value))
+    normalized = value / magnitude
+    if normalized <= 1:
+        nice = 1
+    elif normalized <= 2:
+        nice = 2
+    elif normalized <= 5:
+        nice = 5
+    else:
+        nice = 10
+    return nice * magnitude
+
+
+def _linear_regression(points):
+    """
+    Fit a simple y = ax + b regression line for the plotted points.
+    """
+    if len(points) < 2:
+        return None
+
+    n = len(points)
+    sum_x = sum(point[0] for point in points)
+    sum_y = sum(point[1] for point in points)
+    sum_xx = sum(point[0] ** 2 for point in points)
+    sum_xy = sum(point[0] * point[1] for point in points)
+    denominator = (n * sum_xx) - (sum_x ** 2)
+    if denominator == 0:
+        return None
+
+    slope = ((n * sum_xy) - (sum_x * sum_y)) / denominator
+    intercept = (sum_y - (slope * sum_x)) / n
+    return slope, intercept
+
+
+def _coverage_breadth_percentages(series):
+    values = pd.to_numeric(series, errors="coerce").dropna().tolist()
+    if len(values) == 0:
+        return []
+    if max(values) <= 1:
+        return [value * 100 for value in values]
+    return values
+
+
+def _svg_escape(value):
+    return (
+        str(value)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def _is_cneg_cod(value):
+    return str(value).strip().lower().startswith("cneg")
+
+
+def generate_reads_count_plot(reads_count_df, outdir):
+    """
+    Generate an SVG bar plot from reads_count.csv data.
+    """
+    required_columns = {"cod", "total_reads"}
+    if not required_columns.issubset(reads_count_df.columns):
+        missing = ", ".join(sorted(required_columns - set(reads_count_df.columns)))
+        print(f"WARN: reads count plot was not generated. Missing columns: {missing}")
+        return
+
+    plot_df = reads_count_df[["cod", "total_reads"]].copy()
+    plot_df["total_reads"] = pd.to_numeric(plot_df["total_reads"], errors="coerce")
+    plot_df = plot_df.dropna()
+
+    if len(plot_df) == 0:
+        print("WARN: reads count plot was not generated. No numeric data available.")
+        return
+
+    plot_df = plot_df.assign(
+        _is_cneg=plot_df["cod"].map(_is_cneg_cod),
+        _cod_sort=plot_df["cod"].map(lambda value: str(value).lower()),
+    ).sort_values(
+        by=["_is_cneg", "_cod_sort"],
+        ascending=[False, True],
+        kind="mergesort",
+    )
+
+    cod_values = [str(value) for value in plot_df["cod"].tolist()]
+    read_values = plot_df["total_reads"].tolist()
+    has_cneg = any(_is_cneg_cod(value) for value in cod_values)
+
+    width = 960
+    height = 640
+    left = 120
+    right = 48
+    top = 72
+    bottom = 190
+    sample_label_font_size = 14
+    plot_width = width - left - right
+    plot_height = height - top - bottom
+    axis_color = "#000000"
+    cneg_color = "#2f80ed"
+    bar_color = "#c8443a"
+    grid = "#e9f5ec"
+    text = "#4f5b57"
+
+    y_max = _nice_axis_max(max(read_values) * 1.12)
+    if y_max < 5:
+        y_max = 5
+
+    def sy(y):
+        return top + plot_height - (y / y_max * plot_height)
+
+    y_ticks = [i * y_max / 5 for i in range(0, 6)]
+    svg_ticks = []
+    for tick in y_ticks:
+        svg_ticks.append(
+            f'<line x1="{left}" y1="{sy(tick):.2f}" x2="{left + plot_width}" y2="{sy(tick):.2f}" stroke="{grid}" />'
+            f'<text x="{left - 16}" y="{sy(tick) + 5:.2f}" text-anchor="end" class="tick">{tick:.0f}</text>'
+        )
+
+    slot_width = plot_width / len(plot_df)
+    bar_width = min(slot_width * 0.5, 120)
+    bars = []
+    labels = []
+    for idx, (cod, total_reads) in enumerate(zip(cod_values, read_values)):
+        center_x = left + (slot_width * idx) + (slot_width / 2)
+        bar_height = plot_height - (sy(total_reads) - top)
+        x = center_x - (bar_width / 2)
+        y = sy(total_reads)
+        color = cneg_color if _is_cneg_cod(cod) else bar_color
+        bars.append(
+            f'<rect x="{x:.2f}" y="{y:.2f}" width="{bar_width:.2f}" height="{bar_height:.2f}" '
+            f'fill="{color}" fill-opacity="0.18" stroke="{color}" stroke-width="2" />'
+        )
+        label_x = center_x
+        label_y = top + plot_height + 28
+        labels.append(
+            f'<text x="{label_x:.2f}" y="{label_y}" text-anchor="end" class="sample-label" '
+            f'transform="rotate(-45 {label_x:.2f} {label_y})">{_svg_escape(cod)}</text>'
+        )
+
+    legend_svg = ""
+    if has_cneg:
+        legend_svg = (
+            f'<rect x="{left + plot_width - 220}" y="{top + 18}" width="24" height="16" '
+            f'fill="{cneg_color}" fill-opacity="0.18" stroke="{cneg_color}" stroke-width="2" />'
+            f'<text x="{left + plot_width - 184}" y="{top + 32}" class="tick">Cneg: negative control</text>'
+        )
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+  <style>
+    .title {{ font: 700 28px Arial, Helvetica, sans-serif; fill: {axis_color}; }}
+    .label {{ font: 700 24px Arial, Helvetica, sans-serif; fill: {axis_color}; }}
+    .tick {{ font: 16px Arial, Helvetica, sans-serif; fill: {text}; }}
+    .sample-label {{ font: 700 {sample_label_font_size}px Arial, Helvetica, sans-serif; fill: {axis_color}; }}
+  </style>
+  <rect width="100%" height="100%" fill="white" />
+  <text x="{width / 2}" y="42" text-anchor="middle" class="title">Reads count by sample</text>
+  {''.join(svg_ticks)}
+  <line x1="{left}" y1="{top + plot_height}" x2="{left + plot_width}" y2="{top + plot_height}" stroke="{axis_color}" stroke-width="2" />
+  <line x1="{left}" y1="{top + plot_height}" x2="{left}" y2="{top}" stroke="{axis_color}" stroke-width="2" />
+  <path d="M {left + plot_width - 18} {top + plot_height - 12} L {left + plot_width} {top + plot_height} L {left + plot_width - 18} {top + plot_height + 12}" fill="none" stroke="{axis_color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M {left - 12} {top + 18} L {left} {top} L {left + 12} {top + 18}" fill="none" stroke="{axis_color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  {legend_svg}
+  {''.join(bars)}
+  {''.join(labels)}
+  <text x="{left + (plot_width / 2)}" y="{height - 34}" text-anchor="middle" class="label">Sample</text>
+  <text transform="translate(34 {top + (plot_height / 2)}) rotate(-90)" text-anchor="middle" class="label">Number of reads</text>
+</svg>
+'''
+
+    svg_path = os.path.join(outdir, "reads_count_plot.svg")
+    with open(svg_path, "w") as svg_file:
+        svg_file.write(svg)
+
+    print(f"  > {svg_path}")
+
+
+def generate_coverage_plot(short_summary_df, outdir):
+    """
+    Generate an SVG plot from short_summary coverage columns.
+    """
+    required_columns = {"cod", "coverage_breadth", "mean_depth_coverage"}
+    if not required_columns.issubset(short_summary_df.columns):
+        missing = ", ".join(sorted(required_columns - set(short_summary_df.columns)))
+        print(f"WARN: coverage plot was not generated. Missing columns: {missing}")
+        return
+
+    plot_df = short_summary_df[["cod", "coverage_breadth", "mean_depth_coverage"]].copy()
+    plot_df["coverage_breadth"] = pd.to_numeric(plot_df["coverage_breadth"], errors="coerce")
+    plot_df["mean_depth_coverage"] = pd.to_numeric(plot_df["mean_depth_coverage"], errors="coerce")
+    plot_df = plot_df.dropna()
+
+    if len(plot_df) == 0:
+        print("WARN: coverage plot was not generated. No numeric data available.")
+        return
+
+    x_values = _coverage_breadth_percentages(plot_df["coverage_breadth"])
+    y_values = plot_df["mean_depth_coverage"].tolist()
+    points = list(zip(x_values, y_values))
+    has_cneg = any(_is_cneg_cod(value) for value in plot_df["cod"].tolist())
+
+    width = 960
+    height = 640
+    left = 120
+    right = 48
+    top = 72
+    bottom = 112
+    plot_width = width - left - right
+    plot_height = height - top - bottom
+    axis_color = "#000000"
+    label_color = "#000000"
+    point_red = "#c8443a"
+    cneg_blue = "#2f80ed"
+    grid = "#e9f5ec"
+    text = "#4f5b57"
+
+    x_min = 0
+    x_max = max(100, _nice_axis_max(max(x_values)))
+    y_min = 0
+    y_max = _nice_axis_max(max(y_values) * 1.08)
+
+    def sx(x):
+        return left + ((x - x_min) / (x_max - x_min) * plot_width)
+
+    def sy(y):
+        return top + plot_height - ((y - y_min) / (y_max - y_min) * plot_height)
+
+    circles = []
+    for cod, (x, y) in zip(plot_df["cod"].tolist(), points):
+        if _is_cneg_cod(cod):
+            circles.append(
+                f'<circle cx="{sx(x):.2f}" cy="{sy(y):.2f}" r="5" fill="{cneg_blue}" fill-opacity="0.82" />'
+            )
+        else:
+            circles.append(
+                f'<circle cx="{sx(x):.2f}" cy="{sy(y):.2f}" r="5" fill="{point_red}" fill-opacity="0.82" />'
+            )
+
+    line_svg = ""
+    fit = _linear_regression(points)
+    if fit is not None:
+        slope, intercept = fit
+        y_start = max(y_min, min(y_max, (slope * x_min) + intercept))
+        y_end = max(y_min, min(y_max, (slope * x_max) + intercept))
+        line_svg = (
+            f'<line x1="{sx(x_min):.2f}" y1="{sy(y_start):.2f}" '
+            f'x2="{sx(x_max):.2f}" y2="{sy(y_end):.2f}" '
+            f'stroke="{point_red}" stroke-width="3" stroke-linecap="round" />'
+        )
+
+    x_ticks = [0, 25, 50, 75, 100]
+    y_ticks = [i * y_max / 5 for i in range(0, 6)]
+    svg_ticks = []
+    for tick in x_ticks:
+        if tick <= x_max:
+            svg_ticks.append(
+                f'<line x1="{sx(tick):.2f}" y1="{top}" x2="{sx(tick):.2f}" y2="{top + plot_height}" stroke="{grid}" />'
+                f'<text x="{sx(tick):.2f}" y="{top + plot_height + 32}" text-anchor="middle" class="tick">{tick}%</text>'
+            )
+    for tick in y_ticks:
+        svg_ticks.append(
+            f'<line x1="{left}" y1="{sy(tick):.2f}" x2="{left + plot_width}" y2="{sy(tick):.2f}" stroke="{grid}" />'
+            f'<text x="{left - 16}" y="{sy(tick) + 5:.2f}" text-anchor="end" class="tick">{tick:.0f}</text>'
+        )
+
+    legend_svg = ""
+    if has_cneg:
+        legend_svg = (
+            f'<circle cx="{left + plot_width - 208}" cy="{top + 26}" r="5" '
+            f'fill="{cneg_blue}" fill-opacity="0.82" />'
+            f'<text x="{left + plot_width - 184}" y="{top + 32}" class="tick">Cneg: negative control</text>'
+        )
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+  <style>
+    .title {{ font: 700 28px Arial, Helvetica, sans-serif; fill: {axis_color}; }}
+    .label {{ font: 700 24px Arial, Helvetica, sans-serif; fill: {label_color}; }}
+    .tick {{ font: 16px Arial, Helvetica, sans-serif; fill: {text}; }}
+  </style>
+  <rect width="100%" height="100%" fill="white" />
+  <text x="{width / 2}" y="42" text-anchor="middle" class="title">Vertical and horizontal coverage relationship</text>
+  {''.join(svg_ticks)}
+  <line x1="{left}" y1="{top + plot_height}" x2="{left + plot_width}" y2="{top + plot_height}" stroke="{axis_color}" stroke-width="2" />
+  <line x1="{left}" y1="{top + plot_height}" x2="{left}" y2="{top}" stroke="{axis_color}" stroke-width="2" />
+  <path d="M {left + plot_width - 18} {top + plot_height - 12} L {left + plot_width} {top + plot_height} L {left + plot_width - 18} {top + plot_height + 12}" fill="none" stroke="{axis_color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M {left - 12} {top + 18} L {left} {top} L {left + 12} {top + 18}" fill="none" stroke="{axis_color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  {legend_svg}
+  {line_svg}
+  {''.join(circles)}
+  <text x="{left + (plot_width / 2)}" y="{height - 34}" text-anchor="middle" class="label">Coverage breadth (%)</text>
+  <text transform="translate(34 {top + (plot_height / 2)}) rotate(-90)" text-anchor="middle" class="label">Mean coverage depth</text>
+</svg>
+'''
+
+    svg_path = os.path.join(outdir, "coverage_plot.svg")
+    with open(svg_path, "w") as svg_file:
+        svg_file.write(svg)
+
+    print(f"  > {svg_path}")
+
+
+def _generate_coverage_breadth_range_plot(short_summary_df, outdir, groups, filename, title, label_font_size=24):
+    """
+    Generate an SVG bar plot with genome counts by coverage breadth ranges.
+    """
+    if "coverage_breadth" not in short_summary_df.columns:
+        print(f"WARN: {filename} was not generated. Missing column: coverage_breadth")
+        return
+
+    x_values = _coverage_breadth_percentages(short_summary_df["coverage_breadth"])
+    if len(x_values) == 0:
+        print(f"WARN: {filename} was not generated. No numeric data available.")
+        return
+
+    counts = []
+    for _, in_group in groups:
+        counts.append(sum(1 for value in x_values if in_group(value)))
+
+    width = 960
+    height = 640
+    left = 120
+    right = 48
+    top = 72
+    bottom = 150
+    plot_width = width - left - right
+    plot_height = height - top - bottom
+    axis_color = "#000000"
+    bar_color = "#c8443a"
+    grid = "#e9f5ec"
+    text = "#4f5b57"
+
+    y_max = _nice_axis_max(max(counts) * 1.15)
+    if y_max < 5:
+        y_max = 5
+
+    def sy(y):
+        return top + plot_height - (y / y_max * plot_height)
+
+    y_ticks = [i * y_max / 5 for i in range(0, 6)]
+    svg_ticks = []
+    for tick in y_ticks:
+        svg_ticks.append(
+            f'<line x1="{left}" y1="{sy(tick):.2f}" x2="{left + plot_width}" y2="{sy(tick):.2f}" stroke="{grid}" />'
+            f'<text x="{left - 16}" y="{sy(tick) + 5:.2f}" text-anchor="end" class="tick">{tick:.0f}</text>'
+        )
+
+    slot_width = plot_width / len(groups)
+    bar_width = slot_width * 0.46
+    if len(groups) > 5:
+        bar_width = slot_width * 0.58
+    bars = []
+    labels = []
+    for idx, ((label, _), count) in enumerate(zip(groups, counts)):
+        center_x = left + (slot_width * idx) + (slot_width / 2)
+        bar_height = plot_height - (sy(count) - top)
+        x = center_x - (bar_width / 2)
+        y = sy(count)
+        bars.append(
+            f'<rect x="{x:.2f}" y="{y:.2f}" width="{bar_width:.2f}" height="{bar_height:.2f}" '
+            f'fill="{bar_color}" fill-opacity="0.18" stroke="{bar_color}" stroke-width="2" />'
+        )
+        labels.append(
+            f'<text x="{center_x:.2f}" y="{top + plot_height + 36}" text-anchor="middle" class="range-label">{_svg_escape(label)}</text>'
+        )
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+  <style>
+    .title {{ font: 700 28px Arial, Helvetica, sans-serif; fill: {axis_color}; }}
+    .label {{ font: 700 24px Arial, Helvetica, sans-serif; fill: {axis_color}; }}
+    .tick {{ font: 16px Arial, Helvetica, sans-serif; fill: {text}; }}
+    .range-label {{ font: 700 {label_font_size}px Arial, Helvetica, sans-serif; fill: {axis_color}; }}
+  </style>
+  <rect width="100%" height="100%" fill="white" />
+  <text x="{width / 2}" y="42" text-anchor="middle" class="title">{_svg_escape(title)}</text>
+  {''.join(svg_ticks)}
+  <line x1="{left}" y1="{top + plot_height}" x2="{left + plot_width}" y2="{top + plot_height}" stroke="{axis_color}" stroke-width="2" />
+  <line x1="{left}" y1="{top + plot_height}" x2="{left}" y2="{top}" stroke="{axis_color}" stroke-width="2" />
+  <path d="M {left + plot_width - 18} {top + plot_height - 12} L {left + plot_width} {top + plot_height} L {left + plot_width - 18} {top + plot_height + 12}" fill="none" stroke="{axis_color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M {left - 12} {top + 18} L {left} {top} L {left + 12} {top + 18}" fill="none" stroke="{axis_color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  {''.join(bars)}
+  {''.join(labels)}
+  <text x="{left + (plot_width / 2)}" y="{height - 34}" text-anchor="middle" class="label">Coverage breadth (%)</text>
+  <text transform="translate(34 {top + (plot_height / 2)}) rotate(-90)" text-anchor="middle" class="label">Number of genomes</text>
+</svg>
+'''
+
+    svg_path = os.path.join(outdir, filename)
+    with open(svg_path, "w") as svg_file:
+        svg_file.write(svg)
+
+    print(f"  > {svg_path}")
+
+
+def generate_coverage_breadth_summary_plot(short_summary_df, outdir):
+    groups = [
+        ("0-30%", lambda value: 0 <= value <= 30),
+        (">30-<70%", lambda value: 30 < value < 70),
+        ("70-100%", lambda value: 70 <= value <= 100),
+    ]
+    _generate_coverage_breadth_range_plot(
+        short_summary_df,
+        outdir,
+        groups,
+        "coverage_breadth_summary_plot.svg",
+        "Coverage breadth summary",
+        label_font_size=24,
+    )
+
+
+def generate_coverage_breadth_decile_plot(short_summary_df, outdir):
+    groups = []
+    for start in range(0, 90, 10):
+        end = start + 10
+        groups.append((f"{start}-<{end}%", lambda value, start=start, end=end: start <= value < end))
+    groups.append(("90-100%", lambda value: 90 <= value <= 100))
+
+    _generate_coverage_breadth_range_plot(
+        short_summary_df,
+        outdir,
+        groups,
+        "coverage_breadth_decile_plot.svg",
+        "Coverage breadth deciles",
+        label_font_size=14,
+    )
 
 # -------------------------------------------------------------------------------------
 def __parse_wgs(wgs_flpth,cod):
@@ -458,6 +893,9 @@ def get_lineages_summary(wgs_csv, outdir, multifasta, virus_tag, pango_csv=None)
                 cov_df = loadCoverageDF(multifasta)
                 short_summary_df = short_summary_df.merge(cov_df, on="cod")
                 short_summary_df.to_csv(f"{outdir}short_summary.csv")
+                generate_coverage_plot(short_summary_df, outdir)
+                generate_coverage_breadth_summary_plot(short_summary_df, outdir)
+                generate_coverage_breadth_decile_plot(short_summary_df, outdir)
             else:
                 print(f"WARN: {multifasta} was not found. No short_summary will be written.")
 
@@ -476,6 +914,9 @@ def get_lineages_summary(wgs_csv, outdir, multifasta, virus_tag, pango_csv=None)
                     short_summary_df["lineage"] = None
 
                 short_summary_df.to_csv(f"{outdir}short_summary.csv")
+                generate_coverage_plot(short_summary_df, outdir)
+                generate_coverage_breadth_summary_plot(short_summary_df, outdir)
+                generate_coverage_breadth_decile_plot(short_summary_df, outdir)
 
             else:
                 print(f"WARN: {multifasta} was not found. No short_summary will be written.")

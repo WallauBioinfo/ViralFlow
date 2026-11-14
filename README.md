@@ -7,6 +7,8 @@ If you use this workflow for academic purposes, please cite:
 
 ## Documentation
 
+For Ubuntu 26.04, see the [installation guide](docs/installation.md#ubuntu-2604) and [branch differences](UBUNTU26.04-CHANGES.md).
+
 The official documentation can be accessed [here](https://viralflow.github.io/index-en.html) in English or [here](https://viralflow.github.io/) in Portuguese.
 
 ViralFlow is a Nextflow pipeline and should be treated as such; check `vfnext/` for more details.  

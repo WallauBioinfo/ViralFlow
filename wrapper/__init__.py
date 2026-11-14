@@ -1,15 +1,18 @@
-from distutils.command.build_scripts import first_line_re
 from logging import root
 import os
+import shlex
+import subprocess
+import sys
+import tempfile
 
 
 def add_entries_to_DB(root_path, org_name, refseq_code, arch):
     """
     add entries provided to snpeff database
     """
-    run_bash = f"bash {root_path}/vfnext/containers/add_entries_SnpeffDB.sh"
-    print(f"{run_bash} {org_name} {refseq_code} {arch}")
-    os.system(f"{run_bash} {org_name} {refseq_code} {arch}")
+    run_bash = ["bash", f"{root_path}/vfnext/containers/add_entries_SnpeffDB.sh",
+                org_name, refseq_code, arch]
+    subprocess.check_call(run_bash)
 
 def parse_csv(csv_flpath):
     with open(csv_flpath, "r") as csv_fl:
@@ -30,12 +33,9 @@ def build_containers(root_path, arch: str):
     run script to build container for vfnext
     """
     # build containers
-    cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    build_sandbox = f"python ./build_containers.py {arch}"
-    pull_containers = f"python ./pull_containers.py {arch}"
-    os.system(cd_to_dir+';'+pull_containers) 
-    print(cd_to_dir+';'+build_sandbox)
-    os.system(cd_to_dir+';'+build_sandbox)
+    containers_dir = os.path.join(root_path, "vfnext", "containers")
+    for script in ("pull_containers.py", "build_containers.py"):
+        subprocess.check_call([sys.executable, script, arch], cwd=containers_dir)
     
 
 # input args file load
@@ -115,20 +115,47 @@ def parse_params(in_flpath):
     args_str += "-resume"
     return args_str
 
+def _update_pangolin(root_path, option):
+    # Upstream setup.py still imports pkg_resources; constrain only build tools.
+    with tempfile.TemporaryDirectory(prefix="viralflow-pangolin-") as temporary:
+        with open(os.path.join(temporary, "build-constraints.txt"), "w") as constraints:
+            constraints.write("setuptools<81\n")
+        command = ["singularity", "exec", "--writable", "--bind", f"{temporary}:/tmp",
+                   "./pangolin:4.4.sif", "env",
+                   "PIP_BUILD_CONSTRAINT=/tmp/build-constraints.txt"]
+        containers_dir = os.path.join(root_path, "vfnext", "containers")
+        subprocess.check_call(command + ["pangolin", option], cwd=containers_dir)
+        if option == "--update":
+            # Conda package metadata may lag behind the upstream Python requirements.
+            requirements = (
+                "from importlib.metadata import requires; import subprocess, sys; "
+                "subprocess.check_call([sys.executable, '-m', 'pip', 'install', "
+                "*(requires('pangolin') or []), *(requires('snakemake') or [])])"
+            )
+            subprocess.check_call(command + ["python", "-c", requirements], cwd=containers_dir)
+            subprocess.check_call(command + ["python", "-m", "pip", "check"], cwd=containers_dir)
+
 def update_pangolin(root_path):
-    cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    run_update = "singularity exec --writable ./pangolin:4.4.sif pangolin --update"
-    os.system(cd_to_dir+';'+run_update)
+    _update_pangolin(root_path, "--update")
 
 def update_pangolin_data(root_path):
-    cd_to_dir= f"cd {root_path}/vfnext/containers/" 
-    run_update_data = "singularity exec --writable ./pangolin:4.4.sif pangolin --update-data"
-    os.system(cd_to_dir+';'+run_update_data)
+    _update_pangolin(root_path, "--update-data")
 
 def run_vfnext(root_path, params_fl):
     # get nextflow arguments
     args_str = parse_params(params_fl)
-    nxtflw_ver="22.04.0"
-    run_nxtfl_cmd = f"NXF_VER={nxtflw_ver} nextflow run {root_path}/vfnext/main.nf {args_str}"
+    nxtflw_ver = os.environ.get("NXF_VER", "22.04.0")
+    configured_nextflow = os.environ.get("VIRALFLOW_NEXTFLOW")
+    nextflow = configured_nextflow or "nextflow"
+    if configured_nextflow and (
+            not os.path.isabs(nextflow) or not os.path.isfile(nextflow)
+            or not os.access(nextflow, os.X_OK)):
+        raise FileNotFoundError(f"Nextflow executable not found at the configured absolute path: {nextflow}")
+    run_nxtfl_cmd = (
+        f"NXF_VER={shlex.quote(nxtflw_ver)} {shlex.quote(nextflow)} run "
+        f"{shlex.quote(os.path.join(root_path, 'vfnext', 'main.nf'))} {args_str}"
+    )
     print(run_nxtfl_cmd)
-    os.system(run_nxtfl_cmd)
+    result = subprocess.call(run_nxtfl_cmd, shell=True)
+    if result:
+        raise SystemExit(result)
