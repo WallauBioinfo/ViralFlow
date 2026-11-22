@@ -49,7 +49,7 @@ En el caso de no tener el instalador de dependencias pip, el sistema de control 
 ```bash
 sudo apt update -y && \
   sudo apt upgrade -y && \
-  sudo apt install curl git python3-pip uidmap -y
+  sudo apt install curl git python3-pip uidmap squashfs-tools -y
 ```
 
 ### Instalando y Configurando el Ambiente Micromamba
@@ -111,13 +111,14 @@ pip install -e .
 
 Todas las etapas del ViralFlow son ejecutadas en ambientes controlados. El ViralFlow posee un método propio para realizar toda esa construcción de ambientes, rodando apenas una línea de código.
 
-Para que la construcción de los contenedores ocurra, el ViralFlow necesita que la herramienta "unsquashfs" se encuentre disponible en el directorio `/usr/local/bin/`. Para garantizar esto, cree un link simbólico:
+Para que la construcción de los contenedores ocurra, el ViralFlow necesita que las herramientas "unsquashfs" y "mksquashfs" se encuentren disponibles en el directorio `/usr/local/bin/`. Para garantizar esto, cree los links simbólicos:
 
 ```bash
-sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
+sudo ln -sf /usr/bin/unsquashfs /usr/local/bin/unsquashfs
+sudo ln -sf /usr/bin/mksquashfs /usr/local/bin/mksquashfs
 ```
 
-Después de garantizar que el unsquashfs se encuentra en el lugar adecuado, ejecuta el comando para la construcción de los contenedores:
+Después de garantizar que ambas herramientas se encuentran en el lugar adecuado, ejecuta el comando para la construcción de los contenedores:
 
 ```bash
 # AMD64
@@ -129,4 +130,33 @@ viralflow build-containers --arch arm64
 
 ```{note}
 Este proceso descargará aproximadamente 4.4GB de imágenes de contenedores. Asegúrese de tener suficiente espacio en disco y una conexión de internet estable.
+```
+
+## Solución de Problemas: AppArmor en Ubuntu 24.04+
+
+A partir de Ubuntu 24.04, AppArmor bloquea por defecto los user namespaces sin privilegios. El Singularity instalado vía conda depende de ellos, por lo que `viralflow build-containers` o `viralflow run` pueden fallar con errores que mencionan `permission denied` o `user namespace`.
+
+Verifique si la restricción está activa (`1` indica que lo está):
+
+```bash
+sysctl kernel.apparmor_restrict_unprivileged_userns
+```
+
+Si lo está, cree un perfil de AppArmor que habilite los user namespaces solo para el binario de Singularity. Ejecute los comandos a continuación con el ambiente `viralflow` activado:
+
+```bash
+micromamba activate viralflow
+STARTER=$(realpath $(dirname $(which singularity))/../libexec/singularity/bin/starter)
+sudo tee /etc/apparmor.d/singularity-ce <<EOT
+abi <abi/4.0>,
+include <tunables/global>
+profile singularity-ce ${STARTER}{,-suid} flags=(unconfined) {
+  userns,
+}
+EOT
+sudo systemctl reload apparmor
+```
+
+```{note}
+El perfil está vinculado a la ruta del binario de Singularity. Si recrea el ambiente `viralflow` en otra ubicación, ejecute estos comandos nuevamente.
 ```
