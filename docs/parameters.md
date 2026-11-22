@@ -17,7 +17,7 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 | `runSnpEff` | true | Needed to run the snpEff tool (true or false) |
 | `writeMappedReads` | true | Needed to generate the FASTQ files containing the sequencing reads that mapped to the reference genome |
 | `minLen` | 75 | Minimum size the reads must have. Reads below this threshold will be eliminated by FastP |
-| `depth` | 5 | Minimum coverage depth to call consensus bases. Positions with lower coverage depth will not be called and a "-" will be added to the respective consensus genomic position |
+| `depth` | 25 | Minimum coverage depth to call consensus bases. Positions with lower coverage depth will not be called and a "-" will be added to the respective consensus genomic position |
 | `mapping_quality` | 30 | Mapping quality threshold used to variant calling |
 | `base_quality` | 30 | Base quality threshold used to variant calling |
 | `minDpIntrahost` | 100 | Minimum coverage depth per genomic site to be considered in the intrahost analysis |
@@ -25,9 +25,11 @@ ViralFlow requires a parameter file that contains all configuration options. Exa
 | `refGenomeCode` | null | Code of the genome to be used in the custom analysis |
 | `referenceGFF` | null | GFF genome file to be used in custom analysis |
 | `referenceGenome` | null | Fasta genome file to be used in custom analysis |
-| `nextflowSimCalls` | null | Number of simultaneous calls that nextflow can perform |
+| `nextflowSimCalls` | 6 | Number of simultaneous calls that nextflow can perform |
 | `fastp_threads` | 1 | Number of threads to be used in the fastp read filtering step |
 | `bwa_threads` | 1 | Number of threads to be used in the bwa mapping step |
 | `mafft_threads` | 1 | Number of threads to be used in the mafft alignment step |
+| `nxtclade_jobs` | 1 | Number of threads to be used in the nextclade step (sars-cov2 mode) |
+| `pangolin_threads` | 1 | Number of threads to be used in the pangolin step (sars-cov2 mode) |
 | `dedup` | false | This argument enable dedup mode of fastp. To activate it change value to true on params test file |
 | `ndedup` | 3 | When dedup mode is active you can use accuracy levels (1 - 6). You can change this value, but we recommend the standard. How much higher, more RAM and time are consumed. To activate it change value from 1 to 6 on params test file |

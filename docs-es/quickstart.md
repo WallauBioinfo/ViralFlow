@@ -25,7 +25,7 @@ En este modelo, el análisis es realizado considerando el genoma de referencia N
 Para ello, el usuario necesita construir un archivo con los parámetros del análisis. Un ejemplo puede ser [verificado aquí](https://github.com/WallauBioinfo/ViralFlow/blob/main/test_files/sars-cov-2.params).
 
 ```bash
-viralflow run --params_file test_files/sars-cov-2.params
+viralflow run --params-file test_files/sars-cov-2.params
 ```
 
 ## Modo Custom
@@ -35,7 +35,7 @@ En este modelo, el análisis es realizado considerando los archivos para el viru
 Un ejemplo de archivo de parámetros puede ser [verificado aquí](https://github.com/WallauBioinfo/ViralFlow/blob/main/test_files/denv.params).
 
 ```bash
-viralflow run --params_file test_files/denv.params
+viralflow run --params-file test_files/denv.params
 ```
 
 ## Actualización Pangolin
