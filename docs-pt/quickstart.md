@@ -11,7 +11,11 @@ Sempre use **caminhos absolutos** ao especificar diretórios e arquivos, ex.: `/
 Por padrão, a ferramenta snpEff presente no ViralFlow vem configurada apenas com o genoma NC_045512.2 do vírus SARS-CoV-2. Caso você queira incluir a análise do snpEff para outros vírus, você deve atualizar o banco do snpEff com a seguinte linha (exemplo com Dengue):
 
 ```bash
-viralflow add_entry_to_snpeff --org_name Dengue --genome_code NC_001474.2
+# AMD64
+viralflow add-entry-to-snpeff --org-name Dengue --genome-code NC_001474.2
+
+# ARM64
+viralflow add-entry-to-snpeff --org-name Dengue --genome-code NC_001474.2 --arch arm64
 ```
 
 ## Modo SARS-CoV-2
@@ -40,8 +44,8 @@ Periodicamente a ferramenta pangolin atualiza o banco de linhagens, bem como a f
 
 ```bash
 # Atualiza a ferramenta e as bases de dados
-viralflow update_pangolin
+viralflow update-pangolin
 
 # Atualiza apenas as bases de dados
-viralflow update_pangolin_data
+viralflow update-pangolin-data
 ```

@@ -68,12 +68,41 @@ micromamba activate
 
 ### Instalando o ViralFlow
 
-Caso você já tenha as dependências citadas e o conda instalado, você pode instalar o ViralFlow com 5 linhas de código:
+O ViralFlow disponibiliza um arquivo de ambiente por arquitetura: `envs/amd64.yml` (x86_64) e `envs/arm64.yml` (ARM64/aarch64). Verifique a arquitetura da sua máquina com `uname -m` (`x86_64` → AMD64, `aarch64` → ARM64).
+
+#### AMD64
 
 ```bash
 git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow/
-micromamba env create -f envs/env.yml
+micromamba env create -f envs/amd64.yml
+micromamba activate viralflow
+pip install -e .
+```
+
+#### ARM64
+
+Em ARM64, o Singularity não está disponível via conda e deve ser compilado a partir do código-fonte antes da instalação do ViralFlow (o micromamba também deve ser baixado de `linux-aarch64` em vez de `linux-64` na etapa anterior):
+
+```bash
+sudo apt update
+sudo apt install -y build-essential git wget pkg-config \
+    libseccomp-dev squashfs-tools cryptsetup \
+    libglib2.0-dev uuid-dev libssl-dev libgpgme-dev \
+    libarchive-dev runc golang
+
+git clone --recursive https://github.com/sylabs/singularity.git
+cd singularity
+git checkout v3.11.4
+git submodule update --init --recursive
+./mconfig
+make -C builddir
+sudo make -C builddir install
+cd ..
+
+git clone https://github.com/WallauBioinfo/ViralFlow
+cd ViralFlow/
+micromamba env create -f envs/arm64.yml
 micromamba activate viralflow
 pip install -e .
 ```
@@ -91,7 +120,11 @@ sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
 Após garantir que o unsquashfs esteja no local apropriado, rode o comando para a construção dos containers:
 
 ```bash
-viralflow build_containers
+# AMD64
+viralflow build-containers
+
+# ARM64
+viralflow build-containers --arch arm64
 ```
 
 ```{note}

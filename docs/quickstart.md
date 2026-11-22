@@ -11,7 +11,11 @@ Always use **absolute paths** when specifying directories and files, e.g., `/hom
 By default, the snpEff tool in ViralFlow is configured with the NC_045512.2 genome of the SARS-CoV-2 virus only. If you want to include the snpEff analysis for other viruses, you must update the snpEff database with the following command (example with Dengue):
 
 ```bash
-viralflow add_entry_to_snpeff --org_name Dengue --genome_code NC_001474.2
+# AMD64
+viralflow add-entry-to-snpeff --org-name Dengue --genome-code NC_001474.2
+
+# ARM64
+viralflow add-entry-to-snpeff --org-name Dengue --genome-code NC_001474.2 --arch arm64
 ```
 
 ## SARS-CoV-2 Mode
@@ -40,8 +44,8 @@ Periodically the pangolin tool updates the lineage database, as well as the ushe
 
 ```bash
 # Update the tool and databases
-viralflow update_pangolin
+viralflow update-pangolin
 
 # Update only the databases
-viralflow update_pangolin_data
+viralflow update-pangolin-data
 ```
