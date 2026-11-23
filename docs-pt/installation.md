@@ -49,7 +49,7 @@ Caso você não tenha o instalador de dependências pip, o sistema de controle d
 ```bash
 sudo apt update -y && \
   sudo apt upgrade -y && \
-  sudo apt install curl git python3-pip uidmap -y
+  sudo apt install curl git python3-pip uidmap squashfs-tools -y
 ```
 
 ### Instalando e Configurando o Ambiente Micromamba
@@ -68,12 +68,41 @@ micromamba activate
 
 ### Instalando o ViralFlow
 
-Caso você já tenha as dependências citadas e o conda instalado, você pode instalar o ViralFlow com 5 linhas de código:
+O ViralFlow disponibiliza um arquivo de ambiente por arquitetura: `envs/amd64.yml` (x86_64) e `envs/arm64.yml` (ARM64/aarch64). Verifique a arquitetura da sua máquina com `uname -m` (`x86_64` → AMD64, `aarch64` → ARM64).
+
+#### AMD64
 
 ```bash
 git clone https://github.com/WallauBioinfo/ViralFlow
 cd ViralFlow/
-micromamba env create -f envs/env.yml
+micromamba env create -f envs/amd64.yml
+micromamba activate viralflow
+pip install -e .
+```
+
+#### ARM64
+
+Em ARM64, o Singularity não está disponível via conda e deve ser compilado a partir do código-fonte antes da instalação do ViralFlow (o micromamba também deve ser baixado de `linux-aarch64` em vez de `linux-64` na etapa anterior):
+
+```bash
+sudo apt update
+sudo apt install -y build-essential git wget pkg-config \
+    libseccomp-dev squashfs-tools cryptsetup \
+    libglib2.0-dev uuid-dev libssl-dev libgpgme-dev \
+    libarchive-dev runc golang
+
+git clone --recursive https://github.com/sylabs/singularity.git
+cd singularity
+git checkout v3.11.4
+git submodule update --init --recursive
+./mconfig
+make -C builddir
+sudo make -C builddir install
+cd ..
+
+git clone https://github.com/WallauBioinfo/ViralFlow
+cd ViralFlow/
+micromamba env create -f envs/arm64.yml
 micromamba activate viralflow
 pip install -e .
 ```
@@ -82,18 +111,52 @@ pip install -e .
 
 Todas as etapas do ViralFlow são executadas em ambientes controlados. O ViralFlow possui um método próprio para realizar toda essa construção de ambientes, rodando apenas uma linha de código.
 
-Para que a construção dos containers ocorra, o ViralFlow necessita que a ferramenta "unsquashfs" esteja disponível no diretório `/usr/local/bin/`. Para garantir isto, crie um link simbólico:
+Para que a construção dos containers ocorra, o ViralFlow necessita que as ferramentas "unsquashfs" e "mksquashfs" estejam disponíveis no diretório `/usr/local/bin/`. Para garantir isto, crie os links simbólicos:
 
 ```bash
-sudo ln -s /usr/bin/unsquashfs /usr/local/bin/unsquashfs
+sudo ln -sf /usr/bin/unsquashfs /usr/local/bin/unsquashfs
+sudo ln -sf /usr/bin/mksquashfs /usr/local/bin/mksquashfs
 ```
 
-Após garantir que o unsquashfs esteja no local apropriado, rode o comando para a construção dos containers:
+Após garantir que ambas as ferramentas estejam no local apropriado, rode o comando para a construção dos containers:
 
 ```bash
-viralflow build_containers
+# AMD64
+viralflow build-containers
+
+# ARM64
+viralflow build-containers --arch arm64
 ```
 
 ```{note}
 Este processo irá baixar aproximadamente 4,4GB de imagens de containers. Certifique-se de ter espaço suficiente em disco e uma conexão de internet estável.
+```
+
+## Solução de Problemas: AppArmor no Ubuntu 24.04+
+
+A partir do Ubuntu 24.04, o AppArmor bloqueia por padrão os user namespaces sem privilégio. O Singularity instalado via conda depende deles, então o `viralflow build-containers` ou o `viralflow run` podem falhar com erros mencionando `permission denied` ou `user namespace`.
+
+Verifique se a restrição está ativa (`1` indica que está):
+
+```bash
+sysctl kernel.apparmor_restrict_unprivileged_userns
+```
+
+Caso esteja, crie um perfil do AppArmor que libere os user namespaces apenas para o binário do Singularity. Rode os comandos abaixo com o ambiente `viralflow` ativado:
+
+```bash
+micromamba activate viralflow
+STARTER=$(realpath $(dirname $(which singularity))/../libexec/singularity/bin/starter)
+sudo tee /etc/apparmor.d/singularity-ce <<EOT
+abi <abi/4.0>,
+include <tunables/global>
+profile singularity-ce ${STARTER}{,-suid} flags=(unconfined) {
+  userns,
+}
+EOT
+sudo systemctl reload apparmor
+```
+
+```{note}
+O perfil está atrelado ao caminho do binário do Singularity. Caso você recrie o ambiente `viralflow` em outro local, rode estes comandos novamente.
 ```

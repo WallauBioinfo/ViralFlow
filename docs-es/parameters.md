@@ -17,7 +17,7 @@ ViralFlow requiere un archivo de parámetros que contiene todas las opciones de 
 | `runSnpEff` | true | Necesario para ejecutar la herramienta snpEff (true o false) |
 | `writeMappedReads` | true | Necesario para generar los archivos FASTQ que contienen las reads de secuenciación que mapearon al genoma de referencia |
 | `minLen` | 75 | Tamaño mínimo que las reads deben tener. Reads por debajo de este umbral serán eliminadas por FastP |
-| `depth` | 5 | Profundidad de cobertura mínima para llamar bases de consenso. Posiciones con profundidad de cobertura menor no serán llamadas y se agregará un "-" a la respectiva posición genómica de consenso |
+| `depth` | 25 | Profundidad de cobertura mínima para llamar bases de consenso. Posiciones con profundidad de cobertura menor no serán llamadas y se agregará un "-" a la respectiva posición genómica de consenso |
 | `mapping_quality` | 30 | Umbral de calidad de mapeo usado para variant calling |
 | `base_quality` | 30 | Umbral de calidad de base usado para variant calling |
 | `minDpIntrahost` | 100 | Profundidad de cobertura mínima por sitio genómico para ser considerado en el análisis intra-huésped |
@@ -25,9 +25,11 @@ ViralFlow requiere un archivo de parámetros que contiene todas las opciones de 
 | `refGenomeCode` | null | Código del genoma a ser usado en el análisis custom |
 | `referenceGFF` | null | Archivo GFF del genoma a ser usado en el análisis custom |
 | `referenceGenome` | null | Archivo Fasta del genoma a ser usado en el análisis custom |
-| `nextflowSimCalls` | null | Número de llamadas simultáneas que nextflow puede realizar |
+| `nextflowSimCalls` | 6 | Número de llamadas simultáneas que nextflow puede realizar |
 | `fastp_threads` | 1 | Número de threads a ser usados en la etapa de filtrado de reads de fastp |
 | `bwa_threads` | 1 | Número de threads a ser usados en la etapa de mapeo de bwa |
 | `mafft_threads` | 1 | Número de threads a ser usados en la etapa de alineamiento de mafft |
+| `nxtclade_jobs` | 1 | Número de threads a ser utilizadas en la etapa de nextclade (modo sars-cov2) |
+| `pangolin_threads` | 1 | Número de threads a ser utilizadas en la etapa de pangolin (modo sars-cov2) |
 | `dedup` | false | Este argumento habilita el modo dedup de fastp. Para activarlo, cambie el valor a true en el archivo de parámetros de prueba |
 | `ndedup` | 3 | Cuando el modo dedup está activo, puede usar niveles de precisión (1 - 6). Puede cambiar este valor, pero recomendamos el estándar. Cuanto mayor, más RAM y tiempo se consumen. Para activar, cambie el valor de 1 a 6 en el archivo de parámetros de prueba |

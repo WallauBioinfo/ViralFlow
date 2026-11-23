@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ViralFlow',
-    version='1.4.0',
+    version='1.4.1',
     description='''
     Nextflow workflow for reference-based viral genome assembly, quality control, 
     variant calling, and lineage assignment. Supports multiple viruses with 
