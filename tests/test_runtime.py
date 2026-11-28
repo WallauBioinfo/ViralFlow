@@ -176,7 +176,7 @@ esac
         self.assertIs(raised.exception, failure)
 
     def test_quay_manifests_keep_expected_local_names_for_both_architectures(self):
-        expected = ["edirect:1.1.0", "mafft:7.505_2", "samtools:1.11.0", "picard:2.27.2_2",
+        expected = ["edirect:1.1.0", "mafft:7.525", "samtools:1.11.0", "picard:2.27.2_2",
                     "intrahost_analysis:1.1.0", "generate_report:1.1.0",
                     "generate_consensus:2.0.0", "fastp:1.0.1", "generate_plots:2.0.0",
                     "nextclade:3.18", "compiled_outputs:1.1.0"]

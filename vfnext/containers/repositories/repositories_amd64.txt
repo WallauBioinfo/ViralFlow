@@ -1,5 +1,5 @@
 quay.io/wallaulabs/amd64-edirect:1.1.0
-quay.io/wallaulabs/amd64-mafft:7.505_2
+quay.io/wallaulabs/amd64-mafft:7.525
 quay.io/wallaulabs/amd64-samtools:1.11.0
 quay.io/wallaulabs/amd64-picard:2.27.2_2
 quay.io/wallaulabs/amd64-intrahost_analysis:1.1.0
