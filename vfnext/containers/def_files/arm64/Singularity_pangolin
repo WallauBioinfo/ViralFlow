@@ -1,14 +1,15 @@
 Bootstrap: docker
-From: arm64v8/debian:11
+From: arm64v8/debian:12-slim
 
 %environment
     export PATH=$PATH:/usr/local/bin/micromamba:/usr/local/bin/mm:/usr/local/bin/mm/bin
 
 %post
+    set -e
     apt-get update
-    apt-get install -y curl bzip2 gcc g++ make python3-dev git
+    apt-get install -y ca-certificates curl bzip2 gcc g++ make python3-dev git
     cd /usr/local
-    rmdir bin
+    mkdir -p bin
     curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/1.5.7 | tar -xvj bin/micromamba
     export MAMBA_ROOT_PREFIX=/usr/local/bin/mm
     eval "$(/usr/local/bin/micromamba shell hook -s posix)"
